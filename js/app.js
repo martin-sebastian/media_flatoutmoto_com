@@ -1934,7 +1934,7 @@ function updateTable() {
 
           <a
             href="javascript:void(0);" 
-            type="button" 
+            type="button"
             class="btn btn-danger action-button mx-1"
             title="Goto TV Display Launcher"
             onclick="window.location.href = 'tv/?stockInput=${stockNumber}'"

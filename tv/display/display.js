@@ -28,6 +28,14 @@ function normalizeStockNumber(value) {
 }
 
 /**
+ * Determine if the current screen is portrait.
+ * @returns {boolean} True when portrait orientation.
+ */
+function isPortraitScreen() {
+  return window.matchMedia("(orientation: portrait)").matches || window.innerHeight >= window.innerWidth;
+}
+
+/**
  * Fetch selected image overrides from JSON.
  * @returns {Promise<object>} Selected images map.
  */
@@ -258,7 +266,7 @@ function renderFeatureCards(items) {
     .join("");
 
   if (!cards) return "";
-  return `<div class="row g-3">${cards}</div>`;
+  return `<div class="row g-3 tv-feature-row">${cards}</div>`;
 }
 
 /**
@@ -582,6 +590,17 @@ function renderMessage(message) {
  */
 async function initDisplay() {
   const { layout, stockNumber, category, imageUrl, note } = getQueryParams();
+
+  const wantsPortrait = layout !== "landscape";
+  const screenIsPortrait = isPortraitScreen();
+  if (wantsPortrait !== screenIsPortrait) {
+    renderMessage(
+      wantsPortrait
+        ? "You can only display this on a portrait oriented screen."
+        : "You can only display this on a landscape oriented screen."
+    );
+    return;
+  }
 
   try {
     const [xmlText, selectedMap] = await Promise.all([fetchXmlText(), fetchSelectedImages()]);
