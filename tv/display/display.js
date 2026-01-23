@@ -116,6 +116,174 @@ function formatPrice(value) {
 }
 
 /**
+ * Safely trim a string value.
+ * @param {string} value Input value.
+ * @returns {string} Trimmed string.
+ */
+function safeText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Build a list of media entries for the carousel.
+ * @param {object[]} apiImages API image objects.
+ * @param {string[]} xmlImages XML image list.
+ * @param {string[]} preferredImages Preferred image URLs.
+ * @returns {{type: string, src: string, caption: string}[]} Media entries.
+ */
+function buildMediaList(apiImages, xmlImages, preferredImages) {
+  const media = [];
+
+  const preferred = (preferredImages || []).filter(Boolean);
+  const imageUrls = (apiImages || []).map((img) => safeText(img.ImgURL)).filter(Boolean);
+  const fallbackImages = (xmlImages || []).filter(Boolean);
+  const allImages = preferred.length ? preferred : imageUrls.length ? imageUrls : fallbackImages;
+
+  allImages.forEach((url) => {
+    media.push({
+      type: "image",
+      src: url,
+      caption: "",
+    });
+  });
+
+  return media;
+}
+
+/**
+ * Get the first YouTube embed URL from API videos.
+ * @param {object[]} apiVideos API video objects.
+ * @returns {string} Embed URL or empty string.
+ */
+function getYouTubeEmbedUrl(apiVideos) {
+  const fallbackId = "pd5fKmJoKew";
+  const video = (apiVideos || []).find((item) => item && Number(item.Platform) === 0 && safeText(item.URL));
+  const id = video ? safeText(video.URL) : fallbackId;
+  return `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&mute=1`;
+}
+
+/**
+ * Build markup for a Bootstrap carousel of media.
+ * @param {string} id Carousel DOM id.
+ * @param {{type: string, src: string, caption: string}[]} media Media entries.
+ * @returns {string} Carousel markup.
+ */
+function renderMediaCarousel(id, media) {
+  if (!media.length) {
+    return `<div class="tv-panel p-5 text-center">Image not available</div>`;
+  }
+
+  const indicators = media
+    .map(
+      (_, index) => `
+        <button type="button" data-bs-target="#${id}" data-bs-slide-to="${index}" ${
+        index === 0 ? 'class="active" aria-current="true"' : ""
+      } aria-label="Slide ${index + 1}"></button>
+      `
+    )
+    .join("");
+
+  const slides = media
+    .map(
+      (item, index) => `
+        <div class="carousel-item ${index === 0 ? "active" : ""}">
+          <img src="${item.src}" class="d-block w-100 tv-hero" alt="Vehicle image" />
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <div id="${id}" class="carousel slide carousel-fade tv-carousel" data-bs-ride="carousel" data-bs-interval="7000" data-bs-pause="false" data-bs-wrap="true">
+      <div class="carousel-indicators">
+        ${indicators}
+      </div>
+      <div class="carousel-inner">
+        ${slides}
+      </div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#${id}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#${id}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+      </button>
+    </div>
+  `;
+}
+
+/**
+ * Initialize Bootstrap carousels after render.
+ */
+function initCarousels() {
+  if (!window.bootstrap || !window.bootstrap.Carousel) return;
+  document.querySelectorAll(".tv-carousel").forEach((element) => {
+    new bootstrap.Carousel(element, {
+      interval: 7000,
+      pause: false,
+      ride: "carousel",
+      wrap: true,
+    });
+  });
+}
+
+/**
+ * Build feature cards from API items.
+ * @param {object[]} items Feature items list.
+ * @returns {string} Feature card markup.
+ */
+function renderFeatureCards(items) {
+  const cards = (items || [])
+    .filter((item) => item && item.Included === true)
+    .filter((item) => safeText(item.Description))
+    .slice(0, 3)
+    .map((item) => {
+      const title = safeText(item.Description);
+      const detail = safeText(item.ImageDescription);
+      const imageUrl = safeText(item.ImgURL);
+      const imageMarkup = imageUrl
+        ? `<img src="${imageUrl}" class="tv-feature-img" alt="${title}" />`
+        : `<div class="tv-feature-icon"><i class="bi bi-stars"></i></div>`;
+      return `
+        <div class="col-12 col-md-4">
+          <div class="tv-panel p-3 h-100">
+            ${imageMarkup}
+            <div class="mt-3 fw-semibold">${title}</div>
+            ${detail ? `<div class="text-secondary small mt-1">${detail}</div>` : ""}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  if (!cards) return "";
+  return `<div class="row g-3">${cards}</div>`;
+}
+
+/**
+ * Build line items list for fees/taxes.
+ * @param {object[]} items Items list.
+ * @returns {string} List markup.
+ */
+function renderLineItems(items) {
+  const rows = (items || [])
+    .filter((item) => safeText(item.Description))
+    .map(
+      (item) => `
+        <div class="d-flex justify-content-between small">
+          <span>${safeText(item.Description)}</span>
+          <span>${formatPrice(item.Amount)}</span>
+        </div>
+      `
+    )
+    .join("");
+
+  if (!rows) return "";
+  return `<div class="mt-2">${rows}</div>`;
+}
+
+/**
  * Build a normalized data object from XML item fields.
  * @param {Element} item XML item element.
  * @returns {object} Data object.
@@ -214,11 +382,18 @@ function renderQrCode(url) {
  * @param {string} imageUrl Preferred image URL.
  * @param {string} customText Custom text line.
  */
-function renderPortrait(data, imageUrl, customText) {
-  const secondaryImage = data.images[1] || "";
-  const heroMarkup = imageUrl
-    ? `<img class="tv-hero" src="${imageUrl}" alt="${data.title || "Vehicle"}" />`
-    : `<div class="tv-panel p-5 text-center">Image not available</div>`;
+function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
+  const media = buildMediaList(apiData?.Images, data.images, preferredImages);
+  const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media);
+  const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
+  const priceValue = apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || data.price;
+  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP;
+  const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
+  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
+  const feesMarkup = renderLineItems(apiData?.OTDItems || []);
+  const rebatesMarkup = renderLineItems(apiData?.MfgRebatesFrontEnd || []);
+  const totalValue = apiData?.OTDPrice;
+
   ROOT.innerHTML = `
     <div class="container">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -227,14 +402,16 @@ function renderPortrait(data, imageUrl, customText) {
       </div>
 
       <div class="mb-3">
-        ${heroMarkup}
+        ${carouselMarkup}
       </div>
 
       <div class="row g-3">
         <div class="col-12 col-lg-6">
           <div class="tv-panel p-3 h-100">
             <div class="text-uppercase text-danger fw-semibold mb-2">Show Special</div>
-            <div class="display-6 fw-bold">${formatPrice(data.price)}</div>
+            <div class="display-6 fw-bold">${formatPrice(priceValue)}</div>
+            ${msrpValue ? `<div class="text-secondary small mt-1">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+            ${paymentValue ? `<div class="mt-2 fw-semibold">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
             <div class="text-secondary mt-2">${data.title || ""}</div>
             ${customText ? `<div class="mt-3 fw-semibold">${customText}</div>` : ""}
           </div>
@@ -251,9 +428,16 @@ function renderPortrait(data, imageUrl, customText) {
         </div>
       </div>
 
-      <div class="row g-3 mt-1">
+      ${featureMarkup ? `<div class="mt-2">${featureMarkup}</div>` : ""}
+
+      <div class="row g-3 mt-2">
         <div class="col-12 col-lg-8">
-          ${secondaryImage ? `<img class="tv-hero" src="${secondaryImage}" alt="Secondary image" />` : ""}
+          <div class="tv-panel p-3 h-100">
+            <div class="fw-semibold">Fees & Taxes</div>
+            ${rebatesMarkup}
+            ${feesMarkup}
+            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
+          </div>
         </div>
         <div class="col-12 col-lg-4">
           <div class="tv-panel p-3 h-100 d-flex align-items-center justify-content-center">
@@ -261,9 +445,22 @@ function renderPortrait(data, imageUrl, customText) {
           </div>
         </div>
       </div>
+
+      ${
+        videoEmbedUrl
+          ? `
+          <div class="mt-3">
+            <div class="tv-video-frame">
+              <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          </div>
+        `
+          : ""
+      }
     </div>
   `;
   renderQrCode(data.webURL);
+  initCarousels();
 }
 
 /**
@@ -272,10 +469,17 @@ function renderPortrait(data, imageUrl, customText) {
  * @param {string} imageUrl Preferred image URL.
  * @param {string} customText Custom text line.
  */
-function renderLandscapeSingle(data, imageUrl, customText) {
-  const heroMarkup = imageUrl
-    ? `<img class="tv-hero" src="${imageUrl}" alt="${data.title || "Vehicle"}" />`
-    : `<div class="tv-panel p-5 text-center">Image not available</div>`;
+function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredImages) {
+  const media = buildMediaList(apiData?.Images, data.images, preferredImages);
+  const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media);
+  const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
+  const priceValue = apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || data.price;
+  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP;
+  const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
+  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
+  const feesMarkup = renderLineItems(apiData?.OTDItems || []);
+  const totalValue = apiData?.OTDPrice;
+
   ROOT.innerHTML = `
     <div class="container">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -285,24 +489,43 @@ function renderLandscapeSingle(data, imageUrl, customText) {
 
       <div class="row g-4 align-items-center">
         <div class="col-12 col-lg-7">
-          ${heroMarkup}
+          ${carouselMarkup}
         </div>
         <div class="col-12 col-lg-5">
           <div class="tv-panel p-3 mb-3">
             <div class="h4 fw-semibold">${data.title || ""}</div>
             <div class="text-secondary">${data.manufacturer || ""} ${data.modelName || ""}</div>
-            <div class="display-6 fw-bold text-danger mt-2">${formatPrice(data.price)}</div>
+            <div class="display-6 fw-bold text-danger mt-2">${formatPrice(priceValue)}</div>
+            ${msrpValue ? `<div class="text-secondary small mt-1">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+            ${paymentValue ? `<div class="mt-2 fw-semibold">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
             ${customText ? `<div class="mt-2 fw-semibold">${customText}</div>` : ""}
           </div>
           <div class="tv-panel p-3">
             <div>Stock: ${data.stockNumber || "N/A"}</div>
             <div>Type: ${data.modelType || "N/A"}</div>
             <div>Usage: ${data.usage || "N/A"}</div>
+            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
+            ${feesMarkup}
           </div>
         </div>
       </div>
+
+      ${featureMarkup ? `<div class="mt-2">${featureMarkup}</div>` : ""}
+
+      ${
+        videoEmbedUrl
+          ? `
+          <div class="mt-3">
+            <div class="tv-video-frame">
+              <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          </div>
+        `
+          : ""
+      }
     </div>
   `;
+  initCarousels();
 }
 
 /**
@@ -384,9 +607,9 @@ async function initDisplay() {
       const customText = note || saved.text || "";
 
       if (layout === "landscape") {
-        renderLandscapeSingle(merged, preferredImage, customText);
+        renderLandscapeSingle(merged, preferredImage, customText, apiData, saved.images);
       } else {
-        renderPortrait(merged, preferredImage, customText);
+        renderPortrait(merged, preferredImage, customText, apiData, saved.images);
       }
       return;
     }
