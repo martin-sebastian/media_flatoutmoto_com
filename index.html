@@ -37,7 +37,7 @@
 
 
   <body class="overflow-hidden overflow-y-auto" data-bs-theme="dark">
-      <header class="fixed-top d-print-none">
+      <header class="sticky-top d-print-none">
         <nav class="navbar navbar-expand-xl bg-body-tertiary bg-blur">
           <div class="container-fluid">
             <div class="navbar-left d-flex flex-row align-items-center">
@@ -88,9 +88,7 @@
               <button id="toggleThemeButton" class="btn btn-outline-secondary px-3 mx-1" type="button">
                 <i id="theme-icon" class="bi bi-moon-stars"></i>
               </button>
-              <button class="btn btn-outline-danger px-3 mx-1" type="button" title="TV Display" onclick="window.location.href = './tv/'">
-                <i class="bi bi-tv me-2"></i>TV Display
-              </button>
+
               <button
                 class="btn btn-danger py-0 px-2 mx-1"
                 type="button"
@@ -148,15 +146,13 @@
 
       <main>
         <div class="container-fluid">
-      
           <!-- element for displaying row count -->
-          <div class="mx-2 my-5">
+          <div class="mx-2mt-5">
             <span class="text-secondary">Results:</span> <span class="mx-1" id="rowCountDisplay"></span></span>
           </div>
-
-          <div class="card">
-            <div class="table-responsive">
-              <table id="vehiclesTable" class="table table-borderless table-striped table-sm h-100 w-100">
+          <div class="bg-dark text-light rounded-3 border border-secondary-subtle border-1 vh-90">
+            <div class="table-responsive" style="height: vh90;">
+              <table id="vehiclesTable" class="table table-borderless table-striped table-sm">
                 <thead>
                   <tr>
                     <th class="no-wrap text-center">Image</th>

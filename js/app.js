@@ -1863,8 +1863,8 @@ function updateTable() {
         <span class="badge text-bg-dark border">${year}</span>
       </td>
       <td class="text-truncate" style="max-width: 150px;">${manufacturer}</td>
-      <td class="text-wrap">
-        <span class="text-wrap">${modelName}</span>
+      <td class="text-truncate">
+        <span class="no-wrap">${modelName}</span>
         <span class="visually-hidden">
         ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${moment(updated).format("YYYY-MM-DD")}
         </span>
@@ -1897,12 +1897,16 @@ function updateTable() {
         </span>
         <span class="visually-hidden">${normalizeDate(updated).format("YYYY-MM-DD")}</span>
       </td>
-      <td class="text-center">${
+      <td class="text-center">
+      ${
         parseInt(imageElements) > 10
           ? `<span class="photos-status" title="In-House Photos Done"><i class="bi bi-camera2 text-warning"></i><span class="visually-hidden" style="font-size: 10px;">FOM PHOTOS</span></span>`
           : `<span class="photos-status" title="Awaiting Photo Shoot"><i class="bi bi-camera2 text-secondary"></i><span class="visually-hidden" style="font-size: 10px;">STOCK PHOTOS</span></span>`
-      }</td>
-      <td class="text-center text-nowrap">
+      }
+      </td>
+
+
+      <td class="text-center no-wrap">
         <div class="action-button-group" role="group" aria-label="Vehicles">
           <button type="button" id="keytagModalButton" class="btn btn-danger action-button mx-1"  title="Print Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
             <i class="bi bi-tag"></i>
