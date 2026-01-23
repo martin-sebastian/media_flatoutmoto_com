@@ -1939,8 +1939,8 @@ function updateTable() {
             title="Goto TV Display Launcher"
             onclick="window.location.href = 'tv/?stockInput=${stockNumber}'"
           >
-            <i class="bi bi-card-heading"></i>
-            <span style="font-size:10px; text-transform:uppercase;">Quote</span>
+            <i class="bi bi-tv"></i>
+            <span style="font-size:10px; text-transform:uppercase;">TV DISPLAY</span>
           </a>
 
           <a

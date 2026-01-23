@@ -118,29 +118,68 @@
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
-          <form class="d-flex flex-column row-gap-3 my-3" role="search">
-            <div class="d-flex flex-column row-gap-2">
-              <button type="button" class="btn btn-danger" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
-                <i class="bi bi-tag float-start"></i> Create Custom Key Tag
-              </button>
-              <button type="button" class="btn btn-outline-danger" title="TV Display" onclick="window.location.href = './tv/'">
-                <i class="bi bi-tv float-start"></i> TV Display
-              </button>
-              <button type="button" class="btn btn-danger disabled" title="Create custom hang tags" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
-                <i class="bi bi-tags float-start"></i> Create Custom Hang Tags
-              </button>
-              <button type="button" class="btn btn-danger" title="Create custom quote" onclick="window.location.href = './quote/'">
-                <i class="bi bi-card-heading float-start"></i> Create Custom Quote
-              </button>
-              <button type="button" class="btn btn-danger" title="Service Calendar" onclick="openServiceCalendarModal()">
-                <i class="bi bi-calendar-date float-start"></i> Service Calendar Demo
-              </button>
-              <button type="button" class="btn btn-danger disabled" title="Settings" onclick="window.open('/admin')">
-                <i class="bi bi-gear float-start"></i>Settings - coming soon.
-              </button>
-              <nav class="side-menu-footer text-light small text-muted">Version 0.3.1</nav>
+          <form class="form-group d-flex flex-column justify-content-center align-items-center" role="search">
+            <label for="searchFilter" class="visually-hidden">Search</label>
+            <input
+              type="search"
+              class="form-control d-inline-flex search-width m-1"
+              id="searchFilterSideBar"
+              placeholder="Search"
+              name="search"
+              aria-label="Search"
+              title="Filter vehicles by year, make, model, stock number or VIN"
+              autocomplete="off"
+            />
+            <select id="yearFilterSideBar" class="form-select w-100 my-1">
+              <option value="">Year</option>
+              <option value="">All</option>
+            </select>
+
+            <select id="manufacturerFilterSideBar" class="form-select w-100 my-1">
+              <option value="">Make</option>
+              <option value="">All</option>
+            </select>
+            
+            <select id="typeFilterSideBar" class="form-select w-100 my-1">
+              <option value="">Type</option>
+              <option value="">All</option>
+            </select>
+            
+            <label for="updatedFilter" class="visually-hidden">Updated:</label>
+            <input type="date" id="updatedFilterSideBar" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" onchange="filterTable()">
+            <div class="card px-2 text-start form-check w-100">
+              <label class="form-check-label p-2" for="flexCheckChecked">
+                <input class="form-check-input ms-1 me-3" type="checkbox" value="" id="flexCheckChecked" checked>
+                Stock Photos
+              </label>
             </div>
           </form>
+          
+          <form class="d-flex flex-column mt-1" role="search">
+            <div class="card w-100">
+              <div class="d-flex flex-column ">
+                <button type="button" class="btn btn-dark text-start" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                  <i class="bi bi-tag me-3"></i> Create Custom Key Tag
+                </button>
+                <button type="button" class="btn btn-dark text-start" title="TV Display" onclick="window.location.href = './tv/'">
+                  <i class="bi bi-tv me-3"></i> TV Display Launcher
+                </button>
+                <button type="button" class="btn btn-dark text-start" title="Create custom quote" onclick="window.location.href = './quote/'">
+                  <i class="bi bi-card-heading me-3"></i> Create Custom Quote
+                </button>
+                <button type="button" class="btn btn-dark text-start" title="Service Calendar" onclick="openServiceCalendarModal()">
+                  <i class="bi bi-calendar-date me-3"></i> Service Calendar Demo
+                </button>
+                <button type="button" class="btn btn-dark text-start disabled" title="Create custom hang tags" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                  <i class="bi bi-tags me-3"></i> Create Custom Hang Tags
+                </button>
+                <button type="button" class="btn btn-dark text-start disabled" title="Settings" onclick="window.open('/admin')">
+                  <i class="bi bi-gear me-3"></i> Settings - coming soon.
+                </button>
+              </div>
+            </div>
+          </form>
+          <nav class="side-menu-footer text-light small text-muted">Version 0.3.1</nav>
         </div>
       </div>
 
