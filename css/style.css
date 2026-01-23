@@ -101,7 +101,7 @@ th {
   backdrop-filter: blur(5px) !important;
   opacity: 0.9;
 }
-.navbar-header .container-fluid {
+.navbar-headerxxx .container-fluidxxx {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -242,7 +242,7 @@ th::after {
   color: #F9C10A;
   
 }
-.table-responsive {
+.table-card {
   border-radius: 15px;
   height: 80vh;
   overflow: hidden;

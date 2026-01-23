@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TV Display Launcher</title>
+    <link rel="stylesheet" href="../css/bootstrap.css" />
+    <link rel="stylesheet" href="../css/bootstrap-icons.css" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="./tv.css" />
+  </head>
+  <body class="tv-body">
+    <main class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+          <div class="tv-panel p-4">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+              <img src="../img/fom-app-logo-01.svg" alt="Flatout Motorsports" width="180" height="27" />
+              <span class="badge text-bg-danger">TV Launcher</span>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-12">
+                <label for="stockInput" class="form-label">Stock Number</label>
+                <input type="text" class="form-control" id="stockInput" placeholder="SD21374" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label d-block">Layout</label>
+                <div class="btn-group w-100" role="group" aria-label="Layout selection">
+                  <input type="radio" class="btn-check" name="layoutOption" id="layoutPortrait" value="portrait" autocomplete="off" checked />
+                  <label class="btn btn-outline-light" for="layoutPortrait">Portrait 1080x1920</label>
+                  <input type="radio" class="btn-check" name="layoutOption" id="layoutLandscape" value="landscape" autocomplete="off" />
+                  <label class="btn btn-outline-light" for="layoutLandscape">Landscape 1920x1080</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="categorySelect" class="form-label">Category</label>
+                <select id="categorySelect" class="form-select">
+                  <option value="">All Vehicles</option>
+                  <option value="boats">Boats</option>
+                  <option value="vehicles">Vehicles</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label for="imageUrlInput" class="form-label">Selected Image URL (optional)</label>
+                <input type="url" class="form-control" id="imageUrlInput" placeholder="https://..." />
+              </div>
+              <div class="col-12">
+                <label for="customTextInput" class="form-label">Custom Text (optional)</label>
+                <input type="text" class="form-control" id="customTextInput" placeholder="Boat show special, etc." />
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+              <button class="btn btn-outline-light" type="button" id="loadImagesBtn">
+                <i class="bi bi-images me-2"></i>Load Images
+              </button>
+              <button class="btn btn-danger" type="button" id="buildUrlBtn">
+                <i class="bi bi-link-45deg me-2"></i>Build URL
+              </button>
+              <button class="btn btn-outline-danger" type="button" id="copyUrlBtn">
+                <i class="bi bi-clipboard-check me-2"></i>Copy URL
+              </button>
+            </div>
+
+            <div class="mt-3">
+              <label for="urlOutput" class="form-label">Display URL</label>
+              <input type="text" class="form-control" id="urlOutput" readonly />
+              <div class="form-text">Paste this into AbleSign/OptiSigns.</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <h5 class="text-white">Image Choices</h5>
+            <div id="imageResults" class="row g-3"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="./launcher.js"></script>
+  </body>
+</html>
