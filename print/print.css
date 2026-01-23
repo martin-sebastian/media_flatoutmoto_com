@@ -1,0 +1,163 @@
+@page {
+  size: 8.5in 11in;
+  margin: 0.35in;
+}
+
+body.print-body {
+  background: #f0f0f0;
+  color: #111;
+  font-family: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+}
+
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 12px 24px;
+  border-bottom: 1px solid #ddd;
+  z-index: 10;
+}
+
+.print-page {
+  width: 8.5in;
+  min-height: 11in;
+  margin: 24px auto;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.print-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.print-header img {
+  height: 28px;
+}
+
+.print-title {
+  font-weight: 700;
+  font-size: 18px;
+  text-align: right;
+}
+
+.print-hero {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.print-panel {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.print-panel-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.print-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: #c61f2b;
+}
+
+.print-sub {
+  font-size: 12px;
+  color: #555;
+}
+
+.print-meta {
+  font-size: 12px;
+  color: #333;
+}
+
+.print-total {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+.print-list {
+  font-size: 12px;
+  color: #333;
+  display: grid;
+  gap: 4px;
+}
+
+.print-description {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.print-thumbs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.print-thumbs img {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.print-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.print-card img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+}
+
+.print-card-body {
+  padding: 8px;
+}
+
+.print-card-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.print-card-sub {
+  font-size: 11px;
+  color: #555;
+}
+
+.screen-only {
+  display: block;
+}
+
+@media print {
+  body.print-body {
+    background: #fff;
+  }
+
+  .print-toolbar {
+    display: none;
+  }
+
+  .print-page {
+    margin: 0;
+    box-shadow: none;
+    width: auto;
+    min-height: auto;
+    padding: 0;
+  }
+
+  .screen-only {
+    display: none;
+  }
+}
