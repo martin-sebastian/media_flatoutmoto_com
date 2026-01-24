@@ -35,6 +35,15 @@ function normalizeStockNumber(value) {
 }
 
 /**
+ * Read the launcher stock number from URL params.
+ * @returns {string} Stock number from the query string.
+ */
+function getLauncherStockFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return normalizeStockNumber(params.get("stockInput") || params.get("s") || "");
+}
+
+/**
  * Fetch selected-images JSON for curated picks.
  * @returns {Promise<object>} Selected images map.
  */
@@ -239,6 +248,12 @@ function handleImageSelection(event) {
  * Initialize launcher event listeners.
  */
 function initLauncher() {
+  if (!DOM.stockInput) return;
+  const initialStock = getLauncherStockFromUrl();
+  if (initialStock) {
+    DOM.stockInput.value = initialStock;
+    DOM.stockInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
   DOM.loadImagesBtn.addEventListener("click", handleLoadImages);
   DOM.buildUrlBtn.addEventListener("click", () => {
     DOM.urlOutput.value = buildDisplayUrl();

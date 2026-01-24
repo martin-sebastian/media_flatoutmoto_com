@@ -244,10 +244,10 @@ function initCarousels() {
 function renderFeatureCards(items) {
   const cards = (items || [])
     .filter((item) => item && item.Included === true)
-    .filter((item) => safeText(item.Description))
+    .filter((item) => safeText(item.Description) || safeText(item.ImageDescription) || safeText(item.ImgURL))
     .slice(0, 3)
     .map((item) => {
-      const title = safeText(item.Description);
+      const title = safeText(item.Description) || "Feature Highlight";
       const detail = safeText(item.ImageDescription);
       const imageUrl = safeText(item.ImgURL);
       const imageMarkup = imageUrl
@@ -255,7 +255,7 @@ function renderFeatureCards(items) {
         : `<div class="tv-feature-icon"><i class="bi bi-stars"></i></div>`;
       return `
         <div class="col-12 col-md-4">
-          <div class="tv-panel p-3 h-100">
+          <div class="tv-panel p-3 h-100 w-100">
             ${imageMarkup}
             <div class="mt-3 fw-semibold">${title}</div>
             ${detail ? `<div class="text-secondary small mt-1">${detail}</div>` : ""}
@@ -368,23 +368,6 @@ function mergeData(xmlData, apiData) {
 }
 
 /**
- * Render a QR code for a target URL.
- * @param {string} url Target URL for QR code.
- */
-function renderQrCode(url) {
-  if (!window.QRCode || !url) return;
-  const qrContainer = document.getElementById("qrCode");
-  if (!qrContainer) return;
-  qrContainer.innerHTML = "";
-  new QRCode(qrContainer, {
-    text: url,
-    width: 120,
-    height: 120,
-    correctLevel: QRCode.CorrectLevel.M,
-  });
-}
-
-/**
  * Render a single vehicle in portrait layout.
  * @param {object} data Vehicle data.
  * @param {string} imageUrl Preferred image URL.
@@ -394,39 +377,54 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
   const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media);
   const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
-  const priceValue = apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || data.price;
-  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP;
+  const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
+  const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
+  const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
   const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
   const rebatesMarkup = renderLineItems(apiData?.MfgRebatesFrontEnd || []);
   const totalValue = apiData?.OTDPrice;
+  const contactLine = apiData?.Phone ? `Call ${apiData.Phone}` : data.webURL ? "Visit flatoutmotorcycles.com" : "Visit Flat Out Motorsports";
 
   ROOT.innerHTML = `
     <div class="container">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" width="180" height="27" />
-        <span class="badge text-bg-danger">${data.year || ""}</span>
-      </div>
 
-      <div class="mb-3">
+      <div class="">
         ${carouselMarkup}
       </div>
 
       <div class="row g-3">
         <div class="col-12 col-lg-6">
-          <div class="tv-panel p-3 h-100">
+          <div class="tv-panel my-3 p-3 h-100 w-100">
             <div class="text-uppercase text-danger fw-semibold mb-2">Show Special</div>
-            <div class="display-6 fw-bold">${formatPrice(priceValue)}</div>
-            ${msrpValue ? `<div class="text-secondary small mt-1">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+            ${
+              msrpValue
+                ? `<div class="text-secondary small ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
+                : ""
+            }
+            <div class="display-6 fw-bold">${formatPrice(specialValue)}</div>
             ${paymentValue ? `<div class="mt-2 fw-semibold">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
             <div class="text-secondary mt-2">${data.title || ""}</div>
-            ${customText ? `<div class="mt-3 fw-semibold">${customText}</div>` : ""}
+            ${customText ? `<div class="mt-2 fw-semibold">${customText}</div>` : ""}
           </div>
         </div>
         <div class="col-12 col-lg-6">
-          <div class="tv-panel p-3 h-100">
-            <div class="fw-semibold mb-2">Details</div>
+          <div class="tv-panel my-3 p-3 h-100 w-100">
+            <div class="fw-semibold">Fees & Taxes</div>
+            ${rebatesMarkup}
+            ${feesMarkup}
+            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
+          </div>
+        </div>
+      </div>
+
+      ${featureMarkup ? `<div class="row w-100 ">${featureMarkup}</div>` : ""}
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-8">
+          <div class="tv-panel my-3 p-3 h-100 w-100">
+            <div class="fw-semibold">Details</div>
             <div>Stock: ${data.stockNumber || "N/A"}</div>
             <div>Make: ${data.manufacturer || "N/A"}</div>
             <div>Model: ${data.modelName || "N/A"}</div>
@@ -434,22 +432,10 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
             <div>Usage: ${data.usage || "N/A"}</div>
           </div>
         </div>
-      </div>
-
-      ${featureMarkup ? `<div class="mt-2">${featureMarkup}</div>` : ""}
-
-      <div class="row g-3 mt-2">
-        <div class="col-12 col-lg-8">
-          <div class="tv-panel p-3 h-100">
-            <div class="fw-semibold">Fees & Taxes</div>
-            ${rebatesMarkup}
-            ${feesMarkup}
-            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
-          </div>
-        </div>
         <div class="col-12 col-lg-4">
-          <div class="tv-panel p-3 h-100 d-flex align-items-center justify-content-center">
-            <div id="qrCode" class="tv-qr"></div>
+          <div class="tv-panel my-3 p-3 h-100 w-100 text-center d-flex flex-column justify-content-center align-items-center">
+            <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" class="tv-contact-logo" />
+            <div class="tv-contact-text mt-2">${contactLine}</div>
           </div>
         </div>
       </div>
@@ -457,8 +443,8 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
       ${
         videoEmbedUrl
           ? `
-          <div class="mt-3">
-            <div class="tv-video-frame">
+          <div class="row">
+            <div class="tv-video-frame mt-3">
               <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
             </div>
           </div>
@@ -467,7 +453,6 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
       }
     </div>
   `;
-  renderQrCode(data.webURL);
   initCarousels();
 }
 
@@ -481,8 +466,9 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
   const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media);
   const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
-  const priceValue = apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || data.price;
-  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP;
+  const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
+  const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
+  const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
   const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
@@ -490,10 +476,6 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
 
   ROOT.innerHTML = `
     <div class="container">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" width="180" height="27" />
-        <span class="badge text-bg-danger">${data.year || ""}</span>
-      </div>
 
       <div class="row g-4 align-items-center">
         <div class="col-12 col-lg-7">
@@ -503,8 +485,12 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
           <div class="tv-panel p-3 mb-3">
             <div class="h4 fw-semibold">${data.title || ""}</div>
             <div class="text-secondary">${data.manufacturer || ""} ${data.modelName || ""}</div>
-            <div class="display-6 fw-bold text-danger mt-2">${formatPrice(priceValue)}</div>
-            ${msrpValue ? `<div class="text-secondary small mt-1">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+            ${
+              msrpValue
+                ? `<div class="text-secondary small ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
+                : ""
+            }
+            <div class="display-6 fw-bold text-danger mt-2">${formatPrice(specialValue)}</div>
             ${paymentValue ? `<div class="mt-2 fw-semibold">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
             ${customText ? `<div class="mt-2 fw-semibold">${customText}</div>` : ""}
           </div>

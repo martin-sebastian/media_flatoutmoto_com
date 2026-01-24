@@ -1,4 +1,4 @@
-const CACHE_NAME = "fom-print-cache-v2";
+const CACHE_NAME = "fom-print-cache-v3";
 const SYNC_TAG = "sync-xml-data";
 const XML_CACHE_NAME = "xml-cache-v1";
 
@@ -85,17 +85,39 @@ async function syncXmlData() {
   }
 }
 
+/**
+ * Decide if a request should bypass cache-first behavior.
+ * @param {Request} request Fetch request.
+ * @returns {boolean} True when network should be preferred.
+ */
+function shouldBypassCache(request) {
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isTvAsset = isSameOrigin && url.pathname.startsWith("/tv/");
+  const isScriptOrStyle = request.destination === "script" || request.destination === "style";
+  return isTvAsset || isScriptOrStyle;
+}
+
+/**
+ * Use network-first for a request with cache fallback.
+ * @param {Request} request Fetch request.
+ * @returns {Promise<Response>} Response promise.
+ */
+function networkFirst(request) {
+  return fetch(request)
+    .then((response) => {
+      const responseClone = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+      return response;
+    })
+    .catch(() => caches.match(request));
+}
+
 // Fetch event - serve from cache or network
 self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
+      networkFirst(event.request)
     );
     return;
   }
@@ -107,6 +129,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Handle other requests
+  if (shouldBypassCache(event.request)) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {
