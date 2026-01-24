@@ -22,6 +22,8 @@ const DOM = {
 
 let cachedXmlText = "";
 let cachedSelectedImages = null;
+let selectedSlideUrls = new Set();
+let selectedHeroUrl = "";
 
 /**
  * Build the base URL for the display page.
@@ -70,6 +72,19 @@ function getLauncherNumberParam(key, fallback) {
 function getLauncherTextParam(key) {
   const params = new URLSearchParams(window.location.search);
   return params.get(key) || "";
+}
+
+/**
+ * Parse a slides param into a URL list.
+ * @param {string} value Slides param string.
+ * @returns {string[]} Slide URLs.
+ */
+function parseSlidesParam(value) {
+  if (!value) return [];
+  return value
+    .split("|")
+    .map((entry) => decodeURIComponent(entry))
+    .filter(Boolean);
 }
 
 /**
@@ -180,11 +195,35 @@ function renderImageChoices(urls) {
 
   DOM.imageResults.innerHTML = urls
     .map(
-      (url) => `
+      (url, index) => `
         <div class="col-6 col-md-4">
           <div class="tv-panel p-2">
             <img class="tv-thumb mb-2" src="${url}" alt="Vehicle image" />
-            <button class="btn btn-sm btn-outline-light w-100" data-image-url="${url}">Use Image</button>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="heroImage"
+                id="heroSelect-${index}"
+                data-hero-url="${url}"
+                ${selectedHeroUrl === url ? "checked" : ""}
+              />
+              <label class="form-check-label" for="heroSelect-${index}">
+                Set as hero image
+              </label>
+            </div>
+            <div class="form-check mt-2">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="slideSelect-${index}"
+                data-slide-url="${url}"
+                ${selectedSlideUrls.has(url) ? "checked" : ""}
+              />
+              <label class="form-check-label" for="slideSelect-${index}">
+                Include in slideshow
+              </label>
+            </div>
           </div>
         </div>
       `
@@ -200,7 +239,7 @@ function buildDisplayUrl() {
   const layout = getSelectedLayout();
   const category = DOM.categorySelect.value;
   const stockNumber = normalizeStockNumber(DOM.stockInput.value);
-  const imageUrl = DOM.imageUrlInput.value.trim();
+  const imageUrl = selectedHeroUrl || DOM.imageUrlInput.value.trim();
   const customText = DOM.customTextInput.value.trim();
   const swatchColor = DOM.colorPickerInput?.value?.trim();
   const accentOne = DOM.accentColorOneInput?.value?.trim();
@@ -208,6 +247,7 @@ function buildDisplayUrl() {
   const slideStart = Number.parseInt(DOM.slideStartInput?.value, 10);
   const slideEnd = Number.parseInt(DOM.slideEndInput?.value, 10);
   const theme = document.body.getAttribute("data-bs-theme") || "dark";
+  const slideList = Array.from(selectedSlideUrls);
 
   const url = new URL(getDisplayBaseUrl());
   url.searchParams.set("layout", layout);
@@ -222,6 +262,12 @@ function buildDisplayUrl() {
   if (Number.isFinite(slideStart)) url.searchParams.set("slideStart", slideStart);
   if (Number.isFinite(slideEnd)) url.searchParams.set("slideEnd", slideEnd);
   if (theme) url.searchParams.set("theme", theme);
+  if (slideList.length) {
+    url.searchParams.set(
+      "slides",
+      slideList.map((url) => encodeURIComponent(url)).join("|")
+    );
+  }
 
   return url.toString();
 }
@@ -266,6 +312,13 @@ async function handleLoadImages() {
     if (saved.text) {
       DOM.customTextInput.value = saved.text;
     }
+    if (!selectedHeroUrl && saved.images.length) {
+      selectedHeroUrl = saved.images[0];
+      DOM.imageUrlInput.value = selectedHeroUrl;
+    }
+    if (!selectedSlideUrls.size && saved.images.length) {
+      selectedSlideUrls = new Set(saved.images);
+    }
     const mergedImages = [...saved.images, ...getItemImages(match).filter((url) => !saved.images.includes(url))];
     renderImageChoices(mergedImages);
   } catch (error) {
@@ -279,10 +332,28 @@ async function handleLoadImages() {
  * @param {MouseEvent} event Click event.
  */
 function handleImageSelection(event) {
-  const button = event.target.closest("[data-image-url]");
-  if (!button) return;
-  const url = button.getAttribute("data-image-url");
+  const radio = event.target.closest("[data-hero-url]");
+  if (!radio) return;
+  const url = radio.getAttribute("data-hero-url");
+  if (!url) return;
+  selectedHeroUrl = url;
   DOM.imageUrlInput.value = url;
+}
+
+/**
+ * Handle slide selection checkbox toggles.
+ * @param {Event} event Change event.
+ */
+function handleSlideSelection(event) {
+  const checkbox = event.target.closest("[data-slide-url]");
+  if (!checkbox) return;
+  const url = checkbox.getAttribute("data-slide-url");
+  if (!url) return;
+  if (checkbox.checked) {
+    selectedSlideUrls.add(url);
+  } else {
+    selectedSlideUrls.delete(url);
+  }
 }
 
 /**
@@ -333,6 +404,10 @@ function initLauncher() {
   if (DOM.customTextInput) {
     DOM.customTextInput.value = getLauncherTextParam("note");
   }
+  selectedHeroUrl = getLauncherTextParam("img");
+  if (selectedHeroUrl && DOM.imageUrlInput) {
+    DOM.imageUrlInput.value = selectedHeroUrl;
+  }
   if (DOM.colorPickerInput) {
     DOM.colorPickerInput.value = getLauncherTextParam("swatch") || "#4bd2b1";
   }
@@ -342,6 +417,10 @@ function initLauncher() {
   if (DOM.accentColorTwoInput) {
     DOM.accentColorTwoInput.value = getLauncherTextParam("accent2") || "#f97316";
   }
+  const slidesParam = getLauncherTextParam("slides");
+  if (slidesParam) {
+    selectedSlideUrls = new Set(parseSlidesParam(slidesParam));
+  }
   if (DOM.toggleThemeButton) {
     DOM.toggleThemeButton.addEventListener("click", toggleTheme);
   }
@@ -350,7 +429,8 @@ function initLauncher() {
     DOM.urlOutput.value = buildDisplayUrl();
   });
   DOM.copyUrlBtn.addEventListener("click", copyUrlToClipboard);
-  DOM.imageResults.addEventListener("click", handleImageSelection);
+  DOM.imageResults.addEventListener("change", handleImageSelection);
+  DOM.imageResults.addEventListener("change", handleSlideSelection);
 }
 
 initLauncher();

@@ -9,6 +9,13 @@ const ROOT = document.getElementById("displayRoot");
  */
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
+  const slidesParam = params.get("slides") || "";
+  const slideUrls = slidesParam
+    ? slidesParam
+        .split("|")
+        .map((entry) => decodeURIComponent(entry))
+        .filter(Boolean)
+    : [];
   return {
     layout: params.get("layout") || "portrait",
     stockNumber: (params.get("s") || params.get("search") || "").trim(),
@@ -18,6 +25,7 @@ function getQueryParams() {
     swatch: (params.get("swatch") || "").trim(),
     accent1: (params.get("accent1") || "").trim(),
     accent2: (params.get("accent2") || "").trim(),
+    slides: slideUrls,
     theme: (params.get("theme") || "dark").trim(),
     slideStart: Number.parseInt(params.get("slideStart") || "2", 10),
     slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
@@ -656,7 +664,7 @@ function renderMessage(message) {
  * Initialize the display with XML data and optional API enrichment.
  */
 async function initDisplay() {
-  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2, theme } = getQueryParams();
+  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2, theme, slides } = getQueryParams();
   document.body.setAttribute("data-bs-theme", theme || "dark");
 
   const wantsPortrait = layout !== "landscape";
@@ -690,16 +698,41 @@ async function initDisplay() {
       const saved = getSavedPicks(selectedMap, normalized);
       const apiData = await fetchPortalData(normalized);
       const merged = mergeData(match, apiData);
-      const preferredImage = imageUrl || saved.images[0] || merged.images[0] || "";
+      const slideImages = slides && slides.length ? slides : saved.images;
+      const slideRangeStart = slideImages.length ? 1 : slideStart;
+      const slideRangeEnd = slideImages.length ? slideImages.length : slideEnd;
+      const preferredImage = imageUrl || slideImages[0] || merged.images[0] || "";
       const customText = note || saved.text || "";
       const swatchColor = swatch || "";
       const accentOne = accent1 || "";
       const accentTwo = accent2 || "";
 
       if (layout === "landscape") {
-        renderLandscapeSingle(merged, preferredImage, customText, apiData, saved.images, slideStart, slideEnd, swatchColor, accentOne, accentTwo);
+        renderLandscapeSingle(
+          merged,
+          preferredImage,
+          customText,
+          apiData,
+          slideImages,
+          slideRangeStart,
+          slideRangeEnd,
+          swatchColor,
+          accentOne,
+          accentTwo
+        );
       } else {
-        renderPortrait(merged, preferredImage, customText, apiData, saved.images, slideStart, slideEnd, swatchColor, accentOne, accentTwo);
+        renderPortrait(
+          merged,
+          preferredImage,
+          customText,
+          apiData,
+          slideImages,
+          slideRangeStart,
+          slideRangeEnd,
+          swatchColor,
+          accentOne,
+          accentTwo
+        );
       }
       return;
     }
