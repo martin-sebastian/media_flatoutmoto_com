@@ -1873,7 +1873,7 @@ function updateTable() {
       <td class="visually-hidden">${color}</td>
       <td>
         <div class="input-group input-group-sm flex-nowrap" style="width: 190px;">
-          <input type="text" class="form-control d-block" style="font-size: 12px !important;" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
+          <input type="text" class="form-control d-block" style="font-size: 12px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
           <div class="input-group-text" id="btnGroupAddon">
             <button type="button" 
               class="btn-icon" 

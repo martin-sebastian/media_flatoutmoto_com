@@ -91,12 +91,74 @@
 								<label for="customTextInput" class="form-label"
 									>Custom Text (optional)</label
 								>
-								<input
-									type="text"
+								<textarea
 									class="form-control"
 									id="customTextInput"
+									rows="3"
 									placeholder="Boat show special, etc."
-								/>
+								></textarea>
+							</div>
+							<div class="col-12">
+								<label for="colorPickerInput" class="form-label">Color picker</label>
+								<div class="row g-2">
+									<div class="col-12 col-md-4">
+										<label for="colorPickerInput" class="form-label">Main color</label>
+										<input
+											type="color"
+											class="form-control form-control-color"
+											id="colorPickerInput"
+											value="#4bd2b1"
+											title="Choose a main color"
+										/>
+									</div>
+									<div class="col-12 col-md-4">
+										<label for="accentColorOneInput" class="form-label">Accent 1</label>
+										<input
+											type="color"
+											class="form-control form-control-color"
+											id="accentColorOneInput"
+											value="#1f6feb"
+											title="Choose an accent color"
+										/>
+									</div>
+									<div class="col-12 col-md-4">
+										<label for="accentColorTwoInput" class="form-label">Accent 2</label>
+										<input
+											type="color"
+											class="form-control form-control-color"
+											id="accentColorTwoInput"
+											value="#f97316"
+											title="Choose an accent color"
+										/>
+									</div>
+								</div>
+								<div class="form-text">Used for the color feature swatches.</div>
+							</div>
+							<div class="col-12">
+								<label class="form-label d-block">Slideshow range</label>
+								<div class="row g-2">
+									<div class="col-6">
+										<label for="slideStartInput" class="form-label">Start on image</label>
+										<input
+											type="number"
+											class="form-control"
+											id="slideStartInput"
+											min="1"
+											value="2"
+										/>
+									</div>
+									<div class="col-6">
+										<label for="slideEndInput" class="form-label">Stop on image</label>
+										<input
+											type="number"
+											class="form-control"
+											id="slideEndInput"
+											min="1"
+											value="6"
+										/>
+									</div>
+								</div>
+								<div class="form-text">Uses the first 5 images by default.</div>
 							</div>
 						</div>
 

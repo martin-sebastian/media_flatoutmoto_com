@@ -6,6 +6,11 @@ const DOM = {
   categorySelect: document.getElementById("categorySelect"),
   imageUrlInput: document.getElementById("imageUrlInput"),
   customTextInput: document.getElementById("customTextInput"),
+  colorPickerInput: document.getElementById("colorPickerInput"),
+  accentColorOneInput: document.getElementById("accentColorOneInput"),
+  accentColorTwoInput: document.getElementById("accentColorTwoInput"),
+  slideStartInput: document.getElementById("slideStartInput"),
+  slideEndInput: document.getElementById("slideEndInput"),
   urlOutput: document.getElementById("urlOutput"),
   imageResults: document.getElementById("imageResults"),
   loadImagesBtn: document.getElementById("loadImagesBtn"),
@@ -41,6 +46,28 @@ function normalizeStockNumber(value) {
 function getLauncherStockFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return normalizeStockNumber(params.get("stockInput") || params.get("s") || "");
+}
+
+/**
+ * Read a number param from the launcher URL.
+ * @param {string} key Query param key.
+ * @param {number} fallback Default value.
+ * @returns {number} Parsed number.
+ */
+function getLauncherNumberParam(key, fallback) {
+  const params = new URLSearchParams(window.location.search);
+  const value = Number.parseInt(params.get(key), 10);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+/**
+ * Read text param from the launcher URL.
+ * @param {string} key Query param key.
+ * @returns {string} Param value.
+ */
+function getLauncherTextParam(key) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) || "";
 }
 
 /**
@@ -173,6 +200,11 @@ function buildDisplayUrl() {
   const stockNumber = normalizeStockNumber(DOM.stockInput.value);
   const imageUrl = DOM.imageUrlInput.value.trim();
   const customText = DOM.customTextInput.value.trim();
+  const swatchColor = DOM.colorPickerInput?.value?.trim();
+  const accentOne = DOM.accentColorOneInput?.value?.trim();
+  const accentTwo = DOM.accentColorTwoInput?.value?.trim();
+  const slideStart = Number.parseInt(DOM.slideStartInput?.value, 10);
+  const slideEnd = Number.parseInt(DOM.slideEndInput?.value, 10);
 
   const url = new URL(getDisplayBaseUrl());
   url.searchParams.set("layout", layout);
@@ -181,6 +213,11 @@ function buildDisplayUrl() {
   if (category) url.searchParams.set("category", category);
   if (imageUrl) url.searchParams.set("img", imageUrl);
   if (customText) url.searchParams.set("note", customText);
+  if (swatchColor) url.searchParams.set("swatch", swatchColor);
+  if (accentOne) url.searchParams.set("accent1", accentOne);
+  if (accentTwo) url.searchParams.set("accent2", accentTwo);
+  if (Number.isFinite(slideStart)) url.searchParams.set("slideStart", slideStart);
+  if (Number.isFinite(slideEnd)) url.searchParams.set("slideEnd", slideEnd);
 
   return url.toString();
 }
@@ -253,6 +290,24 @@ function initLauncher() {
   if (initialStock) {
     DOM.stockInput.value = initialStock;
     DOM.stockInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (DOM.slideStartInput) {
+    DOM.slideStartInput.value = getLauncherNumberParam("slideStart", 2);
+  }
+  if (DOM.slideEndInput) {
+    DOM.slideEndInput.value = getLauncherNumberParam("slideEnd", 6);
+  }
+  if (DOM.customTextInput) {
+    DOM.customTextInput.value = getLauncherTextParam("note");
+  }
+  if (DOM.colorPickerInput) {
+    DOM.colorPickerInput.value = getLauncherTextParam("swatch") || "#4bd2b1";
+  }
+  if (DOM.accentColorOneInput) {
+    DOM.accentColorOneInput.value = getLauncherTextParam("accent1") || "#1f6feb";
+  }
+  if (DOM.accentColorTwoInput) {
+    DOM.accentColorTwoInput.value = getLauncherTextParam("accent2") || "#f97316";
   }
   DOM.loadImagesBtn.addEventListener("click", handleLoadImages);
   DOM.buildUrlBtn.addEventListener("click", () => {

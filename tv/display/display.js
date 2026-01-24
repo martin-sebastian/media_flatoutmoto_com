@@ -15,6 +15,11 @@ function getQueryParams() {
     category: (params.get("category") || "").trim().toLowerCase(),
     imageUrl: (params.get("img") || "").trim(),
     note: (params.get("note") || "").trim(),
+    swatch: (params.get("swatch") || "").trim(),
+    accent1: (params.get("accent1") || "").trim(),
+    accent2: (params.get("accent2") || "").trim(),
+    slideStart: Number.parseInt(params.get("slideStart") || "2", 10),
+    slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
   };
 }
 
@@ -124,6 +129,22 @@ function formatPrice(value) {
 }
 
 /**
+ * Calculate monthly payment for a fixed-rate loan.
+ * @param {number} principal Amount financed.
+ * @param {number} apr Annual percentage rate (e.g. 8.99).
+ * @param {number} months Term length in months.
+ * @returns {number} Monthly payment.
+ */
+function calculateMonthlyPayment(principal, apr, months) {
+  const amount = Number(principal);
+  const term = Number(months);
+  const rate = Number(apr) / 100 / 12;
+  if (!Number.isFinite(amount) || !Number.isFinite(term) || term <= 0) return 0;
+  if (!Number.isFinite(rate) || rate <= 0) return amount / term;
+  return (amount * rate) / (1 - Math.pow(1 + rate, -term));
+}
+
+/**
  * Safely trim a string value.
  * @param {string} value Input value.
  * @returns {string} Trimmed string.
@@ -174,14 +195,21 @@ function getYouTubeEmbedUrl(apiVideos) {
  * Build markup for a Bootstrap carousel of media.
  * @param {string} id Carousel DOM id.
  * @param {{type: string, src: string, caption: string}[]} media Media entries.
+ * @param {number} startIndex One-based start index.
+ * @param {number} endIndex One-based end index.
  * @returns {string} Carousel markup.
  */
-function renderMediaCarousel(id, media) {
+function renderMediaCarousel(id, media, startIndex, endIndex) {
   if (!media.length) {
     return `<div class="tv-panel p-5 text-center">Image not available</div>`;
   }
 
-  const indicators = media
+  const safeStart = Number.isFinite(startIndex) ? startIndex : 2;
+  const safeEnd = Number.isFinite(endIndex) ? endIndex : 6;
+  const start = Math.max(1, safeStart);
+  const end = Math.max(start, safeEnd);
+  const visibleMedia = media.slice(start - 1, end);
+  const indicators = visibleMedia
     .map(
       (_, index) => `
         <button type="button" data-bs-target="#${id}" data-bs-slide-to="${index}" ${
@@ -191,7 +219,7 @@ function renderMediaCarousel(id, media) {
     )
     .join("");
 
-  const slides = media
+  const slides = visibleMedia
     .map(
       (item, index) => `
         <div class="carousel-item ${index === 0 ? "active" : ""}">
@@ -241,32 +269,54 @@ function initCarousels() {
  * @param {object[]} items Feature items list.
  * @returns {string} Feature card markup.
  */
-function renderFeatureCards(items) {
+function renderFeatureCards(items, swatchColor, accentOne, accentTwo) {
   const cards = (items || [])
     .filter((item) => item && item.Included === true)
     .filter((item) => safeText(item.Description) || safeText(item.ImageDescription) || safeText(item.ImgURL))
     .slice(0, 3)
-    .map((item) => {
+    .map((item, index) => {
       const title = safeText(item.Description) || "Feature Highlight";
       const detail = safeText(item.ImageDescription);
-      const imageUrl = safeText(item.ImgURL);
-      const imageMarkup = imageUrl
-        ? `<img src="${imageUrl}" class="tv-feature-img" alt="${title}" />`
-        : `<div class="tv-feature-icon"><i class="bi bi-stars"></i></div>`;
+      const iconName = ["bi-1-circle", "bi-2-circle", "bi-3-circle"][index] || "bi-star";
+      const swatch = swatchColor || "#4bd2b1";
+      const accentPrimary = accentOne || "#1f6feb";
+      const accentSecondary = accentTwo || "#f97316";
+      const imageMarkup =
+        index === 0
+          ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center gap-2">
+                <div class="icon-group">
+                  <i class="bi bi-1-square-fill"></i>
+                  <i class="bi bi-0-square-fill"></i><br/>
+                </div>
+              </div>
+            `
+          : index === 1
+            ? `<div class="tv-feature-icon">
+                  <img src="../../img/rotax-engine.png" class="tv-feature-img" alt="Rotax engine" />
+                </div>`
+            : index === 2
+              ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center gap-2">
+                    <i class="bi bi-palette2" style="color: ${swatch};"></i>
+                    <span class="tv-color-swatch" style="background-color: ${swatch};"></span>
+                    <div class="tv-color-dots">
+                      <span class="tv-color-dot" style="background-color: ${swatch};"></span>
+                      <span class="tv-color-dot" style="background-color: ${accentPrimary};"></span>
+                      <span class="tv-color-dot" style="background-color: ${accentSecondary};"></span>
+                    </div>
+                  </div>`
+              : `<div class="tv-feature-icon"><i class="bi ${iconName}"></i></div>`;
       return `
-        <div class="col-12 col-md-4">
-          <div class="tv-panel p-3 h-100 w-100">
+        <div class="tv-panel p-3 tv-feature-card">
             ${imageMarkup}
             <div class="mt-3 fw-semibold">${title}</div>
             ${detail ? `<div class="text-secondary small mt-1">${detail}</div>` : ""}
-          </div>
         </div>
       `;
     })
     .join("");
 
   if (!cards) return "";
-  return `<div class="row g-3 tv-feature-row">${cards}</div>`;
+  return `<div class="tv-feature-grid">${cards}</div>`;
 }
 
 /**
@@ -373,63 +423,80 @@ function mergeData(xmlData, apiData) {
  * @param {string} imageUrl Preferred image URL.
  * @param {string} customText Custom text line.
  */
-function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
+function renderPortrait(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo) {
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
-  const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media);
+  const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media, slideStart, slideEnd);
   const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
   const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
-  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
+  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
   const rebatesMarkup = renderLineItems(apiData?.MfgRebatesFrontEnd || []);
   const totalValue = apiData?.OTDPrice;
-  const contactLine = apiData?.Phone ? `Call ${apiData.Phone}` : data.webURL ? "Visit flatoutmotorcycles.com" : "Visit Flat Out Motorsports";
+  const financeApr = 8.99;
+  const downPaymentRate = 0.1;
+  const financeTermMonths = 144;
+  const totalAmount = Number(totalValue) || Number(specialValue) || 0;
+  const downPayment = totalAmount * downPaymentRate;
+  const financedAmount = totalAmount - downPayment;
+  const monthlyPayment = calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
+  const financeSummary = totalAmount
+    ? `
+      <div class="d-none">
+        <div class="d-flex justify-content-between"><span>Price</span><span>${formatPrice(totalAmount)}</span></div>
+        <div class="d-flex justify-content-between"><span>Down payment (10%)</span><span>${formatPrice(downPayment)}</span></div>
+        <div class="d-flex justify-content-between fw-semibold"><span>Amount financed</span><span>${formatPrice(financedAmount)}</span></div>
+        <div class="d-flex justify-content-between mt-2"><span>Term</span><span>${financeTermMonths} months</span></div>
+        <div class="d-flex justify-content-between"><span>APR (700+)</span><span>${financeApr}%</span></div>
+        <div class="d-flex justify-content-between mt-2 fw-semibold text-danger fs-5"><span>Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+      </div>
+    `
+    : `<div class="text-secondary mt-2">Pricing not available for financing.</div>`;
+  const contactLine = apiData?.Phone ? `` : data.webURL ? "Visit flatoutmotorcycles.com" : "Visit Flat Out Motorsports";
 
   ROOT.innerHTML = `
     <div class="container">
 
-      <div class="">
+      <div class="mt-3">
         ${carouselMarkup}
       </div>
 
       <div class="row g-3">
         <div class="col-12 col-lg-6">
           <div class="tv-panel my-3 p-3 h-100 w-100">
-            <div class="text-uppercase text-danger fw-semibold mb-2">Show Special</div>
+            <div class="text-uppercase text-danger h2 fw-bold my-2">Show Special</div>
             ${
               msrpValue
                 ? `<div class="text-secondary small ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
                 : ""
             }
-            <div class="display-6 fw-bold">${formatPrice(specialValue)}</div>
-            ${paymentValue ? `<div class="mt-2 fw-semibold">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
-            <div class="text-secondary mt-2">${data.title || ""}</div>
-            ${customText ? `<div class="mt-2 fw-semibold">${customText}</div>` : ""}
+            <div class="h1 fw-bold">${formatPrice(specialValue)}</div>
+            <div class="d-flex justify-content-start mt-1 fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+            <div class="text-secondary mt-4">${data.title || ""}</div>
+            <div># ${data.stockNumber || "N/A"}</div>
+            
           </div>
         </div>
         <div class="col-12 col-lg-6">
-          <div class="tv-panel my-3 p-3 h-100 w-100">
-            <div class="fw-semibold">Fees & Taxes</div>
-            ${rebatesMarkup}
-            ${feesMarkup}
-            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
+          <div class="tv-panel my-3 py-4 px-3 h-100 w-100">
+            <div class="fw-semibold mt-2">Fees & Taxes</div>
+            <div class="opacity-25">${rebatesMarkup}</div>
+            <div class="opacity-25">${feesMarkup}</div>
+            ${totalValue ? `<div class="mt-2 fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
           </div>
         </div>
       </div>
 
-      ${featureMarkup ? `<div class="row w-100 ">${featureMarkup}</div>` : ""}
+      ${featureMarkup ? `<div class="mt-4 pt-2">${featureMarkup}</div>` : ""}
 
       <div class="row g-3">
         <div class="col-12 col-lg-8">
-          <div class="tv-panel my-3 p-3 h-100 w-100">
-            <div class="fw-semibold">Details</div>
-            <div>Stock: ${data.stockNumber || "N/A"}</div>
-            <div>Make: ${data.manufacturer || "N/A"}</div>
-            <div>Model: ${data.modelName || "N/A"}</div>
-            <div>Type: ${data.modelType || "N/A"}</div>
-            <div>Usage: ${data.usage || "N/A"}</div>
+          <div class="tv-panel my-3 p-4 h-100 w-100">
+            <div class="fw-semibold">Notes</div>
+            ${financeSummary}
+            ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
           </div>
         </div>
         <div class="col-12 col-lg-4">
@@ -443,7 +510,7 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
       ${
         videoEmbedUrl
           ? `
-          <div class="row">
+          <div class="row mt-3">
             <div class="tv-video-frame mt-3">
               <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
             </div>
@@ -462,15 +529,15 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages) {
  * @param {string} imageUrl Preferred image URL.
  * @param {string} customText Custom text line.
  */
-function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredImages) {
+function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo) {
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
-  const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media);
+  const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media, slideStart, slideEnd);
   const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
   const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
-  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
+  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
   const totalValue = apiData?.OTDPrice;
 
@@ -575,7 +642,7 @@ function renderMessage(message) {
  * Initialize the display with XML data and optional API enrichment.
  */
 async function initDisplay() {
-  const { layout, stockNumber, category, imageUrl, note } = getQueryParams();
+  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2 } = getQueryParams();
 
   const wantsPortrait = layout !== "landscape";
   const screenIsPortrait = isPortraitScreen();
@@ -610,11 +677,14 @@ async function initDisplay() {
       const merged = mergeData(match, apiData);
       const preferredImage = imageUrl || saved.images[0] || merged.images[0] || "";
       const customText = note || saved.text || "";
+      const swatchColor = swatch || "";
+      const accentOne = accent1 || "";
+      const accentTwo = accent2 || "";
 
       if (layout === "landscape") {
-        renderLandscapeSingle(merged, preferredImage, customText, apiData, saved.images);
+        renderLandscapeSingle(merged, preferredImage, customText, apiData, saved.images, slideStart, slideEnd, swatchColor, accentOne, accentTwo);
       } else {
-        renderPortrait(merged, preferredImage, customText, apiData, saved.images);
+        renderPortrait(merged, preferredImage, customText, apiData, saved.images, slideStart, slideEnd, swatchColor, accentOne, accentTwo);
       }
       return;
     }
