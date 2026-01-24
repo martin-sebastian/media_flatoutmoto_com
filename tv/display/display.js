@@ -516,7 +516,8 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
       <div class="row g-3">
         <div class="col-12 col-lg-8">
           <div class="tv-panel my-3 p-4 h-100 w-100">
-            <div class="fw-semibold">Notes</div>
+          <img id="logo" class="ms-1 me-1 pt-0 float-end" src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
+            <div class="fw-semibold mt-2">Welcome to the Boat, Sports & Travel Show 2026</div>
             ${financeSummary}
             ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
           </div>
