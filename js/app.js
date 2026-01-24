@@ -15,6 +15,7 @@ const DOM = {
       search: getActiveFilterElement("search"),
       year: getActiveFilterElement("year"),
       manufacturer: getActiveFilterElement("manufacturer"),
+      model: getActiveFilterElement("model"),
       type: getActiveFilterElement("type"),
       usage: getActiveFilterElement("usage"),
       updated: getActiveFilterElement("updated"),
@@ -55,6 +56,104 @@ function getFilterElementsByName(name) {
 function getActiveFilterElement(name) {
   const group = getActiveFilterGroupName();
   return document.querySelector(`[data-filter-group="${group}"] [data-filter="${name}"]`);
+}
+
+/**
+ * Read hidden column preferences from localStorage.
+ * @returns {Set<string>} Hidden column keys.
+ */
+function getHiddenColumns() {
+  const stored = localStorage.getItem("hiddenColumns");
+  if (!stored) return new Set();
+  try {
+    const parsed = JSON.parse(stored);
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch (error) {
+    console.warn("Invalid hiddenColumns storage:", error);
+    return new Set();
+  }
+}
+
+/**
+ * Persist hidden column preferences to localStorage.
+ * @param {Set<string>} hiddenColumns Hidden column keys.
+ */
+function saveHiddenColumns(hiddenColumns) {
+  localStorage.setItem("hiddenColumns", JSON.stringify([...hiddenColumns]));
+}
+
+/**
+ * Sync column toggle inputs with stored preferences.
+ * @param {Set<string>} hiddenColumns Hidden column keys.
+ */
+function syncColumnToggleInputs(hiddenColumns) {
+  document.querySelectorAll(".column-toggle").forEach((input) => {
+    input.checked = !hiddenColumns.has(input.value);
+  });
+}
+
+/**
+ * Apply column visibility based on stored preferences.
+ */
+function applyColumnVisibility() {
+  const hiddenColumns = getHiddenColumns();
+  document.querySelectorAll("[data-column]").forEach((element) => {
+    const key = element.dataset.column;
+    element.classList.toggle("column-hidden", hiddenColumns.has(key));
+  });
+  syncColumnToggleInputs(hiddenColumns);
+}
+
+/**
+ * Initialize column visibility toggle handlers.
+ */
+function initializeColumnToggles() {
+  document.querySelectorAll(".column-toggle").forEach((input) => {
+    input.addEventListener("change", () => {
+      const hiddenColumns = getHiddenColumns();
+      if (input.checked) {
+        hiddenColumns.delete(input.value);
+      } else {
+        hiddenColumns.add(input.value);
+      }
+      saveHiddenColumns(hiddenColumns);
+      applyColumnVisibility();
+    });
+  });
+  applyColumnVisibility();
+}
+
+// Update model dropdown options with all known models.
+function updateModelDropdownOptions() {
+  const modelFilters = getFilterElementsByName("model");
+  if (!modelFilters.length) return;
+
+  const models = new Set();
+
+  State.allItems.forEach((item) => {
+    if (item.modelName && item.modelName !== "N/A") {
+      models.add(item.modelName);
+    }
+  });
+
+  const sortedModels = [...models].sort();
+
+  modelFilters.forEach((modelFilter) => {
+    const currentValue = modelFilter.value;
+
+    while (modelFilter.options.length > 2) {
+      modelFilter.remove(2);
+    }
+
+    sortedModels.forEach((modelName) => {
+      const option = document.createElement("option");
+      option.value = modelName;
+      option.textContent = modelName;
+      modelFilter.appendChild(option);
+    });
+
+    modelFilter.value = sortedModels.includes(currentValue) ? currentValue : "";
+  });
 }
 
 // Enable active filter group and disable the inactive group.
@@ -369,6 +468,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   DOM.init();
   setFilterGroupState();
+  initializeColumnToggles();
 
   // Setup diagnostic monitoring
   const networkStatus = setupNetworkMonitoring();
@@ -476,7 +576,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Add other filter change listeners
   document.querySelectorAll("[data-filter]").forEach((filter) => {
     if (filter.dataset.filter !== "search") {
-      filter.addEventListener("change", filterTable);
+      filter.addEventListener("change", () => {
+        if (filter.dataset.filter === "year" || filter.dataset.filter === "manufacturer") {
+          updateModelDropdownOptions();
+        }
+        filterTable();
+      });
     }
   });
 
@@ -497,6 +602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "resize",
     debounce(() => {
       setFilterGroupState();
+      updateModelDropdownOptions();
       const dropdown = document.getElementById("custom-suggestions");
       if (dropdown && dropdown.style.display !== "none") {
         // If dropdown is visible, update its position
@@ -612,6 +718,17 @@ function debounce(func, wait) {
   };
 }
 
+/**
+ * Build a cache-busted XML request URL.
+ * @param {string} baseUrl Base XML URL.
+ * @returns {string} URL with cache-busting query.
+ */
+function buildXmlRequestUrl(baseUrl) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("t", Date.now().toString());
+  return url.toString();
+}
+
 async function fetchData() {
   try {
     // Add mobile debugging info
@@ -669,14 +786,15 @@ async function fetchData() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
-      const response = await fetch("https://www.flatoutmotorcycles.com/unitinventory_univ.xml", {
+      const xmlUrl = buildXmlRequestUrl("https://www.flatoutmotorcycles.com/unitinventory_univ.xml");
+      const response = await fetch(xmlUrl, {
         signal: controller.signal,
         mode: "cors", // Explicitly request CORS
         headers: {
           Accept: "application/xml, text/xml",
+          "Cache-Control": "no-cache",
         },
-        // Add cache busting for mobile
-        cache: isMobile ? "no-cache" : "default",
+        cache: "no-store",
       });
 
       clearTimeout(timeoutId);
@@ -881,6 +999,7 @@ async function processXMLData(xmlDoc) {
   populateManufacturerDropdown([...manufacturers]);
   populateYearDropdown([...years]);
   populateTypeDropdown([...types]);
+  updateModelDropdownOptions();
   populateSearchSuggestions(itemsArray);
 
   // Load saved pagination state
@@ -926,6 +1045,7 @@ function filterTable() {
   const searchInput = getActiveFilterElement("search")?.value.toUpperCase() || "";
   const yearFilter = getActiveFilterElement("year")?.value.toUpperCase() || "";
   const manufacturerFilter = getActiveFilterElement("manufacturer")?.value.toUpperCase() || "";
+  const modelFilter = getActiveFilterElement("model")?.value.toUpperCase() || "";
   const typeFilter = getActiveFilterElement("type")?.value.toUpperCase() || "";
   const usageFilter = getActiveFilterElement("usage")?.value.toUpperCase() || "";
   const photosFilter = getActiveFilterElement("photos")?.value.toUpperCase() || "";
@@ -937,6 +1057,7 @@ function filterTable() {
   // Define filter conditions
   const filters = {
     manufacturer: manufacturerFilter,
+    model: modelFilter,
     type: typeFilter,
     usage: usageFilter,
     year: yearFilter,
@@ -971,6 +1092,15 @@ function filterTable() {
         case "usage":
           textToCompare = item.usage || "";
           break;
+        case "model":
+          textToCompare = item.modelName || "";
+          break;
+        case "photos": {
+          const hasInHousePhotos = Number(item.imageElements) > 10;
+          if (value === "INHOUSE") return hasInHousePhotos;
+          if (value === "STOCK") return !hasInHousePhotos;
+          return true;
+        }
         case "updated": {
           // Strip time components from both dates for comparison
           const itemDate = moment(item.updated).startOf("day").format("YYYY-MM-DD");
@@ -1616,7 +1746,9 @@ function sortTableByColumn(header) {
   });
 
   // Toggle sort direction
-  if (!isAscending) {
+  if (isAscending) {
+    header.classList.remove("sort-desc");
+  } else {
     header.classList.add("sort-desc");
   }
 
@@ -1912,16 +2044,16 @@ function updateTable() {
         <span class="badge text-bg-dark border">${year}</span>
       </td>
       <td class="text-truncate" style="max-width: 150px;">${manufacturer}</td>
-      <td class="text-truncate">
-        <span class="no-wrap">${modelName}</span>
+      <td class="model-cell">
+        <span class="model-text">${modelName}</span>
         <span class="visually-hidden">
         ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${moment(updated).format("YYYY-MM-DD")}
         </span>
       </td>
-      <td class="visually-hidden">${modelType}</td>
-      <td class="visually-hidden">${color}</td>
+      <td class="column-type" data-column="type">${modelType}</td>
+      <td class="column-color color-cell" data-column="color">${color}</td>
       <td>
-        <div class="input-group input-group-sm flex-nowrap" style="width: 190px;">
+        <div class="input-group input-group-sm flex-nowrap" style="width: 150px;">
           <input type="text" class="form-control d-block" style="font-size: 12px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
           <div class="input-group-text" id="btnGroupAddon">
             <button type="button" 
@@ -2013,6 +2145,7 @@ function updateTable() {
 
   // Append the fragment to the table body
   DOM.tableBody.appendChild(fragment);
+  applyColumnVisibility();
 
   // Initialize tooltips for the new rows
   initializeClipboardTooltips();

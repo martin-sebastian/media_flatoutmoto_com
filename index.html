@@ -70,18 +70,37 @@
                   <option value="">All</option>
                 </select>
                 
+                <select id="modelFilter" class="form-select mx-1" style="max-width: 120px" data-filter="model">
+                  <option value="">Model</option>
+                  <option value="">All</option>
+                </select>
+
                 <select id="typeFilter" class="form-select mx-1" style="max-width: 90px" data-filter="type">
                   <option value="">Type</option>
                   <option value="">All</option>
                 </select>
+                <div class="dropdown mx-1">
+                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Columns
+                  </button>
+                  <div class="dropdown-menu dropdown-menu-end p-2">
+                    <div class="form-check">
+                      <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumn" checked>
+                      <label class="form-check-label" for="toggleTypeColumn">Type</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumn" checked>
+                      <label class="form-check-label" for="toggleColorColumn">Color</label>
+                    </div>
+                  </div>
+                </div>
+                <select id="photosFilter" class="form-select mx-1" style="max-width: 130px" data-filter="photos">
+                  <option value="">All Photos</option>
+                  <option value="INHOUSE">In-House</option>
+                  <option value="STOCK">Stock</option>
+                </select>
                 <label for="updatedFilter" class="visually-hidden">Updated:</label>
                 <input type="date" id="updatedFilter" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" data-filter="updated" onchange="filterTable()">
-                <div class="form-check w-25 visually-hidden">
-                  <input class="form-check-input" type="checkbox" value="" id="flexCheckChecked" data-filter="stockPhotos" checked>
-                  <label class="form-check-label" for="flexCheckChecked">
-                    Stock Photos
-                  </label>
-                </div>
               </form>
             </div>
 
@@ -122,7 +141,7 @@
         aria-labelledby="offcanvasScrollingLabel"
       >
         <div class="offcanvas-header">
-          <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Filters</h5>
+          <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menu</h5>
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
@@ -130,7 +149,7 @@
             <label for="searchFilterMobile" class="visually-hidden">Search</label>
             <input
               type="search"
-              class="form-control d-inline-flex search-width m-1"
+              class="form-control d-inline-flex w-100 my-1"
               id="searchFilterMobile"
               data-filter="search"
               placeholder="Search"
@@ -138,7 +157,7 @@
               aria-label="Search"
               title="Filter vehicles by year, make, model, stock number or VIN"
               autocomplete="off"
-            />
+            /> 
             <select id="yearFilterMobile" class="form-select w-100 my-1" data-filter="year">
               <option value="">Year</option>
               <option value="">All</option>
@@ -149,6 +168,11 @@
               <option value="">All</option>
             </select>
             
+            <select id="modelFilterMobile" class="form-select w-100 my-1" data-filter="model">
+              <option value="">Model</option>
+              <option value="">All</option>
+            </select>
+
             <select id="typeFilterMobile" class="form-select w-100 my-1" data-filter="type">
               <option value="">Type</option>
               <option value="">All</option>
@@ -160,23 +184,27 @@
             </select>
             
             <select id="photosFilterMobile" class="form-select w-100 my-1" data-filter="photos">
-              <option value="">In-House Photos</option>
-              <option value="">Yes</option>
-              <option value="">No</option>
+              <option value="">All Photos</option>
+              <option value="INHOUSE">In-House</option>
+              <option value="STOCK">Stock</option>
             </select>
+            <div class="card px-2 my-2 text-start">
+              <div class="small text-muted px-2 pt-2">Columns</div>
+              <div class="form-check p-2">
+                <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumnMobile" checked>
+                <label class="form-check-label" for="toggleTypeColumnMobile">Type</label>
+              </div>
+              <div class="form-check p-2">
+                <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumnMobile" checked>
+                <label class="form-check-label" for="toggleColorColumnMobile">Color</label>
+              </div>
+            </div>
             
             <label for="updatedFilterMobile" class="visually-hidden">Updated:</label>
             <input type="date" id="updatedFilterMobile" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" data-filter="updated" onchange="filterTable()">
-            <div class="card px-2 my-1 text-start form-check w-100">
-              <label class="form-check-label p-2" for="flexCheckCheckedMobile">
-                <input class="form-check-input ms-1 me-3" type="checkbox" value="" id="flexCheckCheckedMobile" data-filter="stockPhotos" checked>
-                Stock Photos
-              </label>
-            </div>
           </form>
-          <h5 class="offcanvas-title mt-4" id="offcanvasNavbarLabel">Menu</h5>
           <form class="d-flex flex-column mt-1" role="search">
-            <div class="card w-100">
+            <div class="card p-1 w-100">
               <div class="d-flex flex-column ">
                 <button type="button" class="btn btn-dark text-start" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
                   <i class="bi bi-tag me-3"></i> Create Custom Key Tag
@@ -213,6 +241,20 @@
             <div class="bg-dark text-light rounded-3 overflow-hidden border border-secondary-subtle border-1">
               <div class="table-responsive">
                 <table id="vehiclesTable" class="table table-borderlesstable-striped table-sm">
+                  <colgroup>
+                    <col style="width: 90px">
+                    <col style="width: 70px">
+                    <col style="width: 70px">
+                    <col style="width: 110px">
+                    <col style="width: 180px">
+                    <col style="width: 100px" data-column="type">
+                    <col style="width: 100px" data-column="color">
+                    <col style="width: 200px">
+                    <col style="width: 120px">
+                    <col style="width: 110px">
+                    <col style="width: 90px">
+                    <col style="width: 160px">
+                  </colgroup>
                   <thead>
                     <tr>
                       <th class="no-wrap text-center">Image</th>
@@ -220,9 +262,9 @@
                       <th class="no-wrap text-center">Year</th>
                       <th class="no-wrap">Make</th>
                       <th class="no-wrap">Model</th>
-                      <th class="no-wrap visually-hidden">Type</th>
-                      <th class="no-wrap visually-hidden">Color</th>
-                      <th class="no-wrap text-start">Stock Number</th>
+                      <th class="no-wrap" data-column="type">Type</th>
+                      <th class="no-wrap" data-column="color">Color</th>
+                      <th class="no-wrap text-start stock-number-header">Stock #</th>
                       <th class="no-wrap">DMS Price</th>
                       <th class="no-wrap">Updated</th>
                       <th class="no-wrap text-center">Photos</th>

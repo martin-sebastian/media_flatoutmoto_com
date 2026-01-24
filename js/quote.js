@@ -60,6 +60,28 @@ function initializeClipboardTooltips() {
 }
 
 /**
+ * Update the loader with baseline XML info if available.
+ * @param {string} stockNumber Stock number to lookup.
+ * @param {HTMLElement} loader Loader element to update.
+ */
+async function loadQuoteBaseline(stockNumber, loader) {
+  if (!loader || !stockNumber) return;
+  try {
+    const xmlData = await window.getCachedXmlVehicle(stockNumber);
+    if (!xmlData) return;
+    const title = `${xmlData.ModelYear || ""} ${xmlData.Manufacturer || ""} ${xmlData.ModelName || ""}`.trim();
+    loader.innerHTML = `
+      <i class="fa fa-spinner fa-spin fa-3x"></i>
+      <p>Loading latest pricing...</p>
+      <div class="small text-muted">${title || ""}</div>
+      <div class="small text-muted">${xmlData.StockNumber || ""}</div>
+    `;
+  } catch (error) {
+    console.warn("Cached XML baseline failed:", error);
+  }
+}
+
+/**
  * URL PARAMETER HANDLING
  * Extract stock number from URL query parameters for vehicle lookup
  */
@@ -307,6 +329,8 @@ document.addEventListener("DOMContentLoaded", function () {
     showError("No stock number provided in URL");
     return;
   }
+
+  loadQuoteBaseline(stockNum, loader);
 
   const apiUrl = `${CONFIG.API_URL}/majorunit/stocknumber/${stockNum}`;
   console.log("Attempting API call to:", apiUrl);

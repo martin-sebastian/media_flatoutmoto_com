@@ -1,3 +1,47 @@
+/**
+ * Render a minimal baseline hang tag while portal data loads.
+ * @param {string} selector Container selector.
+ * @param {object} xmlData Baseline XML data.
+ */
+function renderHangTagBaseline(selector, xmlData) {
+  const container = document.querySelector(selector);
+  if (!container || !xmlData) return;
+  const title = `${xmlData.ModelYear || ""} ${xmlData.Manufacturer || ""} ${xmlData.ModelName || ""}`.trim();
+  const stockNumber = xmlData.StockNumber || "";
+  const image = xmlData.ImageUrl
+    ? `<img src="${xmlData.ImageUrl}" style="width: 100%; border-radius: 5px; overflow: hidden;">`
+    : "";
+
+  container.innerHTML = `
+    <div class="print-tag">
+      <div class="text-center">
+        <h3 class="m-2">${title || "Loading vehicle..."}</h3>
+        <div class="label label-default">${stockNumber || "Stock #"}</div>
+      </div>
+      <div class="m-2">${image}</div>
+      <div class="text-center text-muted">
+        <small>Loading latest pricing...</small>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Load baseline data from cached XML for hang tags.
+ * @param {string} stockNumber Stock number to lookup.
+ */
+async function loadHangTagBaseline(stockNumber) {
+  try {
+    const xmlData = await window.getCachedXmlVehicle(stockNumber);
+    if (xmlData) {
+      renderHangTagBaseline(".tag-left", xmlData);
+      renderHangTagBaseline(".tag-right", xmlData);
+    }
+  } catch (error) {
+    console.warn("Cached XML baseline failed:", error);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
@@ -8,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Payment Calculator
   // Get data from API and create variables
+  loadHangTagBaseline(stockNumber);
   fetch(`https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/${stockNumber}`)
     .then((response) => response.json())
     .then((data) => {

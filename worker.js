@@ -1,6 +1,7 @@
 const CACHE_NAME = "fom-print-cache-v3";
 const SYNC_TAG = "sync-xml-data";
 const XML_CACHE_NAME = "xml-cache-v1";
+const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml";
 
 const urlsToCache = [
   "./",
@@ -58,11 +59,31 @@ self.addEventListener("periodicsync", (event) => {
   }
 });
 
+/**
+ * Build a cache-busted XML feed URL.
+ * @param {string} baseUrl Base XML URL.
+ * @returns {string} URL with cache-busting query.
+ */
+function buildXmlFeedUrl(baseUrl) {
+  const url = new URL(baseUrl);
+  url.searchParams.set("t", Date.now().toString());
+  return url.toString();
+}
+
 // Function to sync XML data
 async function syncXmlData() {
   try {
     // Fetch latest XML data
-    const response = await fetch("/path/to/your/xml/data.xml");
+    const response = await fetch(buildXmlFeedUrl(XML_FEED_URL), {
+      cache: "no-store",
+      headers: {
+        Accept: "application/xml, text/xml",
+        "Cache-Control": "no-cache",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`XML fetch failed: ${response.status}`);
+    }
     const xmlData = await response.text();
 
     // Cache the XML data
@@ -124,7 +145,19 @@ self.addEventListener("fetch", (event) => {
 
   // Handle XML data requests separately
   if (event.request.url.includes("/xml-data")) {
-    event.respondWith(caches.match(event.request).then((response) => response || fetch(event.request)));
+    event.respondWith(
+      caches.open(XML_CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match("/xml-data");
+        const syncPromise = syncXmlData();
+        if (cached) {
+          event.waitUntil(syncPromise);
+          return cached;
+        }
+        await syncPromise;
+        const updated = await cache.match("/xml-data");
+        return updated || fetch(event.request);
+      })
+    );
     return;
   }
 

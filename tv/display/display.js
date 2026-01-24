@@ -576,12 +576,10 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   ROOT.innerHTML = `
     <div class="container-fluid">
       <div class="row g-3 align-items-center">
-        <div class="col-12 col-lg-7" style="outline: 2px dashed white">
+        <div class="col-12 col-lg-6" style="outline: 2px dashed white">
           ${carouselMarkup}
-          
-          
         </div>
-        <div class="col-12 col-lg-5" style="outline: 2px dashed white">
+        <div class="col-12 col-lg-6" style="outline: 2px dashed white">
           <div class="tv-panel p-3 mb-3">
             <div class="h2 text-danger mb-4 fw-bold text-uppercase">Show Special</div>
             <div class="badge h4 bg-danger">${data.usage || "N/A"}</div>
@@ -602,12 +600,13 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
         </div>
         <!-- SECOND ROW -->
         <div class="row g-3">
-          <div class="col-12 col-lg-7" style="outline: 2px dashed blue">
-            ${customText ? `<div class="tv-panel p-3 fw-semibold">${customText}</div>` : ""}
+          <div class="col-12 col-lg-6" style="outline: 2px dashed blue">
+            ${customText ? `<div class="tv-panel p-4 fw-semibold">
+              ${customText}</div>` : ""}
             ${featureMarkup ? `<div class="mt-4">${featureMarkup}</div>` : ""}
           </div>
 
-          <div class="col-12 col-lg-5" style="outline: 2px dashed green">
+          <div class="col-12 col-lg-6" style="outline: 2px dashed green">
             ${
               videoEmbedUrl
                 ? `
@@ -622,9 +621,6 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
           </div>
         </div>
       </div>
-
-
-      
     </div>
   `;
   initCarousels();
@@ -646,7 +642,7 @@ function renderLandscapeGrid(items) {
                 ? `<img src="${item.images[0]}" alt="${item.title || "Vehicle"}" />`
                 : `<div class="tv-panel p-4 text-center">Image not available</div>`
             }
-            <div class="mt-2">
+            <div class="mt-3">
               <div class="fw-semibold">${item.year || ""} ${item.manufacturer || ""}</div>
               <div class="text-secondary small">${item.modelName || item.title || ""}</div>
               <div class="fw-bold text-danger">${formatPrice(item.price)}</div>
