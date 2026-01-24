@@ -9,7 +9,7 @@
 		<link rel="stylesheet" href="../css/style.css" />
 		<link rel="stylesheet" href="./tv.css" />
 	</head>
-	<body class="tv-body">
+	<body class="tv-body" data-bs-theme="light">
 		<main class="container py-5">
 			<div class="row justify-content-center">
 				<div class="col-12 col-lg-8">
@@ -23,7 +23,16 @@
 									height="27"
 								/>
 							</a>
-							<span class="badge text-bg-danger">TV Launcher</span>
+							<div class="d-flex align-items-center gap-2">
+								<button
+									id="toggleThemeButton"
+									class="btn btn-outline-secondary px-3"
+									type="button"
+								>
+									<i id="theme-icon" class="bi bi-moon-stars"></i>
+								</button>
+								<span class="badge text-bg-danger">TV Launcher</span>
+							</div>
 						</div>
 
 						<div class="row g-3">
@@ -99,10 +108,14 @@
 								></textarea>
 							</div>
 							<div class="col-12">
-								<label for="colorPickerInput" class="form-label">Color picker</label>
+								<label for="colorPickerInput" class="form-label"
+									>Color picker</label
+								>
 								<div class="row g-2">
 									<div class="col-12 col-md-4">
-										<label for="colorPickerInput" class="form-label">Main color</label>
+										<label for="colorPickerInput" class="form-label"
+											>Main color</label
+										>
 										<input
 											type="color"
 											class="form-control form-control-color"
@@ -112,7 +125,9 @@
 										/>
 									</div>
 									<div class="col-12 col-md-4">
-										<label for="accentColorOneInput" class="form-label">Accent 1</label>
+										<label for="accentColorOneInput" class="form-label"
+											>Accent 1</label
+										>
 										<input
 											type="color"
 											class="form-control form-control-color"
@@ -122,7 +137,9 @@
 										/>
 									</div>
 									<div class="col-12 col-md-4">
-										<label for="accentColorTwoInput" class="form-label">Accent 2</label>
+										<label for="accentColorTwoInput" class="form-label"
+											>Accent 2</label
+										>
 										<input
 											type="color"
 											class="form-control form-control-color"
@@ -132,13 +149,17 @@
 										/>
 									</div>
 								</div>
-								<div class="form-text">Used for the color feature swatches.</div>
+								<div class="form-text">
+									Used for the color feature swatches.
+								</div>
 							</div>
 							<div class="col-12">
 								<label class="form-label d-block">Slideshow range</label>
 								<div class="row g-2">
 									<div class="col-6">
-										<label for="slideStartInput" class="form-label">Start on image</label>
+										<label for="slideStartInput" class="form-label"
+											>Start on image</label
+										>
 										<input
 											type="number"
 											class="form-control"
@@ -148,7 +169,9 @@
 										/>
 									</div>
 									<div class="col-6">
-										<label for="slideEndInput" class="form-label">Stop on image</label>
+										<label for="slideEndInput" class="form-label"
+											>Stop on image</label
+										>
 										<input
 											type="number"
 											class="form-control"

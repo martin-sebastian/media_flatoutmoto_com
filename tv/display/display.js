@@ -18,6 +18,7 @@ function getQueryParams() {
     swatch: (params.get("swatch") || "").trim(),
     accent1: (params.get("accent1") || "").trim(),
     accent2: (params.get("accent2") || "").trim(),
+    theme: (params.get("theme") || "dark").trim(),
     slideStart: Number.parseInt(params.get("slideStart") || "2", 10),
     slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
   };
@@ -283,13 +284,9 @@ function renderFeatureCards(items, swatchColor, accentOne, accentTwo) {
       const accentSecondary = accentTwo || "#f97316";
       const imageMarkup =
         index === 0
-          ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center gap-2">
-                <div class="icon-group">
-                  <i class="bi bi-1-square-fill"></i>
-                  <i class="bi bi-0-square-fill"></i><br/>
-                </div>
-              </div>
-            `
+          ? `<div class="tv-feature-icon">
+                <img src="../../tv/img/21.png" class="tv-feature-img" alt="Cruise 21 length" />
+              </div>`
           : index === 1
             ? `<div class="tv-feature-icon">
                   <img src="../../img/rotax-engine.png" class="tv-feature-img" alt="Rotax engine" />
@@ -418,6 +415,23 @@ function mergeData(xmlData, apiData) {
 }
 
 /**
+ * Render a QR code for a target URL.
+ * @param {string} url Target URL for QR code.
+ */
+function renderQrCode(url) {
+  if (!window.QRCode || !url) return;
+  const qrContainer = document.getElementById("qrCode");
+  if (!qrContainer) return;
+  qrContainer.innerHTML = "";
+  new QRCode(qrContainer, {
+    text: url,
+    width: 120,
+    height: 120,
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+/**
  * Render a single vehicle in portrait layout.
  * @param {object} data Vehicle data.
  * @param {string} imageUrl Preferred image URL.
@@ -500,9 +514,8 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
           </div>
         </div>
         <div class="col-12 col-lg-4">
-          <div class="tv-panel my-3 p-3 h-100 w-100 text-center d-flex flex-column justify-content-center align-items-center">
-            <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" class="tv-contact-logo" />
-            <div class="tv-contact-text mt-2">${contactLine}</div>
+          <div class="tv-panel my-3 p-3 h-100 w-100 d-flex align-items-center justify-content-center">
+            <div id="qrCode" class="tv-qr"></div>
           </div>
         </div>
       </div>
@@ -520,6 +533,7 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
       }
     </div>
   `;
+  renderQrCode(data.webURL);
   initCarousels();
 }
 
@@ -642,7 +656,8 @@ function renderMessage(message) {
  * Initialize the display with XML data and optional API enrichment.
  */
 async function initDisplay() {
-  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2 } = getQueryParams();
+  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2, theme } = getQueryParams();
+  document.body.setAttribute("data-bs-theme", theme || "dark");
 
   const wantsPortrait = layout !== "landscape";
   const screenIsPortrait = isPortraitScreen();

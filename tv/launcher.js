@@ -16,6 +16,8 @@ const DOM = {
   loadImagesBtn: document.getElementById("loadImagesBtn"),
   buildUrlBtn: document.getElementById("buildUrlBtn"),
   copyUrlBtn: document.getElementById("copyUrlBtn"),
+  toggleThemeButton: document.getElementById("toggleThemeButton"),
+  themeIcon: document.getElementById("theme-icon"),
 };
 
 let cachedXmlText = "";
@@ -205,6 +207,7 @@ function buildDisplayUrl() {
   const accentTwo = DOM.accentColorTwoInput?.value?.trim();
   const slideStart = Number.parseInt(DOM.slideStartInput?.value, 10);
   const slideEnd = Number.parseInt(DOM.slideEndInput?.value, 10);
+  const theme = document.body.getAttribute("data-bs-theme") || "dark";
 
   const url = new URL(getDisplayBaseUrl());
   url.searchParams.set("layout", layout);
@@ -218,6 +221,7 @@ function buildDisplayUrl() {
   if (accentTwo) url.searchParams.set("accent2", accentTwo);
   if (Number.isFinite(slideStart)) url.searchParams.set("slideStart", slideStart);
   if (Number.isFinite(slideEnd)) url.searchParams.set("slideEnd", slideEnd);
+  if (theme) url.searchParams.set("theme", theme);
 
   return url.toString();
 }
@@ -284,6 +288,32 @@ function handleImageSelection(event) {
 /**
  * Initialize launcher event listeners.
  */
+/**
+ * Update the theme icon for the current theme.
+ * @param {string} theme Theme name.
+ */
+function updateThemeIcon(theme) {
+  if (!DOM.themeIcon) return;
+  if (theme === "dark") {
+    DOM.themeIcon.classList.remove("bi-brightness-high");
+    DOM.themeIcon.classList.add("bi-moon-stars");
+  } else {
+    DOM.themeIcon.classList.remove("bi-moon-stars");
+    DOM.themeIcon.classList.add("bi-brightness-high");
+  }
+}
+
+/**
+ * Toggle between light and dark themes.
+ */
+function toggleTheme() {
+  const currentTheme = document.body.getAttribute("data-bs-theme") || "dark";
+  const newTheme = currentTheme === "dark" ? "light" : "dark";
+  document.body.setAttribute("data-bs-theme", newTheme);
+  localStorage.setItem("theme", newTheme);
+  updateThemeIcon(newTheme);
+}
+
 function initLauncher() {
   if (!DOM.stockInput) return;
   const initialStock = getLauncherStockFromUrl();
@@ -291,6 +321,9 @@ function initLauncher() {
     DOM.stockInput.value = initialStock;
     DOM.stockInput.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  const savedTheme = localStorage.getItem("theme") || "dark";
+  document.body.setAttribute("data-bs-theme", savedTheme);
+  updateThemeIcon(savedTheme);
   if (DOM.slideStartInput) {
     DOM.slideStartInput.value = getLauncherNumberParam("slideStart", 2);
   }
@@ -308,6 +341,9 @@ function initLauncher() {
   }
   if (DOM.accentColorTwoInput) {
     DOM.accentColorTwoInput.value = getLauncherTextParam("accent2") || "#f97316";
+  }
+  if (DOM.toggleThemeButton) {
+    DOM.toggleThemeButton.addEventListener("click", toggleTheme);
   }
   DOM.loadImagesBtn.addEventListener("click", handleLoadImages);
   DOM.buildUrlBtn.addEventListener("click", () => {
