@@ -16,7 +16,20 @@ body {
   -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
-
+.tv-body {
+  height: auto;
+  width: 100%;
+  overflow: auto;
+  display: block;
+}
+.tv-html {
+  height: auto;
+  overflow: auto;
+}
+.tv-body main {
+  flex: initial;
+  overflow: visible;
+}
 /* Keep main content flexible with inner scrolling */
 .page-content {
   flex: 1 1 auto;
