@@ -2050,9 +2050,11 @@ function updateTable() {
         ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${moment(updated).format("YYYY-MM-DD")}
         </span>
       </td>
-      <td class="column-type" data-column="type">${modelType}</td>
 
       
+      <td class="column-type" data-column="type">${modelType}</td>
+
+
       <td class="column-color color-cell" data-column="color">${color}</td>
       <td>
         <div class="input-group input-group-sm flex-nowrap" style="width: 150px;">
