@@ -1,24 +1,39 @@
 const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml";
 
-const DOM = {
-  stockInput: document.getElementById("stockInput"),
-  layoutOptions: Array.from(document.querySelectorAll("input[name='layoutOption']")),
-  categorySelect: document.getElementById("categorySelect"),
-  imageUrlInput: document.getElementById("imageUrlInput"),
-  customTextInput: document.getElementById("customTextInput"),
-  colorPickerInput: document.getElementById("colorPickerInput"),
-  accentColorOneInput: document.getElementById("accentColorOneInput"),
-  accentColorTwoInput: document.getElementById("accentColorTwoInput"),
-  slideStartInput: document.getElementById("slideStartInput"),
-  slideEndInput: document.getElementById("slideEndInput"),
-  urlOutput: document.getElementById("urlOutput"),
-  imageResults: document.getElementById("imageResults"),
-  loadImagesBtn: document.getElementById("loadImagesBtn"),
-  buildUrlBtn: document.getElementById("buildUrlBtn"),
-  copyUrlBtn: document.getElementById("copyUrlBtn"),
-  toggleThemeButton: document.getElementById("toggleThemeButton"),
-  themeIcon: document.getElementById("theme-icon"),
-};
+/**
+ * Collect DOM references for the launcher UI.
+ * @returns {object} Launcher DOM references.
+ */
+function getLauncherDom() {
+  return {
+    stockInput: document.getElementById("stockInput"),
+    layoutOptions: Array.from(document.querySelectorAll("input[name='layoutOption']")),
+    categorySelect: document.getElementById("categorySelect"),
+    imageUrlInput: document.getElementById("imageUrlInput"),
+    customTextInput: document.getElementById("customTextInput"),
+    colorPickerInput: document.getElementById("colorPickerInput"),
+    accentColorOneInput: document.getElementById("accentColorOneInput"),
+    accentColorTwoInput: document.getElementById("accentColorTwoInput"),
+    slideStartInput: document.getElementById("slideStartInput"),
+    slideEndInput: document.getElementById("slideEndInput"),
+    urlOutput: document.getElementById("urlOutput"),
+    imageResults: document.getElementById("imageResults"),
+    loadImagesBtn: document.getElementById("loadImagesBtn"),
+    buildUrlBtn: document.getElementById("buildUrlBtn"),
+    copyUrlBtn: document.getElementById("copyUrlBtn"),
+    toggleThemeButton: document.getElementById("toggleThemeButton"),
+    themeIcon: document.getElementById("theme-icon"),
+  };
+}
+
+const DOM = getLauncherDom();
+
+/**
+ * Refresh DOM references after the page is ready.
+ */
+function refreshLauncherDom() {
+  Object.assign(DOM, getLauncherDom());
+}
 
 let cachedXmlText = "";
 let cachedSelectedImages = null;
@@ -386,6 +401,7 @@ function toggleTheme() {
 }
 
 function initLauncher() {
+  refreshLauncherDom();
   if (!DOM.stockInput) return;
   const initialStock = getLauncherStockFromUrl();
   if (initialStock) {
@@ -433,4 +449,8 @@ function initLauncher() {
   DOM.imageResults.addEventListener("change", handleSlideSelection);
 }
 
-initLauncher();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLauncher);
+} else {
+  initLauncher();
+}

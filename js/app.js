@@ -673,7 +673,7 @@ function showPlaceholder(rowCount = 10) {
 
     // Set innerHTML once per row
     row1.innerHTML = `
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-6"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
@@ -686,7 +686,7 @@ function showPlaceholder(rowCount = 10) {
     <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
     `; // Your placeholder cells
     row2.innerHTML = `
-    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
@@ -792,7 +792,6 @@ async function fetchData() {
         mode: "cors", // Explicitly request CORS
         headers: {
           Accept: "application/xml, text/xml",
-          "Cache-Control": "no-cache",
         },
         cache: "no-store",
       });
@@ -1673,9 +1672,34 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     console.error("Print Key Tag button not found");
   }
+
+  const keyTagsModal = document.getElementById("keyTagsByStockNumberModal");
+  if (keyTagsModal) {
+    keyTagsModal.addEventListener("hide.bs.modal", restoreKeyTagsModalFocus);
+  }
 });
 
+let keyTagsModalLastFocus = null;
+
+/**
+ * Store the focused element before opening the key tags modal.
+ */
+function storeKeyTagsModalFocus() {
+  keyTagsModalLastFocus =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+}
+
+/**
+ * Restore focus after the key tags modal closes.
+ */
+function restoreKeyTagsModalFocus() {
+  if (keyTagsModalLastFocus?.focus) {
+    keyTagsModalLastFocus.focus();
+  }
+}
+
 function openKeyTagsByStockNumberModal(stockNumber) {
+  storeKeyTagsModalFocus();
   const modalIframe = document.getElementById("keyTagsByStockNumberModal");
   modalIframe.src = `https://newportal.flatoutmotorcycles.com/apps/keytags/keytag.html?vehicle=`;
   const keyTagsByStockNumberModal = new bootstrap.Modal(document.getElementById("keyTagsByStockNumberModal"));
@@ -2051,11 +2075,11 @@ function updateTable() {
         </span>
       </td>
 
-      
+
       <td class="column-type" data-column="type">${modelType}</td>
 
 
-      <td class="column-color color-cell" data-column="color">${color}</td>
+      <td class="color-cell" data-column="color"><span class="column-color">${color}</span></td>
       <td>
         <div class="input-group input-group-sm flex-nowrap" style="width: 150px;">
           <input type="text" class="form-control d-block" style="font-size: 12px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">

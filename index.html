@@ -38,13 +38,12 @@
 
   <body data-bs-theme="dark">
       <header class="sticky-top d-print-none">
-        <nav class="navbar navbar-expand-xl bg-body-tertiary bg-blur">
+        <nav class="navbar navbar-expand-xl bg-body-tertiary border border-bottom border-secondary-subtle bg-blur">
           <div class="container-fluid">
             <div class="navbar-left d-flex flex-row align-items-center">
               <a class="navbar-brand" href="./">
                 <img id="logo" class="ms-1 me-1 pt-0" src="./img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
               </a>
-              
             </div>
             <div class="navbar-center d-none d-md-block">
               <form class="form-group d-flex flex-row justify-content-center align-items-center" role="search" data-filter-group="desktop">
@@ -199,10 +198,11 @@
                 <label class="form-check-label" for="toggleColorColumnMobile">Color</label>
               </div>
             </div>
-            
             <label for="updatedFilterMobile" class="visually-hidden">Updated:</label>
             <input type="date" id="updatedFilterMobile" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" data-filter="updated" onchange="filterTable()">
           </form>
+
+          
           <form class="d-flex flex-column mt-1" role="search">
             <div class="card p-1 w-100">
               <div class="d-flex flex-column ">
@@ -238,11 +238,11 @@
             <span class="text-secondary">Results:</span> <span class="mx-1" id="rowCountDisplay"></span>
           </div>
           <div class="table-scroll-container">
-            <div class="bg-dark text-light rounded-3 overflow-hidden border border-secondary-subtle border-1">
+            <div class="bg-dark text-light rounded-3 border border-secondary-subtle overflow-hidden">
               <div class="table-responsive">
-                <table id="vehiclesTable" class="table table-borderlesstable-striped table-sm">
+                <table id="vehiclesTable" class="table table-borderless table-striped table-hover table-sm">
                   <colgroup>
-                    <col style="width: 80px" data-column="image">
+                    <col style="width: 80px">
                     <col style="width: 70px">
                     <col style="width: 70px">
                     <col style="width: 110px">
@@ -257,7 +257,7 @@
                   </colgroup>
                   <thead>
                     <tr>
-                      <th class="no-wrap text-center">Image</th>
+""                    <th class="no-wrap text-center">Image</th>
                       <th class="no-wrap text-center">Usage</th>
                       <th class="no-wrap text-center">Year</th>
                       <th class="no-wrap">Make</th>

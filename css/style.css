@@ -4,8 +4,7 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden;
-  /* Prevents the whole page from scrolling */
+  overflow: auto;
 }
 
 /* 2. Turn Body into a Column */
@@ -45,8 +44,7 @@ main {
   display: flex;
   /* Becomes a flex container for its children */
   flex-direction: column;
-  overflow: hidden;
-  /* Prevents main from scrolling, forces inner scroll */
+  overflow: auto;
   min-height: 0;
   /* Crucial Firefox/Flexbox fix */
 }
@@ -61,8 +59,8 @@ main {
 }
 
 .search-width {
-  max-width: 440px;
-  width: 100%;
+  max-width: 240px;
+  width: 240px;
 }
 .dots {
   background-image: radial-gradient(circle, #ddd 1px, transparent 1px);

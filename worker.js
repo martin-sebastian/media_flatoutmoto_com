@@ -78,7 +78,6 @@ async function syncXmlData() {
       cache: "no-store",
       headers: {
         Accept: "application/xml, text/xml",
-        "Cache-Control": "no-cache",
       },
     });
     if (!response.ok) {
