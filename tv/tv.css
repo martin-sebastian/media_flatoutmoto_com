@@ -48,9 +48,10 @@ body.tv-body {
 .tv-video-frame {
   border-radius: 16px;
   overflow: hidden;
-  border: 0px solid rgba(220, 53, 69, 0.5);
+  border: 2px solid rgba(220, 53, 69, 0.5);
   background: #0b0b0b;
   position: relative;
+  min-width: 900px;
   width: 100%;
   max-width: 940px;
   margin: 0 auto;
@@ -70,7 +71,7 @@ body.tv-body {
 
 .tv-feature-grid {
   width: 100%;
-  max-width: 100%;
+  max-width: 940px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -156,5 +157,5 @@ body.tv-body {
 }
 
 .text-decoration-none {
-  text-decoration: none !important;
+  text-decoration:
 }

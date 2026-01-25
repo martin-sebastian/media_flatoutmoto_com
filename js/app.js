@@ -1613,7 +1613,7 @@ function printKeyTag(event) {
             <div id="modelColor">${keytagContainer.querySelector("#modelColor").textContent}</div>
             <div id="modelVin">${keytagContainer.querySelector("#modelVin").textContent}</div>
           </div>
-          <div id="keytagContainerTwo" style="margin-top: 0.1in;">
+          <div id="keytagContainerTwo">
             <span class="rotated-label-text">
               ${keytagContainer.querySelector("#modelYear").textContent}
               ${keytagContainer.querySelector("#manufacturer").textContent}<br>
@@ -2051,6 +2051,8 @@ function updateTable() {
         </span>
       </td>
       <td class="column-type" data-column="type">${modelType}</td>
+
+      
       <td class="column-color color-cell" data-column="color">${color}</td>
       <td>
         <div class="input-group input-group-sm flex-nowrap" style="width: 150px;">

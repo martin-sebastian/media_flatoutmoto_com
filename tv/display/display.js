@@ -300,7 +300,7 @@ function renderFeatureCards(items, swatchColor, accentOne, accentTwo) {
                   <img src="../../img/rotax-engine.png" class="tv-feature-img" alt="Rotax engine" />
                 </div>`
             : index === 2
-              ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center gap-2">
+              ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center">
                     <i class="bi bi-palette2" style="color: ${swatch};"></i>
                     <span class="tv-color-swatch" style="background-color: ${swatch};"></span>
                     <div class="tv-color-dots">
@@ -487,7 +487,7 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
 
       <div class="row g-3">
         <div class="col-12 col-lg-6">
-          <div class="tv-panel my-3 p-4 h-100 w-100">
+          <div class="tv-panel my-3 p-1 h-100 w-100">
             <div class="text-uppercase text-danger h2 fw-bold mt-2">Show Special</div>
             <div class="badge h4 mb-4 bg-danger">${data.usage || "N/A"}</div>
             <div class="text-secondary text-uppercase fw-semibold">${data.title || ""}</div>
@@ -499,8 +499,6 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
             }
             <div class="h1 mb-0 fw-bold">${formatPrice(specialValue)}</div>
             <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
-            
-            
           </div>
         </div>
         <div class="col-12 col-lg-6">
@@ -513,18 +511,18 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
         </div>
       </div>
 
-      ${featureMarkup ? `<div class="mt-4 pt-2">${featureMarkup}</div>` : ""}
+      ${featureMarkup ? `<div class="mt-40pt-2">${featureMarkup}</div>` : ""}
 
       <div class="row g-3">
-        <div class="col-12 col-lg-8">
-          <div class="tv-panel my-3 p-4 h-100 w-100">
+        <div class="col-12 col-lg-5">
+          <div class="tv-panel my-3 p-4">
           <img id="logo" class="ms-1 me-1 pt-0 float-end" src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
             <div class="fw-semibold mt-2">Welcome to the Boat, Sports & Travel Show 2026</div>
             ${financeSummary}
             ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
           </div>
         </div>
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-7">
           <div class="tv-panel my-3 p-4 h-100 w-100 d-flex align-items-center justify-content-center">
             <div id="qrCode" class="tv-qr"></div>
           </div>
@@ -534,10 +532,8 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
       ${
         videoEmbedUrl
           ? `
-          <div class="row mt-3">
-            <div class="tv-video-frame mt-3">
-              <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-            </div>
+          <div class="row g-3">
+          https://youtu.be/pd5fKmJoKew?si=baUGX6fP1tP_LKQf
           </div>
         `
           : ""
@@ -576,44 +572,42 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   ROOT.innerHTML = `
     <div class="container-fluid">
       <div class="row g-3 align-items-center">
-        <div class="col-12 col-lg-6" style="outline: 2px dashed white">
+        <div class="col-12 col-lg-5" style="outline: 2px dashed white">
           ${carouselMarkup}
         </div>
-        <div class="col-12 col-lg-6" style="outline: 2px dashed white">
-          <div class="tv-panel p-3 mb-3">
+        <div class="col-12 col-lg-7" style="outline: 2px dashed white">
+          <div class="tv-panel w-100 py-1 px-3">
             <div class="h2 text-danger mb-4 fw-bold text-uppercase">Show Special</div>
             <div class="badge h4 bg-danger">${data.usage || "N/A"}</div>
             <div class="h6 text-secondary text-uppercase fw-semibold mb-0">${data.title || ""}</div>
             <div class="text-light mb-4">${data.stockNumber || ""}</div>
-            ${
-              msrpValue
-                ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
+            ${msrpValue ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
                 : ""
             }
-            <div class="display-6 fw-bold text-light mt-0">${formatPrice(specialValue)}</div>
-            <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+            <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>
+            <div class="d-flex justify-content-start fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
           </div>
           <div class="tv-panel p-3">
             ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
             ${feesMarkup}
           </div>
         </div>
+
+
         <!-- SECOND ROW -->
-        <div class="row g-3">
-          <div class="col-12 col-lg-6" style="outline: 2px dashed blue">
+        <div class="row g-2">
+          <div class="col-12 col-lg-7" style="outline: 0px dashed blue">
             ${customText ? `<div class="tv-panel p-4 fw-semibold">
               ${customText}</div>` : ""}
             ${featureMarkup ? `<div class="mt-4">${featureMarkup}</div>` : ""}
           </div>
 
-          <div class="col-12 col-lg-6" style="outline: 2px dashed green">
+          <div class="col-12 col-lg-2" style="width: 800px outline: 2px dashed green">
             ${
               videoEmbedUrl
                 ? `
-                <div class="mt-3">
-                  <div class="tv-video-frame">
-                    <iframe src="${videoEmbedUrl}" title="Overview Video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                  </div>
+                <div class="mt-2">
+                  <iframe width="560" height="315" src="https://www.youtube.com/embed/pd5fKmJoKew?si=EBegYorOnQ-blHjP" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                 </div>
               `
                 : ""
