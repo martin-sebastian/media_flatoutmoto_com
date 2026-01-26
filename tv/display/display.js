@@ -2,6 +2,8 @@ const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml"
 const PORTAL_API_BASE = "https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/";
 
 const ROOT = document.getElementById("displayRoot");
+let displayFrameMode = "";
+let previewZoomScale = 1;
 
 /**
  * Read query parameters for the display page.
@@ -29,6 +31,9 @@ function getQueryParams() {
     theme: (params.get("theme") || "dark").trim(),
     slideStart: Number.parseInt(params.get("slideStart") || "2", 10),
     slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
+    preview: ["1", "true", "yes"].includes(
+      (params.get("preview") || "").toLowerCase()
+    ),
   };
 }
 
@@ -47,6 +52,80 @@ function normalizeStockNumber(value) {
  */
 function isPortraitScreen() {
   return window.matchMedia("(orientation: portrait)").matches || window.innerHeight >= window.innerWidth;
+}
+
+/**
+ * Apply preview zoom to fit 1080x1920 or 1920x1080 layouts.
+ * @param {string} layout Layout string.
+ */
+function applyPreviewZoom(layout) {
+  if (!ROOT) return;
+  const isPortrait = layout !== "landscape";
+  const targetWidth = isPortrait ? 1080 : 1920;
+  const targetHeight = isPortrait ? 1920 : 1080;
+  const scale = Math.min(window.innerWidth / targetWidth, window.innerHeight / targetHeight);
+  previewZoomScale = Number.isFinite(scale) ? Math.max(0.05, scale) : 1;
+
+  document.body.style.width = `${targetWidth}px`;
+  document.body.style.height = `${targetHeight}px`;
+  document.body.style.overflow = "hidden";
+  ROOT.style.width = `${targetWidth}px`;
+  ROOT.style.height = `${targetHeight}px`;
+
+  if (window.CSS?.supports?.("zoom: 1")) {
+    document.body.style.zoom = `${previewZoomScale}`;
+    ROOT.style.transform = "";
+  } else {
+    document.body.style.zoom = "";
+    ROOT.style.transform = `scale(${previewZoomScale})`;
+    ROOT.style.transformOrigin = "top left";
+  }
+}
+
+/**
+ * Set display frame mode for constrained layouts.
+ * @param {string} mode Frame mode value.
+ */
+function setDisplayFrameMode(mode) {
+  displayFrameMode = mode;
+}
+
+/**
+ * Scale framed portrait content to fit the display frame.
+ */
+function applyFramedScale() {
+  if (displayFrameMode !== "portrait") return;
+  const frame = document.querySelector(".tv-display-frame-inner");
+  const content = frame?.querySelector(".tv-layout-portrait");
+  if (!frame || !content) return;
+  const scale = Math.min(
+    frame.clientWidth / 1080,
+    frame.clientHeight / 1920
+  );
+  if (window.CSS?.supports?.("zoom: 1")) {
+    content.style.zoom = `${scale}`;
+    content.style.transform = "";
+  } else {
+    content.style.zoom = "";
+    content.style.transform = `scale(${scale})`;
+    content.style.transformOrigin = "top center";
+  }
+}
+
+/**
+ * Render markup into the display root, optionally framed.
+ * @param {string} markup HTML markup to render.
+ */
+function setDisplayContent(markup) {
+  if (displayFrameMode === "portrait") {
+    ROOT.innerHTML = `
+      <div class="tv-display-frame tv-display-frame-portrait">
+        <div class="tv-display-frame-inner">${markup}</div>
+      </div>
+    `;
+    return;
+  }
+  ROOT.innerHTML = markup;
 }
 
 /**
@@ -189,15 +268,109 @@ function buildMediaList(apiImages, xmlImages, preferredImages) {
 }
 
 /**
- * Get the first YouTube embed URL from API videos.
- * @param {object[]} apiVideos API video objects.
- * @returns {string} Embed URL or empty string.
+ * Extract a YouTube video ID from common URL formats.
+ * @param {string} url YouTube URL or ID.
+ * @returns {string} Video ID or empty string.
  */
-function getYouTubeEmbedUrl(apiVideos) {
-  const fallbackId = "pd5fKmJoKew";
-  const video = (apiVideos || []).find((item) => item && Number(item.Platform) === 0 && safeText(item.URL));
-  const id = video ? safeText(video.URL) : fallbackId;
-  return `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&mute=1`;
+function getYouTubeId(url) {
+  if (!url) return "";
+  if (/^[a-zA-Z0-9_-]{6,}$/.test(url) && !url.includes("/")) {
+    return url;
+  }
+  const match =
+    url.match(/[?&]v=([^&#]+)/) ||
+    url.match(/youtu\.be\/([^?&#/]+)/) ||
+    url.match(/youtube\.com\/embed\/([^?&#/]+)/);
+  return match ? match[1] : "";
+}
+
+/**
+ * Get the first video URL from API video entries.
+ * @param {object} video Video entry.
+ * @returns {string} Video URL or empty string.
+ */
+function getVideoUrl(video) {
+  if (!video) return "";
+  return safeText(
+    video.URL || video.Url || video.url || video.VideoURL || video.VideoUrl || video.Link || "",
+  );
+}
+
+/**
+ * Get the first video source from API videos.
+ * @param {object[]|object|null} apiVideos API video objects.
+ * @returns {{type: string, src: string} | null} Video source or null.
+ */
+function getVideoSource(apiVideos) {
+  const list = Array.isArray(apiVideos) ? apiVideos : apiVideos ? [apiVideos] : [];
+  const video = list.find((item) => item && getVideoUrl(item));
+  if (!video) return null;
+  const url = getVideoUrl(video);
+  const lowerUrl = url.toLowerCase();
+  const cleanUrl = lowerUrl.split("?")[0];
+  if (cleanUrl.endsWith(".mp4") || cleanUrl.endsWith(".webm") || cleanUrl.endsWith(".ogg")) {
+    return { type: "file", src: url };
+  }
+  const id = getYouTubeId(url);
+  if (id) {
+    return {
+      type: "youtube",
+      src: `https://www.youtube.com/embed/${id}?autoplay=1&loop=1&playlist=${id}&mute=1`,
+    };
+  }
+  return { type: "url", src: url };
+}
+
+/**
+ * Render a video block for the display.
+ * @param {{type: string, src: string} | null} videoSource Video source.
+ * @returns {string} Video markup.
+ */
+function renderVideoFrame(videoSource) {
+  if (!videoSource) return "";
+  if (videoSource.type === "file") {
+    return `
+      <div class="tv-video-frame">
+        <video
+          src="${videoSource.src}"
+          class="object-fit-contain w-100 h-100"
+          autoplay
+          muted
+          loop
+          playsinline
+        ></video>
+      </div>
+    `;
+  }
+  return `
+    <div class="tv-video-frame">
+      <iframe
+        src="${videoSource.src}"
+        title="YouTube video player"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+  `;
+}
+
+/**
+ * Render a video slot with fallback messaging.
+ * @param {object[]|object|null} apiVideos API video objects.
+ * @returns {string} Video markup or fallback.
+ */
+function renderVideoSlot(apiVideos) {
+  const videoSource = getVideoSource(apiVideos);
+  if (videoSource) {
+    return renderVideoFrame(videoSource);
+  }
+  const count = Array.isArray(apiVideos) ? apiVideos.length : apiVideos ? 1 : 0;
+  const suffix = count ? ` (${count} item${count === 1 ? "" : "s"})` : "";
+  return `
+    <div class="tv-panel p-3 h-100 d-flex align-items-center justify-content-center text-secondary">
+      No video found${suffix}
+    </div>
+  `;
 }
 
 /**
@@ -448,7 +621,7 @@ function renderQrCode(url) {
 function renderPortrait(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo) {
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
   const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media, slideStart, slideEnd);
-  const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
+  const videoMarkup = renderVideoSlot(apiData?.Videos);
   const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
@@ -478,16 +651,14 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
     : `<div class="text-secondary mt-2">Pricing not available for financing.</div>`;
   const contactLine = apiData?.Phone ? `` : data.webURL ? "Visit flatoutmotorcycles.com" : "Visit Flat Out Motorsports";
 
-  ROOT.innerHTML = `
-    <div class="container">
-
-      <div class="mt-3">
-        ${carouselMarkup}
-      </div>
-
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">
-          <div class="tv-panel my-3 p-1 h-100 w-100">
+  setDisplayContent(`
+    <div class="tv-layout-portrait">
+      <div class="parent">
+        <div class="div1">
+          ${carouselMarkup}
+        </div>
+        <div class="div2">
+          <div class="tv-panel p-3 h-100">
             <div class="text-uppercase text-danger h2 fw-bold mt-2">Show Special</div>
             <div class="badge h4 mb-4 bg-danger">${data.usage || "N/A"}</div>
             <div class="text-secondary text-uppercase fw-semibold">${data.title || ""}</div>
@@ -500,48 +671,34 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
             <div class="h1 mb-0 fw-bold">${formatPrice(specialValue)}</div>
             <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
           </div>
-        </div>
-        <div class="col-12 col-lg-6">
-          <div class="tv-panel my-3 p-4 px-3 h-100 w-100">
+          <div class="tv-panel p-3 h-100">
             <div class="fw-semibold mt-2">Fees & Taxes</div>
             <div class="opacity-25">${rebatesMarkup}</div>
             <div class="opacity-25">${feesMarkup}</div>
             ${totalValue ? `<div class="mt-2 fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
           </div>
         </div>
-      </div>
-
-      ${featureMarkup ? `<div class="mt-40pt-2">${featureMarkup}</div>` : ""}
-
-      <div class="row g-3">
-        <div class="col-12 col-lg-5">
-          <div class="tv-panel my-3 p-4">
-          <img id="logo" class="ms-1 me-1 pt-0 float-end" src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
+        <div class="div3">
+          <div class="tv-panel p-4 h-100">
+            <img id="logo" class="ms-1 me-1 pt-0 float-end" src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
             <div class="fw-semibold mt-2">Welcome to the Boat, Sports & Travel Show 2026</div>
             ${financeSummary}
             ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
+            ${featureMarkup || ""}
           </div>
-        </div>
-        <div class="col-12 col-lg-7">
-          <div class="tv-panel my-3 p-4 h-100 w-100 d-flex align-items-center justify-content-center">
+          <div class="tv-panel p-4 h-100 d-flex align-items-center justify-content-center">
             <div id="qrCode" class="tv-qr"></div>
           </div>
         </div>
+        <div class="div4">
+          ${videoMarkup}
+        </div>
       </div>
-
-      ${
-        videoEmbedUrl
-          ? `
-          <div class="row g-3">
-          https://youtu.be/pd5fKmJoKew?si=baUGX6fP1tP_LKQf
-          </div>
-        `
-          : ""
-      }
     </div>
-  `;
+  `);
   renderQrCode(data.webURL);
   initCarousels();
+  requestAnimationFrame(applyFramedScale);
 }
 
 /**
@@ -553,11 +710,10 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
 function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo) {
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
   const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media, slideStart, slideEnd);
-  const videoEmbedUrl = getYouTubeEmbedUrl(apiData?.Videos);
+  const videoMarkup = renderVideoSlot(apiData?.Videos);
   const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
-  const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
   const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
   const totalValue = apiData?.OTDPrice;
@@ -569,54 +725,48 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   const financedAmount = totalAmount - downPayment;
   const monthlyPayment = calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
 
-  ROOT.innerHTML = `
-    <div class="container-fluid">
-      <div class="row g-3 align-items-center">
-        <div class="col-12 col-lg-5" style="outline: 2px dashed white">
+  setDisplayContent(`
+    <div class="tv-layout-landscape">
+      <div class="parent">
+        <div class="div1">
           ${carouselMarkup}
         </div>
-        <div class="col-12 col-lg-7" style="outline: 2px dashed white">
-          <div class="tv-panel w-100 py-1 px-3">
+        <div class="div2">
+          <div class="tv-panel p-3 h-100">
             <div class="h2 text-danger mb-4 fw-bold text-uppercase">Show Special</div>
             <div class="badge h4 bg-danger">${data.usage || "N/A"}</div>
-            <div class="h6 text-secondary text-uppercase fw-semibold mb-0">${data.title || ""}</div>
+            <div class="text-secondary text-uppercase fw-semibold mb-0">${data.title || ""}</div>
             <div class="text-light mb-4">${data.stockNumber || ""}</div>
-            ${msrpValue ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>`
-                : ""
-            }
+            ${msrpValue ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>` : ""}
             <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>
-            <div class="d-flex justify-content-start fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+            <div class="d-flex justify-content-start fw-semibold text-danger fs-5">
+              <span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span>
+            </div>
           </div>
-          <div class="tv-panel p-3">
-            ${totalValue ? `<div class="mt-2 fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
+        </div>
+        <div class="div3">
+          <div class="tv-panel p-3 h-100">
+            ${totalValue ? `<div class="fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
             ${feesMarkup}
           </div>
         </div>
-
-
-        <!-- SECOND ROW -->
-        <div class="row g-2">
-          <div class="col-12 col-lg-7" style="outline: 0px dashed blue">
-            ${customText ? `<div class="tv-panel p-4 fw-semibold">
-              ${customText}</div>` : ""}
+        <div class="div4">
+          <div class="tv-panel p-4 h-100">
+            ${customText || ""}
             ${featureMarkup ? `<div class="mt-4">${featureMarkup}</div>` : ""}
           </div>
-
-          <div class="col-12 col-lg-2" style="width: 800px outline: 2px dashed green">
-            ${
-              videoEmbedUrl
-                ? `
-                <div class="mt-2">
-                  <iframe width="560" height="315" src="https://www.youtube.com/embed/pd5fKmJoKew?si=EBegYorOnQ-blHjP" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-                </div>
-              `
-                : ""
-            }
+        </div>
+        <div class="div5">
+          <div class="tv-panel p-4 h-100 d-flex align-items-center justify-content-center">
+            <div id="qrCode" class="tv-qr"></div>
           </div>
+        </div>
+        <div class="div6">
+          ${videoMarkup}
         </div>
       </div>
     </div>
-  `;
+  `);
   initCarousels();
 }
 
@@ -629,14 +779,14 @@ function renderLandscapeGrid(items) {
     .slice(0, 6)
     .map(
       (item) => `
-        <div class="col">
-          <div class="tv-panel p-2 tv-grid-card h-100">
+        <div class="col-12">
+          <div class="tv-panel">
             ${
               item.images[0]
                 ? `<img src="${item.images[0]}" alt="${item.title || "Vehicle"}" />`
                 : `<div class="tv-panel p-4 text-center">Image not available</div>`
             }
-            <div class="mt-3">
+            <div class="">
               <div class="fw-semibold">${item.year || ""} ${item.manufacturer || ""}</div>
               <div class="text-secondary small">${item.modelName || item.title || ""}</div>
               <div class="fw-bold text-danger">${formatPrice(item.price)}</div>
@@ -648,7 +798,7 @@ function renderLandscapeGrid(items) {
     )
     .join("");
 
-  ROOT.innerHTML = `
+  setDisplayContent(`
     <div class="container">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" width="180" height="27" />
@@ -658,7 +808,7 @@ function renderLandscapeGrid(items) {
         ${cards}
       </div>
     </div>
-  `;
+  `);
 }
 
 /**
@@ -673,18 +823,38 @@ function renderMessage(message) {
  * Initialize the display with XML data and optional API enrichment.
  */
 async function initDisplay() {
-  const { layout, stockNumber, category, imageUrl, note, slideStart, slideEnd, swatch, accent1, accent2, theme, slides } = getQueryParams();
+  const {
+    layout,
+    stockNumber,
+    category,
+    imageUrl,
+    note,
+    slideStart,
+    slideEnd,
+    swatch,
+    accent1,
+    accent2,
+    theme,
+    slides,
+    preview,
+  } = getQueryParams();
   document.body.setAttribute("data-bs-theme", theme || "dark");
 
   const wantsPortrait = layout !== "landscape";
   const screenIsPortrait = isPortraitScreen();
-  if (wantsPortrait !== screenIsPortrait) {
+  const usePortraitFrame = wantsPortrait && !screenIsPortrait;
+  if (!preview && !usePortraitFrame && wantsPortrait !== screenIsPortrait) {
     renderMessage(
       wantsPortrait
         ? "You can only display this on a portrait oriented screen."
         : "You can only display this on a landscape oriented screen."
     );
     return;
+  }
+  setDisplayFrameMode(usePortraitFrame ? "portrait" : "");
+  if (preview) {
+    applyPreviewZoom(layout);
+    window.addEventListener("resize", () => applyPreviewZoom(layout));
   }
 
   try {

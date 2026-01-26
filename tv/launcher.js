@@ -20,9 +20,19 @@ function getLauncherDom() {
     imageResults: document.getElementById("imageResults"),
     loadImagesBtn: document.getElementById("loadImagesBtn"),
     buildUrlBtn: document.getElementById("buildUrlBtn"),
+    previewDisplayBtn: document.getElementById("previewDisplayBtn"),
     copyUrlBtn: document.getElementById("copyUrlBtn"),
     toggleThemeButton: document.getElementById("toggleThemeButton"),
     themeIcon: document.getElementById("theme-icon"),
+    previewDisplayModal: document.getElementById("previewDisplayModal"),
+    previewDisplayFrameLandscape: document.getElementById("previewDisplayFrameLandscape"),
+    previewLandscapeCard: document.getElementById("previewLandscapeCard"),
+    previewZoomOutBtn: document.getElementById("previewZoomOutBtn"),
+    previewZoomResetBtn: document.getElementById("previewZoomResetBtn"),
+    previewZoomInBtn: document.getElementById("previewZoomInBtn"),
+    previewOpenBtn: document.getElementById("previewOpenBtn"),
+    previewInlineFrame: document.getElementById("previewInlineFrame"),
+    previewBox: document.getElementById("previewBox"),
   };
 }
 
@@ -39,6 +49,8 @@ let cachedXmlText = "";
 let cachedSelectedImages = null;
 let selectedSlideUrls = new Set();
 let selectedHeroUrl = "";
+let previewZoomLevel = 1;
+let previewModalInstance = null;
 
 /**
  * Build the base URL for the display page.
@@ -288,6 +300,20 @@ function buildDisplayUrl() {
 }
 
 /**
+ * Build the preview URL with relaxed orientation checks.
+ * @param {string} [layoutOverride] Layout override value.
+ * @returns {string} Preview URL string.
+ */
+function buildPreviewUrl(layoutOverride) {
+  const url = new URL(buildDisplayUrl());
+  url.searchParams.set("preview", "1");
+  if (layoutOverride) {
+    url.searchParams.set("layout", layoutOverride);
+  }
+  return url.toString();
+}
+
+/**
  * Copy the output URL to the clipboard if possible.
  */
 async function copyUrlToClipboard() {
@@ -400,6 +426,100 @@ function toggleTheme() {
   updateThemeIcon(newTheme);
 }
 
+/**
+ * Return a Bootstrap modal instance for preview.
+ * @returns {bootstrap.Modal|null} Modal instance.
+ */
+function getPreviewModalInstance() {
+  if (!DOM.previewDisplayModal || !window.bootstrap?.Modal) return null;
+  if (!previewModalInstance) {
+    previewModalInstance = new bootstrap.Modal(DOM.previewDisplayModal);
+  }
+  return previewModalInstance;
+}
+
+/**
+ * Clamp and apply zoom for the preview iframe.
+ * @param {number} value Zoom scale value.
+ */
+function setPreviewZoom(value) {
+  previewZoomLevel = Math.min(1.4, Math.max(0.6, value));
+  if (DOM.previewDisplayFrameLandscape) {
+    DOM.previewDisplayFrameLandscape.style.transform = `scale(${previewZoomLevel})`;
+  }
+}
+
+/**
+ * Update preview zoom by a delta.
+ * @param {number} delta Zoom increment.
+ */
+function updatePreviewZoom(delta) {
+  setPreviewZoom(previewZoomLevel + delta);
+}
+
+/**
+ * Open the preview modal with the current display URL.
+ */
+function openPreviewModal() {
+  const previewUrl = buildPreviewUrl("landscape");
+  if (!previewUrl) return;
+  DOM.urlOutput.value = buildDisplayUrl();
+  if (DOM.previewDisplayFrameLandscape) {
+    DOM.previewDisplayFrameLandscape.src = previewUrl;
+  }
+  setPreviewZoom(1);
+  const modal = getPreviewModalInstance();
+  if (modal) modal.show();
+}
+
+/**
+ * Open the preview URL in a new tab.
+ */
+function openPreviewInNewTab() {
+  const url = DOM.previewDisplayFrameLandscape?.src || buildDisplayUrl();
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * Initialize preview modal controls.
+ */
+function initializePreviewControls() {
+  if (DOM.previewDisplayBtn) {
+    DOM.previewDisplayBtn.addEventListener("click", openPreviewModal);
+  }
+  if (DOM.previewZoomInBtn) {
+    DOM.previewZoomInBtn.addEventListener("click", () => updatePreviewZoom(0.1));
+  }
+  if (DOM.previewZoomOutBtn) {
+    DOM.previewZoomOutBtn.addEventListener("click", () => updatePreviewZoom(-0.1));
+  }
+  if (DOM.previewZoomResetBtn) {
+    DOM.previewZoomResetBtn.addEventListener("click", () => setPreviewZoom(1));
+  }
+  if (DOM.previewOpenBtn) {
+    DOM.previewOpenBtn.addEventListener("click", openPreviewInNewTab);
+  }
+  if (DOM.previewDisplayModal) {
+    DOM.previewDisplayModal.addEventListener("hidden.bs.modal", () => {
+      if (DOM.previewDisplayFrameLandscape) {
+        DOM.previewDisplayFrameLandscape.src = "";
+      }
+    });
+  }
+}
+
+/**
+ * Update the inline preview frame source.
+ */
+function updateInlinePreviewUrl() {
+  if (!DOM.previewInlineFrame) return;
+  const url = buildPreviewUrl("portrait");
+  if (url) {
+    DOM.previewInlineFrame.src = url;
+  }
+}
+
 function initLauncher() {
   refreshLauncherDom();
   if (!DOM.stockInput) return;
@@ -443,10 +563,16 @@ function initLauncher() {
   DOM.loadImagesBtn.addEventListener("click", handleLoadImages);
   DOM.buildUrlBtn.addEventListener("click", () => {
     DOM.urlOutput.value = buildDisplayUrl();
+    updateInlinePreviewUrl();
   });
   DOM.copyUrlBtn.addEventListener("click", copyUrlToClipboard);
   DOM.imageResults.addEventListener("change", handleImageSelection);
   DOM.imageResults.addEventListener("change", handleSlideSelection);
+  DOM.layoutOptions.forEach((option) => {
+    option.addEventListener("change", updateInlinePreviewUrl);
+  });
+  updateInlinePreviewUrl();
+  initializePreviewControls();
 }
 
 if (document.readyState === "loading") {

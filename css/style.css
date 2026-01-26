@@ -4,17 +4,62 @@ html,
 body {
   height: 100%;
   margin: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 /* 2. Turn Body into a Column */
 body {
   display: flex;
   flex-direction: column;
+  height: 100vh;
 
   -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  -moz-osx-font-smoothing: grayscale;
 }
+.hang-tags-body {
+  overflow: auto;
+}
+.hang-tags-body main {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+.line-clamp-2 {
+  display: -webkit-box;
+  padding-right: 10px;
+  -webkit-line-clamp: 2;
+  /* Show 2 lines, then add "..." */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Hides the text that got cut off */
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+}
+
+.action-button-group .dropdown-toggle::after {
+  border: none;
+  /* Removes the default CSS triangle borders */
+  content: "•••";
+  /* Inserts new text/icon */
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+.action-button-group.vertical-dots .dropdown-toggle::after {
+  border: none;
+  /* Removes the default CSS triangle borders */
+  content: "•••";
+  /* Inserts new text/icon */
+  font-size: 0.8rem;
+  vertical-align: middle;
+
+  /* NEW: Required for rotation */
+  display: inline-block;
+  transform: rotate(90deg) !important;
+
+  /* Optional tweak if it looks too close to the left/right */
+    margin-left: 0.25rem;
+}
+
 .tv-body {
   height: auto;
   width: 100%;
@@ -35,6 +80,8 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 /* 3. Make Main take up all remaining space */
@@ -44,7 +91,7 @@ main {
   display: flex;
   /* Becomes a flex container for its children */
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
   /* Crucial Firefox/Flexbox fix */
 }
@@ -53,14 +100,15 @@ main {
 .table-scroll-container {
   flex: 1 1 auto;
   /* Takes remaining space inside Main */
-  overflow-y: auto;
+  overflow: auto;
   /* Enables scrolling ONLY here */
   min-height: 0;
 }
 
 .search-width {
-  max-width: 240px;
-  width: 240px;
+  max-width: 250px;
+  width: 250px;
+  min-width: 38px;
 }
 .dots {
   background-image: radial-gradient(circle, #ddd 1px, transparent 1px);
@@ -180,6 +228,20 @@ th {
   height: 100%;
   width: 100%;
 }
+.hang-tags-preview {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+.hang-tags-zoom-controls {
+  margin-left: 8px;
+  display: inline-flex;
+  gap: 6px;
+}
 .side-menu-footer {
   display: flex;
   flex-direction: row;
@@ -291,6 +353,14 @@ th {
   width: 100%;
   border-collapse: collapse;
 }
+#vehiclesTable td.text-center.nowrap {
+  width: fit-content;
+  min-width: 300px;
+}
+th.no-wrap {
+  width: 220px;
+  min-width: 220px;
+}
 #vehiclesTable th.column-hidden,
 #vehiclesTable td.column-hidden,
 #vehiclesTable col.column-hidden {
@@ -374,6 +444,8 @@ td {
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 th {
   font-size: 10px;
@@ -391,6 +463,17 @@ th {
   font-size: 14px;
   font-weight: 700;
 }
+.price-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+.updated-badge {
+  font-size: 12px;
+}
 .action-button-group i {
   display: block;
   color: #fff;
@@ -406,6 +489,20 @@ th {
   font-weight: 700;
   padding: 0;
   text-transform: uppercase;
+}
+.action-button-group .dropdown-item .dropdown-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+}
+.action-button-group .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.action-cell {
+  width: 200px;
 }
 .action-button {
   min-width: 64px;
@@ -431,20 +528,16 @@ th {
 }
 .model-cell,
 .color-cell {
-  white-space: normal;
-  word-break: break-word;
   padding-top: 4px;
   padding-bottom: 4px;
 }
 .model-text,
+.column-type,
 .column-color {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  display: block;
+  white-space: nowrap;
   overflow: hidden;
-  line-height: 1.2;
-  max-height: 2.4em;
+  text-overflow: ellipsis;
 }
 .photos-status {
   font-size: 24px;
@@ -746,8 +839,8 @@ th {
 
 .search-with-suggestions {
   position: relative;
-  max-width: 180px;
-  display: inline-flex;
+  max-width: 200px;
+  display: grid;
   margin-right: 0.25rem;
   margin-left: 0.25rem;
   width: 100%; /* Ensure container takes up full width of input */
@@ -757,7 +850,7 @@ th {
   position: absolute;
   top: 100%;
   left: 0;
-  min-width: 180px; /* Match minimum width of search input */
+  min-width: 200px; /* Match minimum width of search input */
   width: 100%; /* Take full width of parent container */
   max-height: 300px;
   overflow-y: auto;
@@ -803,7 +896,7 @@ th {
 /* Make dropdown scrollable on mobile */
 @media (max-width: 768px) {
   .search-suggestions-dropdown {
-    min-width: 180px;
+    min-width: 200px;
     width: 100%;
     max-height: 200px;
     left: 0;
@@ -819,4 +912,26 @@ th {
     max-width: 100%;
     display: block;
   }
+}
+
+
+/* CUSTOM ICONS */
+.ms-keys-tag {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  background-color: currentColor;
+
+  /* The SVG Mask */
+  --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M14,14c0,1.1-.9,2-2,2H4c-1.1,0-2-.9-2-2V2c0-1.1.9-2,2-2h8c1.1,0,2,.9,2,2v12ZM4.5,3.9c0-1.9,1.6-3.5,3.5-3.5,1.9,0,3.5,1.6,3.5,3.5,0,1.4-.8,2.6-2,3.2v7.3l-1.5,1.5-1.5-1.5,1-1-1-1,1-1-1-1,1-1-1-1v-1.3c-1.2-.6-2-1.8-2-3.2M7,2.9c0,.6.4,1,1,1s1-.4,1-1-.4-1-1-1-1,.4-1,1'/%3E%3C/svg%3E");
+
+  -webkit-mask-image: var(--svg);
+  mask-image: var(--svg);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
 }

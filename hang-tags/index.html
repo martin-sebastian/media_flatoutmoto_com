@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="../css/font-awesome.css" />
     <link rel="stylesheet" href="../css/style.css" />
   </head>
-  <body class="dots">
+  <body class="dots hang-tags-body">
     <header class="hidden-print">
       <div class="print-header navbar-fixed-top text-center">
         <div class="hidden-xs">
@@ -61,6 +61,17 @@
               <input type="checkbox" id="footerCheckBox" onclick="hideFooter()" checked />
               Footer
             </label>
+            <span class="hang-tags-zoom-controls">
+              <button type="button" class="btn btn-default btn-xs" id="zoomOutBtn" title="Zoom out">
+                <span class="glyphicon glyphicon-zoom-out" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="btn btn-default btn-xs" id="zoomResetBtn" title="Fit to screen">
+                Fit
+              </button>
+              <button type="button" class="btn btn-default btn-xs" id="zoomInBtn" title="Zoom in">
+                <span class="glyphicon glyphicon-zoom-in" aria-hidden="true"></span>
+              </button>
+            </span>
           </div>
         </div>
       </div>
@@ -69,9 +80,11 @@
       <div class="container-fluid">
         <div class="tags-spacer dots hidden-print"></div>
         <div class="main-content">
-          <div class="tags-container shadow">
-            <div class="tag-left"></div>
-            <div class="tag-right"></div>
+          <div class="hang-tags-preview" id="hangTagsPreview">
+            <div class="tags-container shadow" id="hangTagsContainer">
+              <div class="tag-left"></div>
+              <div class="tag-right"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -84,6 +97,78 @@
     <script src="../js/xml-cache.js"></script>
     <script src="../js/hang-tags-0_1_1.js"></script>
     <script>
+      /**
+       * Apply zoom to the hang tags preview.
+       * @param {number} scale Zoom scale value.
+       */
+      function applyHangTagsZoom(scale) {
+        var container = document.getElementById("hangTagsContainer");
+        if (!container) return;
+        if (window.CSS && window.CSS.supports && window.CSS.supports("zoom: 1")) {
+          container.style.zoom = scale;
+          container.style.transform = "";
+        } else {
+          container.style.zoom = "";
+          container.style.transform = "scale(" + scale + ")";
+          container.style.transformOrigin = "top center";
+        }
+        container.setAttribute("data-zoom", scale.toFixed(2));
+      }
+
+      /**
+       * Calculate a fit-to-screen zoom value.
+       * @returns {number} Zoom scale.
+       */
+      function getHangTagsFitZoom() {
+        var container = document.getElementById("hangTagsContainer");
+        if (!container) return 1;
+        if (!container.dataset.baseWidth || !container.dataset.baseHeight) {
+          var rect = container.getBoundingClientRect();
+          container.dataset.baseWidth = rect.width;
+          container.dataset.baseHeight = rect.height;
+        }
+        var header = document.querySelector("header");
+        var headerHeight = header ? header.offsetHeight : 0;
+        var padding = 32;
+        var availableWidth = window.innerWidth - padding * 2;
+        var availableHeight = window.innerHeight - headerHeight - padding * 2;
+        var baseWidth = parseFloat(container.dataset.baseWidth) || availableWidth;
+        var baseHeight = parseFloat(container.dataset.baseHeight) || availableHeight;
+        var scale = Math.min(availableWidth / baseWidth, availableHeight / baseHeight);
+        return Math.max(0.1, Math.min(1.2, scale));
+      }
+
+      /**
+       * Initialize zoom controls for hang tags.
+       */
+      function initHangTagsZoom() {
+        var zoomOutBtn = document.getElementById("zoomOutBtn");
+        var zoomResetBtn = document.getElementById("zoomResetBtn");
+        var zoomInBtn = document.getElementById("zoomInBtn");
+        if (!zoomOutBtn || !zoomResetBtn || !zoomInBtn) return;
+
+        var currentZoom = getHangTagsFitZoom();
+        applyHangTagsZoom(currentZoom);
+
+        zoomOutBtn.addEventListener("click", function () {
+          currentZoom = Math.max(0.1, currentZoom - 0.05);
+          applyHangTagsZoom(currentZoom);
+        });
+        zoomInBtn.addEventListener("click", function () {
+          currentZoom = Math.min(1.5, currentZoom + 0.05);
+          applyHangTagsZoom(currentZoom);
+        });
+        zoomResetBtn.addEventListener("click", function () {
+          currentZoom = getHangTagsFitZoom();
+          applyHangTagsZoom(currentZoom);
+        });
+
+        window.addEventListener("resize", function () {
+          currentZoom = getHangTagsFitZoom();
+          applyHangTagsZoom(currentZoom);
+        });
+      }
+
       function hideMSRP() {
         var msrpcheckBox = document.getElementById("msrpCheckBox");
         var elementMSRP = document.getElementById("msrpLine");
@@ -174,6 +259,8 @@
           elementFooter.classList.add("hidden");
         }
       }
+
+      document.addEventListener("DOMContentLoaded", initHangTagsZoom);
     </script>
   </body>
 </html>

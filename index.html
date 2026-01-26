@@ -37,71 +37,15 @@
 
 
   <body data-bs-theme="dark">
-      <header class="sticky-top d-print-none">
-        <nav class="navbar navbar-expand-xl bg-body-tertiary border border-bottom border-secondary-subtle bg-blur">
-          <div class="container-fluid">
-            <div class="navbar-left d-flex flex-row align-items-center">
-              <a class="navbar-brand" href="./">
-                <img id="logo" class="ms-1 me-1 pt-0" src="./img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
+      <header class="d-print-none">
+        <nav class="navbar navbar-expand-xl bg-body-tertiary border border-bottom border-secondary-subtle bg-blur flex-nowrap justify-content-center">
+          <div class="container-fluid flex-nowrap justify-content-center">
+            <div class="navbar-left d-flex flex-row align-items-center w-100">
+              <a class="navbar-brand m-0 p-0" href="./">
+                <img id="logo" class="m-0 p-0" src="./img/fom-app-logo-01.svg" alt="Logo" width="182" height="31" />
               </a>
             </div>
-            <div class="navbar-center d-none d-md-block">
-              <form class="form-group d-flex flex-row justify-content-center align-items-center" role="search" data-filter-group="desktop">
-                <label for="searchFilter" class="visually-hidden">Search</label>
-                <input
-                  type="search"
-                  class="form-control d-inline-flex search-width me-2"
-                  id="searchFilter"
-                  data-filter="search"
-                  placeholder="Search"
-                  name="search"
-                  aria-label="Search"
-                  title="Filter vehicles by year, make, model, stock number or VIN"
-                  autocomplete="off"
-                />
-                <select id="yearFilter" class="form-select d-inline-flex mx-1" style="max-width: 90px" data-filter="year">
-                  <option value="">Year</option>
-                  <option value="">All</option>
-                </select>
-
-                <select id="manufacturerFilter" class="form-select mx-1" style="max-width: 90px" data-filter="manufacturer">
-                  <option value="">Make</option>
-                  <option value="">All</option>
-                </select>
-                
-                <select id="modelFilter" class="form-select mx-1" style="max-width: 120px" data-filter="model">
-                  <option value="">Model</option>
-                  <option value="">All</option>
-                </select>
-
-                <select id="typeFilter" class="form-select mx-1" style="max-width: 90px" data-filter="type">
-                  <option value="">Type</option>
-                  <option value="">All</option>
-                </select>
-                <div class="dropdown mx-1">
-                  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    Columns
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-end p-2">
-                    <div class="form-check">
-                      <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumn" checked>
-                      <label class="form-check-label" for="toggleTypeColumn">Type</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumn" checked>
-                      <label class="form-check-label" for="toggleColorColumn">Color</label>
-                    </div>
-                  </div>
-                </div>
-                <select id="photosFilter" class="form-select mx-1" style="max-width: 130px" data-filter="photos">
-                  <option value="">All Photos</option>
-                  <option value="INHOUSE">In-House</option>
-                  <option value="STOCK">Stock</option>
-                </select>
-                <label for="updatedFilter" class="visually-hidden">Updated:</label>
-                <input type="date" id="updatedFilter" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" data-filter="updated" onchange="filterTable()">
-              </form>
-            </div>
+            <div class="navbar-center d-none d-md-block"></div>
 
             <div class="navbar-right toggles-group d-flex flex-row align-items-center">
               <button id="toggleThemeButton" class="btn btn-outline-secondary px-3 mx-1" type="button">
@@ -124,11 +68,6 @@
       </header>
 
 
-      <div class="position-fixed top-0 end-0 mt-5 p-2">
-        <button type="button" class="py-1 px-4 m-2 btn btn-danger btn-sm rounded-pill border-2 border-secondary-subtle text-white d-none d-md-block" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
-          <i class="bi bi-plus-lg me-2"></i> New Key Tag
-        </button>
-      </div>
 
       <!-- RIGHT SIDE MENU-->
       <div
@@ -199,15 +138,15 @@
               </div>
             </div>
             <label for="updatedFilterMobile" class="visually-hidden">Updated:</label>
-            <input type="date" id="updatedFilterMobile" value="" class="form-control d-inline-flex w-25 me-1 visually-hidden" name="updated-date" data-filter="updated" onchange="filterTable()">
+            <input type="date" id="updatedFilterMobile" value="" class="form-control d-inline-flex w-25 me-1" name="updated-date" data-filter="updated" onchange="filterTable()">
           </form>
-
-          
+     
+           
           <form class="d-flex flex-column mt-1" role="search">
             <div class="card p-1 w-100">
               <div class="d-flex flex-column ">
                 <button type="button" class="btn btn-dark text-start" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
-                  <i class="bi bi-tag me-3"></i> Create Custom Key Tag
+                  <i class="bi bi-tag me-3"></i> Create Custom Label
                 </button>
                 <button type="button" class="btn btn-dark text-start" title="TV Display" onclick="window.location.href = './tv/'">
                   <i class="bi bi-tv me-3"></i> TV Display Launcher
@@ -233,41 +172,138 @@
 
       <main>
         <div class="container-fluid page-content">
-          <!-- element for displaying row count -->
-          <div class="mx-2 mt-4">
-            <span class="text-secondary">Results:</span> <span class="mx-1" id="rowCountDisplay"></span>
+          <!-- ELEMENT FOR DISPLAYING ROW COUNT -->
+          <div class="d-flex flex-column mt-2">
+            <div class="d-flex flex-wrap justify-content-between align-items-end">
+              <h5 class="d-none d-md-block h4 text-capitalize fw-bold mt-2">Live Inventory</h5>
+              <div class="h6">
+                <span class="text-secondary small">Showing:</span> <span class="mx-1 small" id="rowCountDisplay"></span>
+              </div>
+              <div id="button-group-right" class="mb-1 d-flex flex-row justify-content-between align-items-center">
+                <button type="button" class="btn btn-danger btn-sm rounded-3 my-2 px-3" title="Create custom label" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                  <i class="bi bi-plus-lg h6 my-1 ms-1"></i> <span class="mx-1 pe-2 fw-normal">Custom Label</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="table-scroll-container">
-            <div class="bg-dark text-light rounded-3 border border-secondary-subtle overflow-hidden">
+          <!-- END ELEMENT FOR DISPLAYING ROW COUNT -->
+
+          <!-- FILTERS -->
+           <div class="bg-body-tertiary border border-secondary-subtle rounded-3 p-1 mb-2">
+              <form class="form-group form-group-sm d-flex justify-content-between" role="search" data-filter-group="desktop">
+                <div class="left-group d-flex align-items-center gap-2">
+                  <label for="searchFilter" class="visually-hidden">Search</label>
+                  <input
+                    type="search"
+                    class="form-control form-control-sm d-grid search-width"
+                    id="searchFilter"
+                    data-filter="search"
+                    placeholder="Search..."
+                    name="search"
+                    aria-label="Search"
+                    title="Filter vehicles by year, make, model, stock number or VIN"
+                    autocomplete="off"
+                  />
+                  <select id="yearFilter" class="form-select form-select-sm" style="max-width: 90px" data-filter="year">
+                    <option value="">Year</option>
+                    <option value="">All</option>
+                  </select>
+
+                  <select id="manufacturerFilter" class="form-select form-select-sm" style="max-width: 90px" data-filter="manufacturer">
+                    <option value="">Make</option>
+                    <option value="">All</option>
+                  </select>
+                  
+                  <select id="modelFilter" class="form-select form-select-sm" style="max-width: 120px" data-filter="model">
+                    <option value="">Model</option>
+                    <option value="">All</option>
+                  </select>
+
+                  <select id="typeFilter" class="form-select form-select-sm" style="max-width: 90px" data-filter="type">
+                    <option value="">Type</option>
+                    <option value="">All</option>
+                  </select>
+                  <select id="photosFilter" class="form-select form-select-sm" style="max-width: 130px" data-filter="photos">
+                    <option value="">All Photos</option>
+                    <option value="INHOUSE">In-House</option>
+                    <option value="STOCK">Stock</option>
+                  </select>
+                  <label for="updatedFilter" class="visually-hidden">Updated:</label>
+                  <input type="date" id="updatedFilter" value="" class="form-control form-control-sm" name="updated-date" data-filter="updated" title="by Date Modified" onchange="filterTable()" style="max-width: 120px">
+                </div>
+
+                <div class="left-group d-flex align-items-center gap-2">
+                  <div class="dropdown">
+                    <button class="form-select form-select-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      Columns
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-2">
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="image" id="toggleImageColumn" checked>
+                        <label class="form-check-label" for="toggleImageColumn">Image</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="usage" id="toggleUsageColumn" checked>
+                        <label class="form-check-label" for="toggleUsageColumn">Usage</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="price" id="togglePriceColumn" checked>
+                        <label class="form-check-label" for="togglePriceColumn">Price</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="updated" id="toggleUpdatedColumn" checked>
+                        <label class="form-check-label" for="toggleUpdatedColumn">Updated</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="photos" id="togglePhotosColumn" checked>
+                        <label class="form-check-label" for="togglePhotosColumn">Photos</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumn" checked>
+                        <label class="form-check-label" for="toggleTypeColumn">Type</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumn" checked>
+                        <label class="form-check-label" for="toggleColorColumn">Color</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+          <!-- TABLE START -->
+          <div class="table-scroll-container rounded-3 border border-1 border-secondary-subtle">
+            <div class="overflow-hidden">
               <div class="table-responsive">
-                <table id="vehiclesTable" class="table table-borderless table-striped table-hover table-sm">
+                <table id="vehiclesTable" class="table table-borderless table-hover table-sm">
                   <colgroup>
-                    <col style="width: 80px">
+                    <col style="width: 80px" data-column="image">
+                    <col style="width: 70px" data-column="usage">
                     <col style="width: 70px">
-                    <col style="width: 70px">
-                    <col style="width: 110px">
-                    <col style="width: 180px">
+                    <col style="width: 100px">
+                    <col style="width: 190px">
                     <col style="width: 100px" data-column="type">
                     <col style="width: 100px" data-column="color">
                     <col style="width: 150px">
-                    <col style="width: 120px">
-                    <col style="width: 110px">
-                    <col style="width: 90px">
+                    <col style="width: 100px" data-column="price">
+                    <col style="width: 54px" data-column="photos">
+                    <col style="width: 90px" data-column="updated">
                     <col style="width: 160px">
                   </colgroup>
-                  <thead>
-                    <tr>
-""                    <th class="no-wrap text-center">Image</th>
-                      <th class="no-wrap text-center">Usage</th>
+                  <thead class="p-2">
+                    <tr class="border-bottom">
+                      <th class="no-wrap text-center" data-column="image">Image</th>
+                      <th class="no-wrap text-center" data-column="usage">Usage</th>
                       <th class="no-wrap text-center">Year</th>
                       <th class="no-wrap">Make</th>
                       <th class="no-wrap">Model</th>
                       <th class="no-wrap" data-column="type">Type</th>
                       <th class="no-wrap" data-column="color">Color</th>
                       <th class="no-wrap text-start stock-number-header">Stock #</th>
-                      <th class="no-wrap">DMS Price</th>
-                      <th class="no-wrap">Updated</th>
-                      <th class="no-wrap text-center">Photos</th>
+                      <th class="no-wrap text-center" data-column="price">Web Price</th>
+                      <th class="no-wrap text-center" data-column="photos">Photos</th>
+                      <th class="no-wrap text-center" data-column="updated">Updated</th>
                       <th class="no-wrap text-center">Create Tags & Quotes</th>
                     </tr>
                   </thead>
@@ -423,7 +459,7 @@
       <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title text-capitalize" id="keyTagsByStockNumberModalLabel"><i class="bi bi-tag me-2 icon-circle text-white"></i>CREATE CUSTOM KEY TAGS</h5>
+            <h5 class="modal-title text-capitalize" id="keyTagsByStockNumberModalLabel"><i class="bi bi-tag me-2 icon-circle fw-bold text-light"></i>Create Custom Label </h5>
             
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
