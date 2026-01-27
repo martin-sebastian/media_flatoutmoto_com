@@ -1244,7 +1244,7 @@ async function initDisplay() {
   } = getQueryParams();
   document.body.setAttribute("data-bs-theme", theme || "dark");
 
-  const wantsPortrait = layout !== "landscape";
+  const wantsPortrait = layout !== "landscape" && layout !== "showcase";
   const screenIsPortrait = isPortraitScreen();
   const usePortraitFrame = wantsPortrait && !screenIsPortrait && !preview;
   
