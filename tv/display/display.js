@@ -212,7 +212,9 @@ function getSavedPicks(map, stockNumber) {
  * @returns {Promise<string>} XML text.
  */
 async function fetchXmlText() {
-  const response = await fetch(XML_FEED_URL, { cache: "no-cache" });
+  const cacheBust = `_t=${Date.now()}`;
+  const url = XML_FEED_URL.includes("?") ? `${XML_FEED_URL}&${cacheBust}` : `${XML_FEED_URL}?${cacheBust}`;
+  const response = await fetch(url, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`XML fetch failed: ${response.status}`);
   }
@@ -645,7 +647,9 @@ function matchesCategory(itemData, category) {
 async function fetchPortalData(stockNumber) {
   if (!stockNumber) return null;
   try {
-    const response = await fetch(`${PORTAL_API_BASE}${encodeURIComponent(stockNumber)}`);
+    const cacheBust = `_t=${Date.now()}`;
+    const url = `${PORTAL_API_BASE}${encodeURIComponent(stockNumber)}?${cacheBust}`;
+    const response = await fetch(url, { cache: "no-cache" });
     if (!response.ok) return null;
     return response.json();
   } catch (error) {
