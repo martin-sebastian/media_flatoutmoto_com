@@ -371,6 +371,122 @@ body.tv-body {
 /* END LANDSCAPE ONLY */
 
 
+/* SHOWCASE TEMPLATE (100" TV) */
+/******************************/
+/*
+ * Showcase Layout: 1920×1080
+ * ┌─────────────────────────────────────────────────────────────────┐
+ * │                     LARGE HERO IMAGE (~55%)                     │
+ * │                                                      [LOGO]     │
+ * ├─────────────────────────────────────────────────────────────────┤
+ * │  [thumb] [thumb] [thumb] ... 3 rows of thumbnails (~20%)        │
+ * ├──────────────────────────────────┬──────────────────────────────┤
+ * │   Title / Price (~25%)           │   Line Items                 │
+ * └──────────────────────────────────┴──────────────────────────────┘
+ */
+.tv-layout-showcase {
+  width: 1920px;
+  height: 1080px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #0f1115;
+  display: grid;
+  grid-template-rows: 580px 200px 300px;
+  gap: 0;
+}
+
+.tv-showcase-hero {
+  position: relative;
+  width: 100%;
+  height: 580px;
+  overflow: hidden;
+}
+
+.tv-showcase-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tv-showcase-logo {
+  position: absolute;
+  bottom: 20px;
+  right: 24px;
+  width: 200px;
+  height: auto;
+  opacity: 0.9;
+}
+
+.tv-showcase-thumbs {
+  width: 100%;
+  height: 200px;
+  padding: 12px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.tv-showcase-thumb {
+  width: 90px;
+  height: 58px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.tv-showcase-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tv-showcase-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 24px 32px;
+  background: rgba(33, 37, 41, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tv-showcase-info-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.tv-showcase-info-right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.tv-showcase-line-items {
+  max-height: 160px;
+  overflow: hidden;
+}
+
+/* Showcase typography */
+.tv-layout-showcase .h3 {
+  font-size: 1.75rem;
+}
+
+.tv-layout-showcase .display-5 {
+  font-size: 3rem;
+}
+
+.tv-layout-showcase .fs-5 {
+  font-size: 1.25rem !important;
+}
+/* END SHOWCASE TEMPLATE */
+
+
 .tv-carousel .carousel-item {
   background: #111;
 }

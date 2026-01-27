@@ -6,32 +6,33 @@ let displayFrameMode = "";
 let previewZoomScale = 1;
 
 /**
- * Read query parameters for the display page.
- * @returns {object} Query parameters object.
+ * Read config from window.CONFIG or fall back to URL query parameters.
+ * @returns {object} Configuration object.
  */
 function getQueryParams() {
+  const config = window.CONFIG || {};
   const params = new URLSearchParams(window.location.search);
-  const slidesParam = params.get("slides") || "";
-  const slideUrls = slidesParam
+  const slidesParam = config.slides || params.get("slides") || "";
+  const slideUrls = Array.isArray(slidesParam)
     ? slidesParam
+    : slidesParam
         .split("|")
         .map((entry) => decodeURIComponent(entry))
-        .filter(Boolean)
-    : [];
+        .filter(Boolean);
   return {
-    layout: params.get("layout") || "portrait",
-    template: params.get("template") || "default",
-    stockNumber: (params.get("s") || params.get("search") || "").trim(),
-    imageUrl: (params.get("img") || "").trim(),
-    note: (params.get("note") || "").trim(),
-    swatch: (params.get("swatch") || "").trim(),
-    accent1: (params.get("accent1") || "").trim(),
-    accent2: (params.get("accent2") || "").trim(),
+    layout: config.layout || params.get("layout") || "portrait",
+    template: config.template || params.get("template") || "default",
+    stockNumber: (config.stockNumber || params.get("s") || params.get("search") || "").trim(),
+    imageUrl: (config.imageUrl || params.get("img") || "").trim(),
+    note: (config.note || params.get("note") || "").trim(),
+    swatch: (config.swatch || params.get("swatch") || "").trim(),
+    accent1: (config.accent1 || params.get("accent1") || "").trim(),
+    accent2: (config.accent2 || params.get("accent2") || "").trim(),
     slides: slideUrls,
-    theme: (params.get("theme") || "dark").trim(),
-    slideStart: Number.parseInt(params.get("slideStart") || "1", 10),
-    slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
-    preview: ["1", "true", "yes"].includes(
+    theme: (config.theme || params.get("theme") || "dark").trim(),
+    slideStart: Number.parseInt(config.slideStart || params.get("slideStart") || "1", 10),
+    slideEnd: Number.parseInt(config.slideEnd || params.get("slideEnd") || "6", 10),
+    preview: config.preview || ["1", "true", "yes"].includes(
       (params.get("preview") || "").toLowerCase()
     ),
   };
@@ -117,7 +118,7 @@ function setDisplayFrameMode(mode) {
  */
 function applyTvMode(layout) {
   if (!ROOT) return;
-  const isPortrait = layout !== "landscape";
+  const isPortrait = layout !== "landscape" && layout !== "showcase";
   const targetWidth = isPortrait ? 1080 : 1920;
   const targetHeight = isPortrait ? 1920 : 1080;
   
@@ -1090,6 +1091,90 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
 }
 
 /**
+ * Render a showcase layout for large displays (100" TV).
+ * Hero image, thumbnail grid, pricing details.
+ */
+function renderShowcase(data, imageUrl, customText, apiData, preferredImages, swatchColor, accentOne, accentTwo) {
+  const media = buildMediaList(apiData?.Images, data.images, preferredImages);
+  const heroImage = media[0]?.src || imageUrl || "../../img/fallback.jpg";
+  
+  // Build thumbnail grid (skip first image since it's the hero)
+  const thumbnails = media.slice(1, 31).map((item, idx) => `
+    <div class="tv-showcase-thumb">
+      <img src="${item.src}" alt="Image ${idx + 2}" />
+    </div>
+  `).join("");
+  
+  // Use buildDisplayData for consistent data handling
+  const displayData = buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo);
+  const {
+    specialValue,
+    msrpValue,
+    hasDiscount,
+    totalValue,
+    monthlyPayment,
+    feesMarkup,
+    rebatesMarkup,
+    discountMarkup,
+    accessoryMarkup,
+  } = displayData;
+
+  const isNew = (data.usage || "").toLowerCase() === "new";
+  const showBothPrices = isNew && hasDiscount;
+
+  setDisplayContent(`
+    <div class="tv-layout-showcase">
+      <!-- Hero Image -->
+      <div class="tv-showcase-hero">
+        <img src="${heroImage}" alt="${data.title || 'Vehicle'}" />
+        <img src="../../img/fom-app-logo-01.svg" alt="Logo" class="tv-showcase-logo" />
+      </div>
+      
+      <!-- Thumbnail Grid -->
+      <div class="tv-showcase-thumbs">
+        ${thumbnails || '<div class="text-secondary">No additional images</div>'}
+      </div>
+      
+      <!-- Info Bar -->
+      <div class="tv-showcase-info">
+        <!-- Left: Title & Price -->
+        <div class="tv-showcase-info-left">
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="badge bg-danger fs-6">${data.usage || "N/A"}</span>
+            <span class="text-secondary text-uppercase fw-semibold">${data.category || ""}</span>
+          </div>
+          <div class="h3 text-light mb-1">${data.title || ""}</div>
+          <div class="text-secondary mb-3">Stock: ${data.stockNumber || ""}</div>
+          ${showBothPrices
+            ? `<div class="text-secondary text-decoration-line-through fs-5">MSRP ${formatPrice(msrpValue)}</div>
+               <div class="display-5 fw-bold text-light">${formatPrice(specialValue)}</div>`
+            : `<div class="display-5 fw-bold text-light">${formatPrice(specialValue || msrpValue)}</div>`
+          }
+          <div class="text-danger fs-5 fw-semibold mt-2">Est. payment ${formatPrice(monthlyPayment)}/mo</div>
+        </div>
+        
+        <!-- Right: Line Items -->
+        <div class="tv-showcase-info-right">
+          ${showBothPrices
+            ? `<div class="d-flex justify-content-between mb-1"><span class="text-secondary">MSRP</span><span>${formatPrice(msrpValue)}</span></div>
+               <div class="d-flex justify-content-between mb-2"><span class="text-secondary">Sale Price</span><span class="fw-semibold">${formatPrice(specialValue)}</span></div>`
+            : `<div class="d-flex justify-content-between mb-2"><span class="text-secondary">Price</span><span class="fw-semibold">${formatPrice(specialValue || msrpValue)}</span></div>`
+          }
+          <hr class="my-2 opacity-25">
+          <div class="tv-showcase-line-items">
+            ${rebatesMarkup}
+            ${discountMarkup}
+            ${accessoryMarkup}
+            ${feesMarkup}
+          </div>
+          ${totalValue ? `<hr class="my-2 opacity-25"><div class="d-flex justify-content-between fw-bold fs-5"><span>Total</span><span>${formatPrice(totalValue)}</span></div>` : ""}
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+/**
  * Render a grid of vehicles for landscape mode.
  * @param {object[]} items Vehicle data list.
  */
@@ -1210,7 +1295,18 @@ async function initDisplay() {
       const accentOne = accent1 || "";
       const accentTwo = accent2 || "";
 
-      if (layout === "landscape") {
+      if (layout === "showcase") {
+        renderShowcase(
+          merged,
+          preferredImage,
+          customText,
+          apiData,
+          slideImages,
+          swatchColor,
+          accentOne,
+          accentTwo
+        );
+      } else if (layout === "landscape") {
         renderLandscapeSingle(
           merged,
           preferredImage,

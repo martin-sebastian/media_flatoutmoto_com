@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BOAT NAME HERE</title>
+		<link rel="stylesheet" href="../../css/bootstrap.css" />
+		<link rel="stylesheet" href="../../css/bootstrap-icons.css" />
+		<link rel="stylesheet" href="../tv.css" />
+		<style>
+			body {
+				margin: 0 !important;
+				padding: 0 !important;
+			}
+		</style>
+	</head>
+	<body class="tv-body">
+		<main id="displayRoot" class="container-fluid p-0 tv-display-root">
+			<div class="tv-display-loading text-center text-secondary">
+				Loading display…
+			</div>
+		</main>
+
+		<script>
+			// ========================================
+			// CONFIGURE THIS BOAT
+			// ========================================
+			window.CONFIG = {
+				// Layout options: "showcase", "landscape", "portrait"
+				layout: "showcase",
+				
+				// Stock number from your inventory
+				stockNumber: "YOUR-STOCK-NUMBER-HERE",
+				
+				// Theme: "dark" or "light"
+				theme: "dark",
+				
+				// Optional: custom note/text
+				// note: "Boat Show Special!",
+				
+				// Optional: override colors
+				// swatch: "#4bd2b1",
+				// accent1: "#1f6feb",
+				// accent2: "#f97316",
+			};
+		</script>
+		<script src="../../js/qrcode.min.js"></script>
+		<script src="../../js/bootstrap.bundle.js"></script>
+		<script src="../display/display.js"></script>
+	</body>
+</html>
