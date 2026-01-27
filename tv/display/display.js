@@ -7,7 +7,7 @@ let previewZoomScale = 1;
 
 /**
  * Read query parameters for the display page.
- * @returns {{layout: string, stockNumber: string, category: string, imageUrl: string, note: string}}
+ * @returns {object} Query parameters object.
  */
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
@@ -20,8 +20,8 @@ function getQueryParams() {
     : [];
   return {
     layout: params.get("layout") || "portrait",
+    template: params.get("template") || "default",
     stockNumber: (params.get("s") || params.get("search") || "").trim(),
-    category: (params.get("category") || "").trim().toLowerCase(),
     imageUrl: (params.get("img") || "").trim(),
     note: (params.get("note") || "").trim(),
     swatch: (params.get("swatch") || "").trim(),
@@ -29,7 +29,7 @@ function getQueryParams() {
     accent2: (params.get("accent2") || "").trim(),
     slides: slideUrls,
     theme: (params.get("theme") || "dark").trim(),
-    slideStart: Number.parseInt(params.get("slideStart") || "2", 10),
+    slideStart: Number.parseInt(params.get("slideStart") || "1", 10),
     slideEnd: Number.parseInt(params.get("slideEnd") || "6", 10),
     preview: ["1", "true", "yes"].includes(
       (params.get("preview") || "").toLowerCase()
@@ -56,6 +56,7 @@ function isPortraitScreen() {
 
 /**
  * Apply preview zoom to fit 1080x1920 or 1920x1080 layouts.
+ * Uses transform scale for consistent cross-browser behavior.
  * @param {string} layout Layout string.
  */
 function applyPreviewZoom(layout) {
@@ -63,23 +64,43 @@ function applyPreviewZoom(layout) {
   const isPortrait = layout !== "landscape";
   const targetWidth = isPortrait ? 1080 : 1920;
   const targetHeight = isPortrait ? 1920 : 1080;
-  const scale = Math.min(window.innerWidth / targetWidth, window.innerHeight / targetHeight);
-  previewZoomScale = Number.isFinite(scale) ? Math.max(0.05, scale) : 1;
+  
+  // Calculate scale to fit viewport with padding
+  const padding = 20;
+  const availableWidth = window.innerWidth - padding * 2;
+  const availableHeight = window.innerHeight - padding * 2;
+  const scale = Math.min(availableWidth / targetWidth, availableHeight / targetHeight);
+  previewZoomScale = Number.isFinite(scale) ? Math.max(0.05, Math.min(1, scale)) : 1;
 
+  // Reset any previous styles
+  document.body.style.cssText = "";
+  ROOT.style.cssText = "";
+  
+  // Apply fixed dimensions to body and root
   document.body.style.width = `${targetWidth}px`;
   document.body.style.height = `${targetHeight}px`;
   document.body.style.overflow = "hidden";
+  document.body.style.margin = "0";
+  document.body.style.padding = "0";
+  document.body.style.background = "#000";
+  
   ROOT.style.width = `${targetWidth}px`;
   ROOT.style.height = `${targetHeight}px`;
-
-  if (window.CSS?.supports?.("zoom: 1")) {
-    document.body.style.zoom = `${previewZoomScale}`;
-    ROOT.style.transform = "";
-  } else {
-    document.body.style.zoom = "";
-    ROOT.style.transform = `scale(${previewZoomScale})`;
-    ROOT.style.transformOrigin = "top left";
-  }
+  ROOT.style.minHeight = `${targetHeight}px`;
+  ROOT.style.maxHeight = `${targetHeight}px`;
+  ROOT.style.overflow = "hidden";
+  ROOT.style.position = "fixed";
+  ROOT.style.top = "0";
+  ROOT.style.left = "0";
+  ROOT.style.transformOrigin = "top left";
+  ROOT.style.transform = `scale(${previewZoomScale})`;
+  
+  // Center the scaled content
+  const scaledWidth = targetWidth * previewZoomScale;
+  const scaledHeight = targetHeight * previewZoomScale;
+  const offsetX = Math.max(0, (window.innerWidth - scaledWidth) / 2);
+  const offsetY = Math.max(0, (window.innerHeight - scaledHeight) / 2);
+  ROOT.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${previewZoomScale})`;
 }
 
 /**
@@ -88,6 +109,30 @@ function applyPreviewZoom(layout) {
  */
 function setDisplayFrameMode(mode) {
   displayFrameMode = mode;
+}
+
+/**
+ * Apply fixed TV mode styling for actual display on TV screens.
+ * @param {string} layout Layout string (portrait or landscape).
+ */
+function applyTvMode(layout) {
+  if (!ROOT) return;
+  const isPortrait = layout !== "landscape";
+  const targetWidth = isPortrait ? 1080 : 1920;
+  const targetHeight = isPortrait ? 1920 : 1080;
+  
+  document.body.style.width = `${targetWidth}px`;
+  document.body.style.height = `${targetHeight}px`;
+  document.body.style.overflow = "hidden";
+  document.body.style.margin = "0";
+  document.body.style.padding = "0";
+  document.body.style.background = "#0f1115";
+  
+  ROOT.style.width = `${targetWidth}px`;
+  ROOT.style.height = `${targetHeight}px`;
+  ROOT.style.minHeight = `${targetHeight}px`;
+  ROOT.style.overflow = "hidden";
+  ROOT.style.background = "#0f1115";
 }
 
 /**
@@ -242,6 +287,36 @@ function safeText(value) {
 }
 
 /**
+ * Normalize image URL for deduplication (strip query params, trailing slashes).
+ * @param {string} url Image URL.
+ * @returns {string} Normalized URL for comparison.
+ */
+function normalizeImageUrl(url) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    return parsed.origin + parsed.pathname.replace(/\/$/, "").toLowerCase();
+  } catch {
+    return url.split("?")[0].replace(/\/$/, "").toLowerCase();
+  }
+}
+
+/**
+ * Deduplicate image URLs while preserving order.
+ * @param {string[]} urls Array of image URLs.
+ * @returns {string[]} Deduplicated URLs.
+ */
+function deduplicateImages(urls) {
+  const seen = new Set();
+  return urls.filter((url) => {
+    const normalized = normalizeImageUrl(url);
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
+/**
  * Build a list of media entries for the carousel.
  * @param {object[]} apiImages API image objects.
  * @param {string[]} xmlImages XML image list.
@@ -249,22 +324,23 @@ function safeText(value) {
  * @returns {{type: string, src: string, caption: string}[]} Media entries.
  */
 function buildMediaList(apiImages, xmlImages, preferredImages) {
-  const media = [];
-
   const preferred = (preferredImages || []).filter(Boolean);
-  const imageUrls = (apiImages || []).map((img) => safeText(img.ImgURL)).filter(Boolean);
+  const imageUrls = (apiImages || [])
+    .sort((a, b) => (a.Order || 0) - (b.Order || 0))
+    .map((img) => safeText(img.ImgURL))
+    .filter(Boolean);
   const fallbackImages = (xmlImages || []).filter(Boolean);
-  const allImages = preferred.length ? preferred : imageUrls.length ? imageUrls : fallbackImages;
+  
+  // Use preferred images if available, otherwise deduplicate API/XML images
+  const allImages = preferred.length 
+    ? preferred 
+    : deduplicateImages(imageUrls.length ? imageUrls : fallbackImages);
 
-  allImages.forEach((url) => {
-    media.push({
-      type: "image",
-      src: url,
-      caption: "",
-    });
-  });
-
-  return media;
+  return allImages.map((url) => ({
+    type: "image",
+    src: url,
+    caption: "",
+  }));
 }
 
 /**
@@ -355,20 +431,19 @@ function renderVideoFrame(videoSource) {
 }
 
 /**
- * Render a video slot with fallback messaging.
+ * Render a video slot or fallback image.
  * @param {object[]|object|null} apiVideos API video objects.
- * @returns {string} Video markup or fallback.
+ * @returns {string} Video markup or fallback image.
  */
 function renderVideoSlot(apiVideos) {
   const videoSource = getVideoSource(apiVideos);
   if (videoSource) {
     return renderVideoFrame(videoSource);
   }
-  const count = Array.isArray(apiVideos) ? apiVideos.length : apiVideos ? 1 : 0;
-  const suffix = count ? ` (${count} item${count === 1 ? "" : "s"})` : "";
+  // No video - show static fallback image
   return `
-    <div class="tv-panel p-3 h-100 d-flex align-items-center justify-content-center text-secondary">
-      No video found${suffix}
+    <div class="tv-video-frame">
+      <img src="../../img/fallback.jpg" alt="Flatout Motorsports" class="object-fit-cover w-100 h-100" />
     </div>
   `;
 }
@@ -383,7 +458,7 @@ function renderVideoSlot(apiVideos) {
  */
 function renderMediaCarousel(id, media, startIndex, endIndex) {
   if (!media.length) {
-    return `<div class="tv-panel p-5 text-center">Image not available</div>`;
+    return `<div class="tv-carousel"><img src="../../img/fallback.jpg" class="d-block w-100 tv-hero object-fit-cover" alt="Flatout Motorsports" /></div>`;
   }
 
   const safeStart = Number.isFinite(startIndex) ? startIndex : 2;
@@ -447,76 +522,78 @@ function initCarousels() {
 }
 
 /**
- * Build feature cards from API items.
+ * Check if a description relates to color.
+ * @param {string} desc Description text.
+ * @returns {boolean} True if color-related.
+ */
+function isColorFeature(desc) {
+  const lower = (desc || "").toLowerCase();
+  return lower.includes("color") || lower.includes("mint") || lower.includes("paint");
+}
+
+/**
+ * Build feature cards from API AccessoryItems.
  * @param {object[]} items Feature items list.
+ * @param {string} swatchColor Main color swatch.
+ * @param {string} accentOne First accent color.
+ * @param {string} accentTwo Second accent color.
  * @returns {string} Feature card markup.
  */
 function renderFeatureCards(items, swatchColor, accentOne, accentTwo) {
   const cards = (items || [])
     .filter((item) => item && item.Included === true)
     .filter((item) => safeText(item.Description) || safeText(item.ImageDescription) || safeText(item.ImgURL))
-    .slice(0, 3)
-    .map((item, index) => {
-      const title = safeText(item.Description) || "Feature Highlight";
+    .filter((item) => {
+      // Skip color features - they're shown in the main box now
+      const title = safeText(item.Description);
       const detail = safeText(item.ImageDescription);
-      const iconName = ["bi-1-circle", "bi-2-circle", "bi-3-circle"][index] || "bi-star";
-      const swatch = swatchColor || "#4bd2b1";
-      const accentPrimary = accentOne || "#1f6feb";
-      const accentSecondary = accentTwo || "#f97316";
-      const imageMarkup =
-        index === 0
-          ? `<div class="tv-feature-icon">
-                <img src="../../tv/img/21.png" class="tv-feature-img" alt="Cruise 21 length" />
-              </div>`
-          : index === 1
-            ? `<div class="tv-feature-icon">
-                  <img src="../../img/rotax-engine.png" class="tv-feature-img" alt="Rotax engine" />
-                </div>`
-            : index === 2
-              ? `<div class="tv-feature-icon d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-palette2" style="color: ${swatch};"></i>
-                    <span class="tv-color-swatch" style="background-color: ${swatch};"></span>
-                    <div class="tv-color-dots">
-                      <span class="tv-color-dot" style="background-color: ${swatch};"></span>
-                      <span class="tv-color-dot" style="background-color: ${accentPrimary};"></span>
-                      <span class="tv-color-dot" style="background-color: ${accentSecondary};"></span>
-                    </div>
-                  </div>`
-              : `<div class="tv-feature-icon"><i class="bi ${iconName}"></i></div>`;
+      return !isColorFeature(title) && !isColorFeature(detail);
+    })
+    .slice(0, 3)
+    .map((item) => {
+      const title = safeText(item.Description) || "Feature";
+      const detail = safeText(item.ImageDescription);
+      const imgUrl = safeText(item.ImgURL);
+      
+      const imageMarkup = imgUrl
+        ? `<img src="${imgUrl}" class="tv-feature-thumb" alt="${title}" />`
+        : `<div class="tv-feature-thumb-icon"><i class="bi bi-check-circle"></i></div>`;
+      
       return `
-        <div class="tv-panel p-3 tv-feature-card">
-            ${imageMarkup}
-            <div class="mt-3 fw-semibold">${title}</div>
-            ${detail ? `<div class="text-secondary small mt-1">${detail}</div>` : ""}
+        <div class="tv-feature-row">
+          ${imageMarkup}
+          <div class="tv-feature-text">
+            <div class="fw-semibold">${title}</div>
+            ${detail ? `<div class="text-secondary small">${detail}</div>` : ""}
+          </div>
         </div>
       `;
     })
     .join("");
 
   if (!cards) return "";
-  return `<div class="tv-feature-grid">${cards}</div>`;
+  return `<div class="tv-feature-list">${cards}</div>`;
 }
 
 /**
  * Build line items list for fees/taxes.
  * @param {object[]} items Items list.
+ * @param {boolean} bold Whether to use semibold font weight.
  * @returns {string} List markup.
  */
-function renderLineItems(items) {
-  const rows = (items || [])
+function renderLineItems(items, bold = false) {
+  const weightClass = bold ? "fw-semibold" : "";
+  return (items || [])
     .filter((item) => safeText(item.Description))
     .map(
       (item) => `
-        <div class="d-flex justify-content-between small">
+        <div class="d-flex justify-content-between lh-sm ${weightClass}" style="font-size: 0.75rem;">
           <span>${safeText(item.Description)}</span>
           <span>${formatPrice(item.Amount)}</span>
         </div>
       `
     )
     .join("");
-
-  if (!rows) return "";
-  return `<div class="mt-2">${rows}</div>`;
 }
 
 /**
@@ -613,23 +690,20 @@ function renderQrCode(url) {
 }
 
 /**
- * Render a single vehicle in portrait layout.
+ * Build common display data from API and XML sources.
  * @param {object} data Vehicle data.
- * @param {string} imageUrl Preferred image URL.
- * @param {string} customText Custom text line.
+ * @param {object} apiData API data.
+ * @param {string} swatchColor Swatch color.
+ * @param {string} accentOne Accent color 1.
+ * @param {string} accentTwo Accent color 2.
+ * @returns {object} Common display data.
  */
-function renderPortrait(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo) {
-  const media = buildMediaList(apiData?.Images, data.images, preferredImages);
-  const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media, slideStart, slideEnd);
-  const videoMarkup = renderVideoSlot(apiData?.Videos);
+function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
   const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
-  const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
-  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo);
-  const feesMarkup = renderLineItems(apiData?.OTDItems || []);
-  const rebatesMarkup = renderLineItems(apiData?.MfgRebatesFrontEnd || []);
   const totalValue = apiData?.OTDPrice;
+  const accessoryTotal = apiData?.AccessoryItemsTotal || 0;
   const financeApr = 8.99;
   const downPaymentRate = 0.1;
   const financeTermMonths = 144;
@@ -637,60 +711,252 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
   const downPayment = totalAmount * downPaymentRate;
   const financedAmount = totalAmount - downPayment;
   const monthlyPayment = calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
-  const financeSummary = totalAmount
-    ? `
-      <div class="d-none">
-        <div class="d-flex justify-content-between"><span>Price</span><span>${formatPrice(totalAmount)}</span></div>
-        <div class="d-flex justify-content-between"><span>Down payment (10%)</span><span>${formatPrice(downPayment)}</span></div>
-        <div class="d-flex justify-content-between fw-semibold"><span>Amount financed</span><span>${formatPrice(financedAmount)}</span></div>
-        <div class="d-flex justify-content-between mt-2"><span>Term</span><span>${financeTermMonths} months</span></div>
-        <div class="d-flex justify-content-between"><span>APR (700+)</span><span>${financeApr}%</span></div>
-        <div class="d-flex justify-content-between mt-2 fw-semibold text-danger fs-5"><span>Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+  
+  // Build accessory line if total exists
+  const accessoryLine = accessoryTotal > 0 
+    ? [{ Description: "Accessories", Amount: accessoryTotal }] 
+    : [];
+  
+  // Color info
+  const colorName = apiData?.Color || "";
+  const swatch = swatchColor || "#4bd2b1";
+  const accent1 = accentOne || "#1f6feb";
+  const accent2 = accentTwo || "#f97316";
+  
+  // Contact info
+  const phone = apiData?.Phone || "";
+  
+  return {
+    specialValue,
+    msrpValue,
+    hasDiscount,
+    totalValue,
+    monthlyPayment,
+    colorName,
+    swatch,
+    accent1,
+    accent2,
+    phone,
+    featureMarkup: renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo),
+    feesMarkup: renderLineItems(apiData?.OTDItems || []),
+    rebatesMarkup: renderLineItems(apiData?.MfgRebatesFrontEnd || [], true),
+    discountMarkup: renderLineItems(apiData?.DiscountItems || [], true),
+    accessoryMarkup: renderLineItems(accessoryLine),
+  };
+}
+
+/**
+ * Render middle content for "default" template (4 boxes).
+ */
+function renderMiddleDefault(data, displayData, customText) {
+  const { specialValue, msrpValue, hasDiscount, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, featureMarkup, feesMarkup, rebatesMarkup, discountMarkup, accessoryMarkup } = displayData;
+  
+  // Rule: show MSRP crossed out only if New AND MSRP > sale price
+  const isNew = (data.usage || "").toLowerCase() === "new";
+  const showMsrpCrossed = isNew && hasDiscount && msrpValue;
+  const displayPrice = specialValue || msrpValue;
+  
+  // Left box: MSRP line (if applicable) + main price
+  const leftPriceMarkup = showMsrpCrossed
+    ? `<div class="text-secondary h6 small mb-0 text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
+       <div class="h2 mb-0 fw-bold">${formatPrice(specialValue)}</div>`
+    : `<div class="h2 mb-0 fw-bold">${formatPrice(displayPrice)}</div>`;
+  
+  // Right box: MSRP + Sale Price rows (if applicable) or just Price
+  const rightPriceMarkup = showMsrpCrossed
+    ? `<div class="d-flex justify-content-between text-secondary text-decoration-line-through"><span>MSRP</span><span>${formatPrice(msrpValue)}</span></div>
+       <div class="d-flex justify-content-between fw-semibold"><span>Sale Price</span><span>${formatPrice(specialValue)}</span></div>`
+    : `<div class="d-flex justify-content-between fw-semibold"><span>Price</span><span>${formatPrice(displayPrice)}</span></div>`;
+  
+  return `
+    <div class="tv-middle-grid">
+      <div class="tv-box px-3 py-2 d-flex flex-column">
+        <div>
+          <div class="text-uppercase text-danger h2 fw-bold">Show Special</div>
+          <h6 class="text-secondary text-uppercase fw-semibold">${data.title || ""}</h6>
+          <span class="badge bg-danger d-none">${data.usage || "N/A"}</span>
+          <div>${data.stockNumber || "N/A"}</div>
+          ${colorName ? `
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="tv-color-dot" style="background-color: ${swatch};"></span>
+                <span class="tv-color-dot" style="background-color: ${accent1}; width: 16px; height: 16px;"></span>
+                <span class="tv-color-dot" style="background-color: ${accent2}; width: 16px; height: 16px;"></span>
+              </div>
+              <span class="text-secondary small">${colorName}</span>
+            </div>
+          ` : ""}
+        </div>
+        <div class="flex-grow-1"></div>
+        <div>
+          ${leftPriceMarkup}
+          <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-6">
+            <span class="me-2">Est. payment</span>
+            <span>${formatPrice(monthlyPayment)}/mo</span>
+          </div>
+        </div>
       </div>
-    `
-    : `<div class="text-secondary mt-2">Pricing not available for financing.</div>`;
-  const contactLine = apiData?.Phone ? `` : data.webURL ? "Visit flatoutmotorcycles.com" : "Visit Flat Out Motorsports";
+      <div class="tv-box p-3 d-flex flex-column">
+        <div>
+          ${rightPriceMarkup}
+        </div>
+        <hr class="my-2 opacity-25">
+        <div class="flex-grow-1">
+          ${rebatesMarkup}
+          ${discountMarkup}
+          ${accessoryMarkup}
+          ${feesMarkup}
+        </div>
+        ${totalValue ? `<div class="fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
+      </div>
+      <div class="tv-box p-3">
+        ${customText ? `<div class="text-secondary mb-2">${customText}</div>` : ""}
+        ${featureMarkup || ""}
+      </div>
+      <div class="tv-box p-3 d-flex align-items-center justify-content-around">
+        <div id="qrCode" class="tv-qr"></div>
+        <div class="d-flex flex-column justify-content-center align-items-center">
+          <img src="../../img/fom-app-logo-01.svg" alt="Logo" width="200" height="30" />
+          ${phone ? `<div class="mt-2 text-secondary">${phone}</div>` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render middle content for "minimal" template (2 boxes).
+ */
+function renderMiddleMinimal(data, displayData, customText) {
+  const { specialValue, msrpValue, hasDiscount, monthlyPayment } = displayData;
+  return `
+    <div class="tv-middle-grid tv-middle-grid-minimal">
+      <div class="tv-box p-4">
+        <div class="text-uppercase text-danger h2 fw-bold">Show Special</div>
+        <div class="badge h4 mb-3 bg-danger">${data.usage || "N/A"}</div>
+        <div class="text-secondary text-uppercase fw-semibold">${data.title || ""}</div>
+        <div class="mb-3">${data.stockNumber || "N/A"}</div>
+        ${msrpValue ? `<div class="text-secondary h5 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}"><span class="text-decoration-none">MSRP</span> ${formatPrice(msrpValue)}</div>` : ""}
+        <div class="display-4 mb-0 fw-bold">${formatPrice(specialValue)}</div>
+        <div class="d-flex justify-content-start mt-2 fw-semibold text-danger fs-4"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
+        ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
+      </div>
+      <div class="tv-box p-4 d-flex flex-column align-items-center justify-content-center">
+        <img id="logo" class="mb-4" src="../../img/fom-app-logo-01.svg" alt="Logo" width="200" height="30" />
+        <div id="qrCode" class="tv-qr tv-qr-large"></div>
+        <div class="mt-3 text-secondary small">Scan for details</div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render middle content for "pricing" template (pricing focus).
+ */
+function renderMiddlePricing(data, displayData, customText) {
+  const { specialValue, msrpValue, hasDiscount, totalValue, monthlyPayment, feesMarkup, rebatesMarkup } = displayData;
+  return `
+    <div class="tv-middle-grid tv-middle-grid-pricing">
+      <div class="tv-box p-4 tv-box-wide">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="text-uppercase text-danger h2 fw-bold">Show Special</div>
+            <div class="badge h4 mb-2 bg-danger">${data.usage || "N/A"}</div>
+            <div class="text-secondary text-uppercase fw-semibold">${data.title || ""}</div>
+            <div class="mb-2">${data.stockNumber || "N/A"}</div>
+          </div>
+          <div class="text-end">
+            ${msrpValue ? `<div class="text-secondary h5 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+            <div class="display-4 fw-bold">${formatPrice(specialValue)}</div>
+            <div class="fw-semibold text-danger fs-4">${formatPrice(monthlyPayment)}/mo</div>
+          </div>
+        </div>
+      </div>
+      <div class="tv-box p-3">
+        <div class="fw-semibold">Fees & Taxes</div>
+        <div class="small">${rebatesMarkup}</div>
+        <div class="small">${feesMarkup}</div>
+        ${totalValue ? `<div class="mt-2 fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
+      </div>
+      <div class="tv-box p-3 d-flex align-items-center justify-content-center">
+        <div id="qrCode" class="tv-qr"></div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render middle content for "features" template (features focus).
+ */
+function renderMiddleFeatures(data, displayData, customText) {
+  const { specialValue, monthlyPayment, featureMarkup } = displayData;
+  return `
+    <div class="tv-middle-grid tv-middle-grid-features">
+      <div class="tv-box p-3">
+        <div class="text-uppercase text-danger h3 fw-bold">Show Special</div>
+        <div class="badge bg-danger mb-2">${data.usage || "N/A"}</div>
+        <div class="text-secondary text-uppercase small fw-semibold">${data.title || ""}</div>
+        <div class="h2 mb-0 fw-bold mt-2">${formatPrice(specialValue)}</div>
+        <div class="fw-semibold text-danger">${formatPrice(monthlyPayment)}/mo</div>
+      </div>
+      <div class="tv-box p-3 tv-box-wide">
+        <div class="fw-semibold mb-2">Features & Highlights</div>
+        ${featureMarkup || '<div class="text-secondary">No features available</div>'}
+        ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
+      </div>
+      <div class="tv-box p-3 d-flex align-items-center justify-content-center">
+        <div id="qrCode" class="tv-qr"></div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render a single vehicle in portrait layout.
+ * @param {object} data Vehicle data.
+ * @param {string} imageUrl Preferred image URL.
+ * @param {string} customText Custom text line.
+ * @param {object} apiData API data.
+ * @param {string[]} preferredImages Preferred images.
+ * @param {number} slideStart Slide start index.
+ * @param {number} slideEnd Slide end index.
+ * @param {string} swatchColor Swatch color.
+ * @param {string} accentOne Accent color 1.
+ * @param {string} accentTwo Accent color 2.
+ * @param {string} template Template name.
+ */
+function renderPortrait(data, imageUrl, customText, apiData, preferredImages, slideStart, slideEnd, swatchColor, accentOne, accentTwo, template) {
+  const media = buildMediaList(apiData?.Images, data.images, preferredImages);
+  const carouselMarkup = renderMediaCarousel("tvCarouselPortrait", media, slideStart, slideEnd);
+  const videoMarkup = renderVideoSlot(apiData?.Videos);
+  const displayData = buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo);
+  
+  // Select middle content based on template
+  let middleContent;
+  switch (template) {
+    case "minimal":
+      middleContent = renderMiddleMinimal(data, displayData, customText);
+      break;
+    case "pricing":
+      middleContent = renderMiddlePricing(data, displayData, customText);
+      break;
+    case "features":
+      middleContent = renderMiddleFeatures(data, displayData, customText);
+      break;
+    default:
+      middleContent = renderMiddleDefault(data, displayData, customText);
+  }
 
   setDisplayContent(`
-    <div class="tv-layout-portrait">
-      <div class="parent">
-        <div class="div1">
+    <div class="tv-layout-portrait" data-template="${template}">
+      <div class="tv-skeleton">
+        <div class="tv-region-carousel">
           ${carouselMarkup}
         </div>
-        <div class="div2">
-          <div class="tv-panel p-3 h-100">
-            <div class="text-uppercase text-danger h2 fw-bold mt-2">Show Special</div>
-            <div class="badge h4 mb-4 bg-danger">${data.usage || "N/A"}</div>
-            <div class="text-secondary text-uppercase fw-semibold">${data.title || ""}</div>
-            <div class="mb-4">${data.stockNumber || "N/A"}</div>
-            ${
-              msrpValue
-                ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}"><span class="text-decoration-none">MSRP<span> ${formatPrice(msrpValue)}</div>`
-                : ""
-            }
-            <div class="h1 mb-0 fw-bold">${formatPrice(specialValue)}</div>
-            <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-5"><span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span></div>
-          </div>
-          <div class="tv-panel p-3 h-100">
-            <div class="fw-semibold mt-2">Fees & Taxes</div>
-            <div class="opacity-25">${rebatesMarkup}</div>
-            <div class="opacity-25">${feesMarkup}</div>
-            ${totalValue ? `<div class="mt-2 fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
-          </div>
+        <div class="tv-region-middle">
+          ${middleContent}
         </div>
-        <div class="div3">
-          <div class="tv-panel p-4 h-100">
-            <img id="logo" class="ms-1 me-1 pt-0 float-end" src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
-            <div class="fw-semibold mt-2">Welcome to the Boat, Sports & Travel Show 2026</div>
-            ${financeSummary}
-            ${customText ? `<div class="mt-3 text-secondary">${customText}</div>` : ""}
-            ${featureMarkup || ""}
-          </div>
-          <div class="tv-panel p-4 h-100 d-flex align-items-center justify-content-center">
-            <div id="qrCode" class="tv-qr"></div>
-          </div>
-        </div>
-        <div class="div4">
+        <div class="tv-region-video">
           ${videoMarkup}
         </div>
       </div>
@@ -711,62 +977,115 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   const media = buildMediaList(apiData?.Images, data.images, preferredImages);
   const carouselMarkup = renderMediaCarousel("tvCarouselLandscape", media, slideStart, slideEnd);
   const videoMarkup = renderVideoSlot(apiData?.Videos);
-  const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
-  const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
-  const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
-  const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo);
-  const feesMarkup = renderLineItems(apiData?.OTDItems || []);
-  const totalValue = apiData?.OTDPrice;
-  const financeApr = 8.99;
-  const downPaymentRate = 0.1;
-  const financeTermMonths = 144;
-  const totalAmount = Number(totalValue) || Number(specialValue) || 0;
-  const downPayment = totalAmount * downPaymentRate;
-  const financedAmount = totalAmount - downPayment;
-  const monthlyPayment = calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
+  
+  // Use buildDisplayData for consistent data handling
+  const displayData = buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo);
+  const {
+    specialValue,
+    msrpValue,
+    hasDiscount,
+    totalValue,
+    monthlyPayment,
+    colorName,
+    swatch,
+    accent1,
+    accent2,
+    phone,
+    featureMarkup,
+    feesMarkup,
+    rebatesMarkup,
+    discountMarkup,
+    accessoryMarkup,
+  } = displayData;
+
+  // Determine if new and has discount for pricing display
+  const isNew = (data.usage || "").toLowerCase() === "new";
+  const showBothPrices = isNew && hasDiscount;
 
   setDisplayContent(`
     <div class="tv-layout-landscape">
-      <div class="parent">
-        <div class="div1">
+      <div class="tv-landscape-skeleton">
+        <!-- Top-left: Carousel -->
+        <div class="tv-region-carousel">
           ${carouselMarkup}
         </div>
-        <div class="div2">
-          <div class="tv-panel p-3 h-100">
-            <div class="h2 text-danger mb-4 fw-bold text-uppercase">Show Special</div>
-            <div class="badge h4 bg-danger">${data.usage || "N/A"}</div>
-            <div class="text-secondary text-uppercase fw-semibold mb-0">${data.title || ""}</div>
-            <div class="text-light mb-4">${data.stockNumber || ""}</div>
-            ${msrpValue ? `<div class="text-secondary h6 mb-0 ${hasDiscount ? "text-decoration-line-through" : ""}">MSRP ${formatPrice(msrpValue)}</div>` : ""}
-            <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>
-            <div class="d-flex justify-content-start fw-semibold text-danger fs-5">
+        
+        <!-- Top-right: Pricing + Fees -->
+        <div class="tv-region-right-stack">
+          <!-- Pricing Box -->
+          <div class="tv-box p-3 d-flex flex-column">
+            <div class="h2 text-danger fw-bold text-uppercase mb-2">Show Special</div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-danger">${data.usage || "N/A"}</span>
+              <span class="text-secondary text-uppercase fw-semibold small">${data.title || ""}</span>
+            </div>
+            <div class="text-light small">${data.stockNumber || ""}</div>
+            ${colorName ? `
+              <div class="d-flex align-items-center gap-2 mt-1">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="tv-color-dot" style="background-color: ${swatch};"></span>
+                  <span class="tv-color-dot" style="background-color: ${accent1}; width: 14px; height: 14px;"></span>
+                  <span class="tv-color-dot" style="background-color: ${accent2}; width: 14px; height: 14px;"></span>
+                </div>
+                <span class="text-secondary small">${colorName}</span>
+              </div>
+            ` : ""}
+            <div class="flex-grow-1"></div>
+            ${showBothPrices
+              ? `<div class="text-secondary small text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
+                 <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>`
+              : `<div class="text-secondary small">Price</div>
+                 <div class="display-6 fw-bold text-light">${formatPrice(specialValue || msrpValue)}</div>`
+            }
+            <div class="d-flex fw-semibold text-danger fs-5">
               <span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span>
             </div>
           </div>
-        </div>
-        <div class="div3">
-          <div class="tv-panel p-3 h-100">
-            ${totalValue ? `<div class="fw-semibold">Total ${formatPrice(totalValue)}</div>` : ""}
-            ${feesMarkup}
+          
+          <!-- Fees Box -->
+          <div class="tv-box p-3 d-flex flex-column">
+            ${showBothPrices
+              ? `<div class="d-flex justify-content-between small"><span class="text-secondary">MSRP</span><span>${formatPrice(msrpValue)}</span></div>
+                 <div class="d-flex justify-content-between small"><span class="text-secondary">Sale Price</span><span class="fw-semibold">${formatPrice(specialValue)}</span></div>`
+              : `<div class="d-flex justify-content-between small"><span class="text-secondary">Price</span><span class="fw-semibold">${formatPrice(specialValue || msrpValue)}</span></div>`
+            }
+            <hr class="my-2 opacity-25">
+            <div class="flex-grow-1 overflow-hidden">
+              ${rebatesMarkup}
+              ${discountMarkup}
+              ${accessoryMarkup}
+              ${feesMarkup}
+            </div>
+            ${totalValue ? `<div class="d-flex justify-content-between fw-bold mt-auto pt-2 border-top border-secondary border-opacity-25"><span>Total</span><span>${formatPrice(totalValue)}</span></div>` : ""}
           </div>
         </div>
-        <div class="div4">
-          <div class="tv-panel p-4 h-100">
-            ${customText || ""}
-            ${featureMarkup ? `<div class="mt-4">${featureMarkup}</div>` : ""}
+        
+        <!-- Bottom-left: Features + QR -->
+        <div class="tv-region-left-stack">
+          <!-- Features Box -->
+          <div class="tv-box p-3 d-flex flex-column">
+            ${customText ? `<div class="mb-2">${customText}</div>` : ""}
+            ${featureMarkup ? `<div class="flex-grow-1 overflow-hidden">${featureMarkup}</div>` : ""}
           </div>
-        </div>
-        <div class="div5">
-          <div class="tv-panel p-4 h-100 d-flex align-items-center justify-content-center">
+          
+          <!-- QR Box -->
+          <div class="tv-box p-3 d-flex align-items-center justify-content-around">
             <div id="qrCode" class="tv-qr"></div>
+            <div class="d-flex flex-column justify-content-center align-items-center">
+              <img src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
+              ${phone ? `<div class="mt-2 text-secondary small">${phone}</div>` : ""}
+            </div>
           </div>
         </div>
-        <div class="div6">
+        
+        <!-- Bottom-right: Video -->
+        <div class="tv-region-video">
           ${videoMarkup}
         </div>
       </div>
     </div>
   `);
+  renderQrCode(data.webURL);
   initCarousels();
 }
 
@@ -781,11 +1100,7 @@ function renderLandscapeGrid(items) {
       (item) => `
         <div class="col-12">
           <div class="tv-panel">
-            ${
-              item.images[0]
-                ? `<img src="${item.images[0]}" alt="${item.title || "Vehicle"}" />`
-                : `<div class="tv-panel p-4 text-center">Image not available</div>`
-            }
+            <img src="${item.images[0] || "../../img/fallback.jpg"}" alt="${item.title || "Flatout Motorsports"}" />
             <div class="">
               <div class="fw-semibold">${item.year || ""} ${item.manufacturer || ""}</div>
               <div class="text-secondary small">${item.modelName || item.title || ""}</div>
@@ -825,8 +1140,8 @@ function renderMessage(message) {
 async function initDisplay() {
   const {
     layout,
+    template,
     stockNumber,
-    category,
     imageUrl,
     note,
     slideStart,
@@ -842,7 +1157,9 @@ async function initDisplay() {
 
   const wantsPortrait = layout !== "landscape";
   const screenIsPortrait = isPortraitScreen();
-  const usePortraitFrame = wantsPortrait && !screenIsPortrait;
+  const usePortraitFrame = wantsPortrait && !screenIsPortrait && !preview;
+  
+  // In preview mode, always allow display regardless of orientation
   if (!preview && !usePortraitFrame && wantsPortrait !== screenIsPortrait) {
     renderMessage(
       wantsPortrait
@@ -851,15 +1168,22 @@ async function initDisplay() {
     );
     return;
   }
+  
   setDisplayFrameMode(usePortraitFrame ? "portrait" : "");
+  
   if (preview) {
+    // Preview mode: scale to fit current viewport
     applyPreviewZoom(layout);
     window.addEventListener("resize", () => applyPreviewZoom(layout));
+  } else if (!usePortraitFrame) {
+    // Actual TV mode: apply fixed dimensions for crisp rendering
+    // Skip when using portrait frame (portrait on landscape screen)
+    applyTvMode(layout);
   }
 
   try {
     const [xmlText, selectedMap] = await Promise.all([fetchXmlText(), fetchSelectedImages()]);
-    const items = parseItems(xmlText).map(buildXmlData).filter((item) => matchesCategory(item, category));
+    const items = parseItems(xmlText).map(buildXmlData);
 
     if (!items.length) {
       renderMessage("No vehicles found for this filter.");
@@ -910,7 +1234,8 @@ async function initDisplay() {
           slideRangeEnd,
           swatchColor,
           accentOne,
-          accentTwo
+          accentTwo,
+          template
         );
       }
       return;

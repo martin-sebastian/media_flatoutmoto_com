@@ -1,6 +1,8 @@
 body.tv-body {
+  padding: 0 !important;
+  margin: 0 !important;
   min-height: 100vh;
-  background: #121212;
+  background: #0f1115 !important;
   color: #f5f5f5;
 }
 
@@ -39,25 +41,37 @@ body.tv-body {
 }
 
 .tv-panel {
-  background: rgba(33, 37, 41, 0.8);
+  background: rgba(33, 37, 41, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
 }
 
 .tv-hero {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 12px;
+}
+
+/* Shared box styling for all layouts */
+.tv-box {
+  width: 100%;
+  height: 100%;
+  background: rgba(33, 37, 41, 0.9);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .tv-carousel {
-  border-radius: 16px;
   overflow: hidden;
   width: 100%;
-  max-width: 1060px;
   margin: 0;
-  aspect-ratio: 16 / 9;
+}
+
+.tv-carousel,
+.tv-carousel .carousel-inner,
+.tv-carousel .carousel-item {
+  height: 100%;
 }
 
 
@@ -67,41 +81,171 @@ body.tv-body {
   width: 1080px;
   height: 1920px;
   margin: 0 auto;
+  overflow: hidden;
+  background: #0f1115;
 }
 
-.tv-layout-portrait .parent {
-  width: 100%;
-  height: 100%;
+/* Skeleton: fixed aspect ratios with equal spacing */
+.tv-layout-portrait .tv-skeleton {
+  width: 1080px;
+  height: 1920px;
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: repeat(4, 1fr);
-  grid-column-gap: 0;
-  grid-row-gap: 0;
+  /* Heights adjusted for 12px padding and gaps: 1920 - 24 (top/bottom) - 24 (2 gaps) = 1872 */
+  /* Carousel: 700px, Middle: 580px, Video: 592px = 1872 */
+  grid-template-rows: 700px 580px 592px;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
-.tv-layout-portrait .div1,
-.tv-layout-portrait .div2,
-.tv-layout-portrait .div3,
-.tv-layout-portrait .div4 {
+/* Skeleton regions - all with rounded corners */
+.tv-layout-portrait .tv-region-carousel {
+  width: 100%;
+  height: 700px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.tv-layout-portrait .tv-region-middle {
+  width: 100%;
+  height: 580px;
+  overflow: hidden;
+}
+
+.tv-layout-portrait .tv-region-video {
+  width: 100%;
+  height: 592px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* Middle content grid: 2x2 with gaps (default) */
+/* 580px height - 12px gap = 568px / 2 rows = 284px per row */
+/* 1056px width (1080 - 24 padding) - 12px gap = 1044px / 2 cols = 522px per col */
+.tv-layout-portrait .tv-middle-grid {
+  display: grid;
+  grid-template-columns: 522px 522px;
+  grid-template-rows: 284px 284px;
+  gap: 12px;
+  height: 580px;
+  box-sizing: border-box;
+}
+
+/* Template: Minimal (1x2 grid) */
+/* Full height: 580px for single row */
+.tv-layout-portrait .tv-middle-grid-minimal {
+  grid-template-columns: 522px 522px;
+  grid-template-rows: 580px;
+}
+
+.tv-layout-portrait .tv-middle-grid-minimal .tv-box {
+  max-height: 580px;
+}
+
+/* Template: Pricing (wide top, 2 bottom) */
+/* 340px top row, 228px bottom row (580 - 12 gap = 568, split ~60/40) */
+.tv-layout-portrait .tv-middle-grid-pricing {
+  grid-template-columns: 522px 522px;
+  grid-template-rows: 340px 228px;
+}
+
+.tv-layout-portrait .tv-middle-grid-pricing .tv-box-wide {
+  grid-column: 1 / -1;
+  max-height: 340px;
+}
+
+.tv-layout-portrait .tv-middle-grid-pricing .tv-box:not(.tv-box-wide) {
+  max-height: 228px;
+}
+
+/* Template: Features (1 left, wide right, 1 bottom left, 1 bottom right) */
+.tv-layout-portrait .tv-middle-grid-features {
+  grid-template-columns: 522px 522px;
+  grid-template-rows: 284px 284px;
+}
+
+.tv-layout-portrait .tv-middle-grid-features .tv-box-wide {
+  grid-column: 1 / -1;
+  max-height: 284px;
+}
+
+/* Portrait box sizing */
+.tv-layout-portrait .tv-box {
+  max-height: 284px;
+}
+
+/* Larger QR code for minimal template */
+.tv-qr-large {
+  width: 180px;
+  height: 180px;
+}
+
+/* Carousel styling */
+.tv-layout-portrait .tv-carousel {
+  width: 100%;
+  height: 700px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.tv-layout-portrait .tv-carousel .carousel-inner,
+.tv-layout-portrait .tv-carousel .carousel-item {
+  width: 100%;
+  height: 700px;
+  border-radius: 16px;
+}
+
+.tv-layout-portrait .tv-carousel .carousel-item img {
+  width: 100%;
+  height: 700px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 16px;
+}
+
+/* Video styling */
+.tv-layout-portrait .tv-region-video .tv-video-frame {
   width: 100%;
   height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.tv-layout-portrait .div2,
-.tv-layout-portrait .div3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-}
-
-.tv-layout-portrait .tv-carousel {
+.tv-layout-portrait .tv-region-video .tv-video-frame img,
+.tv-layout-portrait .tv-region-video .tv-video-frame video,
+.tv-layout-portrait .tv-region-video .tv-video-frame iframe {
+  width: 100%;
   height: 100%;
-  max-width: 100%;
-  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 16px;
 }
 
-.tv-layout-portrait .tv-panel {
-  height: 100%;
+/* Portrait typography - readable from distance */
+.tv-layout-portrait .h1,
+.tv-layout-portrait h1 {
+  font-size: 3.5rem;
+  line-height: 1.1;
+}
+
+.tv-layout-portrait .h2,
+.tv-layout-portrait h2 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+}
+
+.tv-layout-portrait .fs-5 {
+  font-size: 1.5rem !important;
+}
+
+.tv-layout-portrait .small {
+  font-size: 1rem;
+}
+
+.tv-layout-portrait .badge {
+  font-size: 1.1rem;
+  padding: 0.5em 0.8em;
 }
 /* END PORTRAIT ONLY */
 
@@ -109,40 +253,120 @@ body.tv-body {
 
 /* LANDSCAPE ONLY */
 /*****************/
+/* 
+ * Landscape Layout: 1920×1080
+ * 2×2 symmetric grid with diagonal media placement
+ * ┌──────────────────┬──────────────────┐
+ * │                  │     Pricing      │
+ * │    Carousel      ├──────────────────┤
+ * │    (942×522)     │      Fees        │
+ * ├──────────────────┼──────────────────┤
+ * │    Features      │                  │
+ * ├──────────────────┤     Video        │
+ * │       QR         │    (942×522)     │
+ * └──────────────────┴──────────────────┘
+ */
 .tv-layout-landscape {
   width: 1920px;
   height: 1080px;
   margin: 0 auto;
+  overflow: hidden;
+  background: #0f1115;
 }
 
-.tv-layout-landscape .parent {
-  width: 100%;
-  height: 100%;
+.tv-landscape-skeleton {
+  width: 1920px;
+  height: 1080px;
+  padding: 12px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  grid-column-gap: 0;
-  grid-row-gap: 0;
+  grid-template-columns: 942px 942px;
+  grid-template-rows: 522px 522px;
+  gap: 12px;
+  box-sizing: border-box;
 }
 
-.tv-layout-landscape .div1,
-.tv-layout-landscape .div2,
-.tv-layout-landscape .div3,
-.tv-layout-landscape .div4,
-.tv-layout-landscape .div5,
-.tv-layout-landscape .div6 {
+/* Top-left: Carousel */
+.tv-landscape-skeleton .tv-region-carousel {
+  grid-area: 1 / 1 / 2 / 2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Top-right: 2 stacked boxes (Pricing, Fees) */
+.tv-landscape-skeleton .tv-region-right-stack {
+  grid-area: 1 / 2 / 2 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Bottom-left: 2 stacked boxes (Features, QR) */
+.tv-landscape-skeleton .tv-region-left-stack {
+  grid-area: 2 / 1 / 3 / 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Bottom-right: Video */
+.tv-landscape-skeleton .tv-region-video {
+  grid-area: 2 / 2 / 3 / 3;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Stacked box styling - reuses portrait .tv-box */
+.tv-layout-landscape .tv-box {
+  flex: 1;
+  max-height: 255px;
+}
+
+/* Carousel in landscape */
+.tv-layout-landscape .tv-carousel {
+  width: 100%;
+  height: 522px;
+  border-radius: 16px;
+}
+
+.tv-layout-landscape .tv-carousel .carousel-item img {
+  width: 100%;
+  height: 522px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+/* Video in landscape */
+.tv-layout-landscape .tv-region-video .tv-video-frame {
   width: 100%;
   height: 100%;
+  border-radius: 16px;
 }
 
-.tv-layout-landscape .tv-panel {
+.tv-layout-landscape .tv-region-video .tv-video-frame img,
+.tv-layout-landscape .tv-region-video .tv-video-frame video,
+.tv-layout-landscape .tv-region-video .tv-video-frame iframe {
+  width: 100%;
   height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
 }
 
-.tv-layout-landscape .tv-carousel {
-  height: 100%;
-  max-width: 100%;
-  aspect-ratio: auto;
+/* Landscape typography - readable from distance */
+.tv-layout-landscape h2 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.tv-layout-landscape .display-6 {
+  font-size: 2.25rem;
+}
+
+.tv-layout-landscape .fs-5 {
+  font-size: 1.1rem !important;
+}
+
+.tv-layout-landscape .small {
+  font-size: 0.8rem;
 }
 /* END LANDSCAPE ONLY */
 
@@ -156,13 +380,10 @@ body.tv-body {
 }
 
 .tv-video-frame {
-  border-radius: 16px;
   overflow: hidden;
-  outline: 2px solid rgba(220, 53, 69, 0.5);
   background: #0b0b0b;
   position: relative;
   width: 100%;
-  max-width: 100%;
   margin: 0;
   padding: 0;
   height: 100%;
@@ -177,6 +398,49 @@ body.tv-body {
   height: 100%;
 }
 
+/* Feature list: compact horizontal rows */
+.tv-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.tv-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.tv-feature-thumb {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.tv-feature-thumb-icon {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.tv-feature-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Legacy feature grid (kept for other templates) */
 .tv-feature-grid {
   width: 100%;
   max-width: 940px;
@@ -189,7 +453,6 @@ body.tv-body {
 .tv-feature-card {
   display: flex;
   flex-direction: column;
-
 }
 
 .tv-feature-img {
@@ -223,14 +486,15 @@ body.tv-body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 12px;
 }
 
 .tv-color-dot {
-  width: 10px;
-  height: 10px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .tv-thumb {
@@ -274,7 +538,7 @@ body.tv-body {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
-  background: #101115;
+  background: #0f1115;
 }
 
 .tv-preview-frame.tv-preview-portrait {

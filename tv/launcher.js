@@ -8,7 +8,7 @@ function getLauncherDom() {
   return {
     stockInput: document.getElementById("stockInput"),
     layoutOptions: Array.from(document.querySelectorAll("input[name='layoutOption']")),
-    categorySelect: document.getElementById("categorySelect"),
+    templateSelect: document.getElementById("templateSelect"),
     imageUrlInput: document.getElementById("imageUrlInput"),
     customTextInput: document.getElementById("customTextInput"),
     colorPickerInput: document.getElementById("colorPickerInput"),
@@ -264,7 +264,7 @@ function renderImageChoices(urls) {
  */
 function buildDisplayUrl() {
   const layout = getSelectedLayout();
-  const category = DOM.categorySelect.value;
+  const template = DOM.templateSelect?.value || "default";
   const stockNumber = normalizeStockNumber(DOM.stockInput.value);
   const imageUrl = selectedHeroUrl || DOM.imageUrlInput.value.trim();
   const customText = DOM.customTextInput.value.trim();
@@ -278,9 +278,9 @@ function buildDisplayUrl() {
 
   const url = new URL(getDisplayBaseUrl());
   url.searchParams.set("layout", layout);
+  url.searchParams.set("template", template);
 
   if (stockNumber) url.searchParams.set("s", stockNumber);
-  if (category) url.searchParams.set("category", category);
   if (imageUrl) url.searchParams.set("img", imageUrl);
   if (customText) url.searchParams.set("note", customText);
   if (swatchColor) url.searchParams.set("swatch", swatchColor);

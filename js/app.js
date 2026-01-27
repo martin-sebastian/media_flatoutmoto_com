@@ -2241,6 +2241,21 @@ function updateTable() {
           </div>
           </a>
       </td>
+	  <td nowrap>
+		<div class="input-group input-group-sm flex-nowrap" style="width: 235px;">
+		  <input type="text" class="form-control d-block" style="font-size: 13px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
+		  <div class="input-group-text" id="btnGroupAddon">
+			<button type="button" 
+			  class="btn-icon" 
+			  data-bs-toggle="tooltip"
+			  data-bs-placement="top"
+			  data-bs-title="Copy to clipboard"
+			  onclick="navigator.clipboard.writeText('${stockNumber}')">
+			  <i class="bi bi-clipboard"></i>
+			</button>
+		  </div>
+		</div>
+	  </td>
       <td class="text-center" data-column="usage" nowrap><span class="badge ${usage === "New" ? "text-bg-success" : "text-bg-secondary"}">${usage}</span></td>
       <td class="text-center" nowrap>
         <span class="badge text-bg-dark border">${year}</span>
@@ -2254,21 +2269,6 @@ function updateTable() {
       </td>
       <td data-column="type"><span class="column-type text-tooltip" title="${modelType}" data-bs-toggle="tooltip" data-bs-placement="top">${modelType}</span></td>
       <td class="color-cell" data-column="color"><span class="column-color text-tooltip" title="${color}" data-bs-toggle="tooltip" data-bs-placement="top">${color}</span></td>
-      <td nowrap>
-        <div class="input-group input-group-sm flex-nowrap" style="width: 235px;">
-          <input type="text" class="form-control d-block" style="font-size: 13px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
-          <div class="input-group-text" id="btnGroupAddon">
-            <button type="button" 
-              class="btn-icon" 
-              data-bs-toggle="tooltip"
-              data-bs-placement="top"
-              data-bs-title="Copy to clipboard"
-              onclick="navigator.clipboard.writeText('${stockNumber}')">
-              <i class="bi bi-clipboard"></i>
-            </button>
-          </div>
-        </div>
-      </td>
       <td data-column="price" class="text-center" nowrap>
         <span class="badge text-bg-success h5 fw-bold price-badge">${webPrice}</span>
       </td>
