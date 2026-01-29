@@ -52,6 +52,10 @@ const State = {
 		pageSize: 25,
 		totalPages: 1,
 	},
+	sort: {
+		column: null,
+		direction: "asc",
+	},
 	saveState() {
 		const stateToSave = {
 			currentPage: this.pagination.currentPage,
@@ -1272,6 +1276,9 @@ function filterTable() {
 		return searchMatch && filterMatch;
 	});
 
+	// Re-apply sort if active
+	sortFilteredItems();
+
 	// Reset to first page when filters change
 	State.pagination.currentPage = 1;
 
@@ -1555,82 +1562,91 @@ function printNewOverlayIframe() {
 	};
 }
 
+/**
+ * Sort the table by clicking a column header.
+ * Sorts the underlying data array and re-renders.
+ */
 function sortTableByColumn(header) {
-	const table = document.getElementById("vehiclesTable");
-	const tbody = table.querySelector("tbody");
-	const rows = Array.from(tbody.querySelectorAll("tr"));
 	const columnIndex = Array.from(header.parentElement.children).indexOf(header);
-	const isAscending = header.classList.toggle("sort-asc");
-
-	// Remove sort classes from other headers
-	header.parentElement.querySelectorAll("th").forEach((th) => {
-		if (th !== header) {
-			th.classList.remove("sort-asc", "sort-desc");
-		}
-	});
-
+	
+	// Map column index to data property
+	const columnMap = {
+		0: "imageUrl",     // Image (not sortable, but included)
+		1: "title",        // Title
+		2: "stockNumber",  // Stock
+		3: "usage",        // Usage
+		4: "year",         // Year
+		5: "manufacturer", // Make
+		6: "modelName",    // Model
+		7: "modelType",    // Type
+		8: "webPrice",     // Price
+		9: "updated",      // Updated
+	};
+	
+	const sortKey = columnMap[columnIndex];
+	if (!sortKey || sortKey === "imageUrl") return; // Don't sort by image column
+	
 	// Toggle sort direction
-	if (isAscending) {
-		header.classList.remove("sort-desc");
-	} else {
-		header.classList.add("sort-desc");
-	}
-
-	// Sort the rows
-	const sortedRows = rows.sort((a, b) => {
-		const aValue = a.children[columnIndex]?.textContent.trim() || "";
-		const bValue = b.children[columnIndex]?.textContent.trim() || "";
-
-		// Check if values are numbers
-		const aNum = parseFloat(aValue.replace(/[^0-9.-]+/g, ""));
-		const bNum = parseFloat(bValue.replace(/[^0-9.-]+/g, ""));
-
-		if (!isNaN(aNum) && !isNaN(bNum)) {
-			return isAscending ? aNum - bNum : bNum - aNum;
-		}
-
-		// Handle date sorting - specifically for the updated column
-		// Check if the column contains dates in our expected format
-		if (aValue.includes("-") && bValue.includes("-")) {
-			// Try to find the hidden date field first (MM-DD-YYYY format)
-			const aHidden = a.children[columnIndex]
-				?.querySelector(".small.text-muted")
-				?.textContent.trim();
-			const bHidden = b.children[columnIndex]
-				?.querySelector(".small.text-muted")
-				?.textContent.trim();
-
-			// If hidden dates exist, use those for more accurate sorting
-			if (aHidden && bHidden) {
-				const aDate = normalizeDate(aHidden);
-				const bDate = normalizeDate(bHidden);
-				return isAscending ? aDate - bDate : bDate - aDate;
-			}
-
-			// Fallback to the visible date
-			const aVisibleDate = normalizeDate(aValue);
-			const bVisibleDate = normalizeDate(bValue);
-			if (aVisibleDate && bVisibleDate) {
-				return isAscending ?
-						aVisibleDate - bVisibleDate
-					:	bVisibleDate - aVisibleDate;
-			}
-		}
-
-		// Default to string comparison
-		return isAscending ?
-				aValue.localeCompare(bValue)
-			:	bValue.localeCompare(aValue);
+	const isSameColumn = State.sort.column === sortKey;
+	const newDirection = isSameColumn && State.sort.direction === "asc" ? "desc" : "asc";
+	
+	// Update state
+	State.sort.column = sortKey;
+	State.sort.direction = newDirection;
+	
+	// Update header classes
+	header.parentElement.querySelectorAll("th").forEach((th) => {
+		th.classList.remove("sort-asc", "sort-desc");
 	});
+	header.classList.add(newDirection === "asc" ? "sort-asc" : "sort-desc");
+	
+	// Sort the filtered items
+	sortFilteredItems();
+	
+	// Reset to first page and re-render
+	State.pagination.currentPage = 1;
+	applyPagination();
+}
 
-	// Clear and re-append sorted rows
-	while (tbody.firstChild) {
-		tbody.removeChild(tbody.firstChild);
-	}
-	tbody.append(...sortedRows);
-
-	// Update row count after sorting
-	updateRowCount();
+/**
+ * Sort State.filteredItems based on current sort state.
+ */
+function sortFilteredItems() {
+	const { column, direction } = State.sort;
+	if (!column) return;
+	
+	const isAsc = direction === "asc";
+	
+	State.filteredItems.sort((a, b) => {
+		let aVal = a[column] ?? "";
+		let bVal = b[column] ?? "";
+		
+		// Handle price sorting (remove currency symbols)
+		if (column === "webPrice") {
+			const aNum = parseFloat(String(aVal).replace(/[^0-9.-]+/g, "")) || 0;
+			const bNum = parseFloat(String(bVal).replace(/[^0-9.-]+/g, "")) || 0;
+			return isAsc ? aNum - bNum : bNum - aNum;
+		}
+		
+		// Handle year sorting (numeric)
+		if (column === "year") {
+			const aNum = parseInt(aVal) || 0;
+			const bNum = parseInt(bVal) || 0;
+			return isAsc ? aNum - bNum : bNum - aNum;
+		}
+		
+		// Handle date sorting (updated field)
+		if (column === "updated") {
+			const aDate = normalizeDate(aVal) || 0;
+			const bDate = normalizeDate(bVal) || 0;
+			return isAsc ? aDate - bDate : bDate - aDate;
+		}
+		
+		// Default string comparison
+		aVal = String(aVal).toLowerCase();
+		bVal = String(bVal).toLowerCase();
+		return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+	});
 }
 
 function createImageCell(imageUrl) {

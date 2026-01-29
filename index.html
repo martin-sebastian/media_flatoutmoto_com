@@ -187,6 +187,9 @@
                 <button type="button" id="forceRefreshBtn" class="btn btn-outline-secondary btn-sm rounded-3 my-2 px-3" title="Refresh inventory data">
                   <i class="bi bi-arrow-clockwise h6 my-1"></i> <span class="mx-1 pe-2 fw-normal">Refresh</span>
                 </button>
+                <button id="sendToTvGridBtn" class="btn btn-danger btn-sm rounded-3 my-2 px-3" disabled title="Send selected items to TV Grid">
+                  <i class="bi bi-tv me-1"></i>TV Grid (<span id="selectedCount">0</span>)
+                </button>
               </div>
             </div>
           </div>
@@ -339,9 +342,6 @@
                   <option value="all">All</option>
                 </select>
               </div>
-              <button id="sendToTvGridBtn" class="btn btn-danger btn-sm" disabled>
-                <i class="bi bi-tv me-1"></i>TV Grid (<span id="selectedCount">0</span>)
-              </button>
             </div>
             
             <nav aria-label="Table navigation">
