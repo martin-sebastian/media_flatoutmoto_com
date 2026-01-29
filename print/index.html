@@ -11,15 +11,12 @@
 	</head>
 	<body class="print-body">
 		<div class="print-toolbar screen-only">
-			<button class="btn btn-primary me-2" type="button" id="savePdfBtn">
-				<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF
+			<button class="btn btn-danger" type="button" onclick="window.print()">
+				<i class="bi bi-file-earmark-pdf me-2"></i>Print / Save PDF
 			</button>
-			<button
-				class="btn btn-outline-secondary"
-				type="button"
-				onclick="window.print()">
-				<i class="bi bi-printer me-2"></i>Print
-			</button>
+			<small class="text-muted ms-3"
+				>Select "Save as PDF" as destination to download</small
+			>
 		</div>
 
 		<main class="print-page" id="printRoot">

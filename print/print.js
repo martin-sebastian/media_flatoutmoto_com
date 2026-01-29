@@ -284,105 +284,6 @@ function renderPrint(data, apiData, overrideImage, xmlDescription = "") {
 }
 
 /**
- * Get all CSS rules as inline styles for PDF generation.
- * @returns {string} Combined CSS text.
- */
-function getAllStyles() {
-  let styles = "";
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules || []) {
-        styles += rule.cssText + "\n";
-      }
-    } catch (e) {
-      // Skip cross-origin stylesheets
-    }
-  }
-  return styles;
-}
-
-/**
- * Save the page as PDF using Adobe PDF Services API.
- * @param {string} filename Filename for the PDF.
- */
-async function savePdf(filename) {
-  const btn = document.getElementById("savePdfBtn");
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generating...';
-  }
-
-  try {
-    // Get the print area HTML
-    const printRoot = document.getElementById("printRoot");
-    const printContent = printRoot ? printRoot.innerHTML : "";
-    
-    // Build full HTML document with inlined styles
-    const styles = getAllStyles();
-    const html = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <style>${styles}</style>
-        <style>
-          @page { size: letter; margin: 0.5in; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        </style>
-      </head>
-      <body class="print-body">
-        <main class="print-page">${printContent}</main>
-      </body>
-      </html>
-    `;
-
-    // Add timeout for the API call (60 seconds)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-    
-    const response = await fetch("/api/generate-pdf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html, filename }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.details || error.error || "PDF generation failed");
-    }
-
-    // Get the PDF blob and trigger download
-    const blob = await response.blob();
-    const downloadUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
-
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
-    }
-  } catch (error) {
-    console.error("PDF save error:", error);
-    const msg = error.name === "AbortError" 
-      ? "Request timed out after 60 seconds" 
-      : error.message;
-    alert(`PDF generation failed: ${msg}\n\nTry using the Print button instead.`);
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
-    }
-  }
-}
-
-/**
  * Initialize the print page.
  */
 async function initPrint() {
@@ -393,11 +294,13 @@ async function initPrint() {
   }
 
   try {
-    // Fetch both API and XML data in parallel
-    const [apiData, xmlData] = await Promise.all([
-      fetchPortalData(stockNumber),
-      window.getCachedXmlVehicle ? window.getCachedXmlVehicle(stockNumber) : null
-    ]);
+    // Fetch API data (required) and XML data (optional) in parallel
+    const apiDataPromise = fetchPortalData(stockNumber);
+    const xmlDataPromise = window.getCachedXmlVehicle 
+      ? window.getCachedXmlVehicle(stockNumber).catch(() => null) 
+      : Promise.resolve(null);
+    
+    const [apiData, xmlData] = await Promise.all([apiDataPromise, xmlDataPromise]);
     
     if (!apiData) {
       ROOT.innerHTML = `<div class="text-center text-secondary py-5">Stock number "${stockNumber}" not found.</div>`;
@@ -408,17 +311,8 @@ async function initPrint() {
     
     // Use XML description for dealer notes if available
     const xmlDescription = xmlData?.Description || "";
-    console.log("XML Description:", xmlDescription);
     
     renderPrint(data, apiData, imageUrl, xmlDescription);
-
-    // Wire up save PDF button
-    const savePdfBtn = document.getElementById("savePdfBtn");
-    if (savePdfBtn) {
-      const nameParts = [data.stockNumber, data.year, data.manufacturer, data.modelName].filter(Boolean);
-      const filename = `${nameParts.join("-").replace(/\s+/g, "-")}.pdf`;
-      savePdfBtn.addEventListener("click", () => savePdf(filename));
-    }
   } catch (error) {
     console.error("Print error:", error);
     ROOT.innerHTML = `<div class="text-center text-secondary py-5">Failed to load print data.</div>`;
