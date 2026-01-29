@@ -22,29 +22,43 @@ body.print-body {
 }
 
 .print-page {
-  width: 8.5in;
+  width: 8in;
+  max-width: 100%;
   min-height: 11in;
   margin: 24px auto;
   background: #fff;
-  padding: 24px;
+  padding: 0.25in;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }
 
 .print-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
 .print-header img {
-  height: 28px;
+  height: 36px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
+.print-header-right {
+  text-align: right;
+  flex: 1;
 }
 
 .print-title {
   font-weight: 700;
   font-size: 18px;
-  text-align: right;
+}
+
+.print-header .print-meta-row {
+  border-top: none;
+  padding: 4px 0 0 0;
+  justify-content: flex-end;
 }
 
 .print-hero {
@@ -108,6 +122,16 @@ body.print-body {
   color: #333;
 }
 
+.print-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: #333;
+  padding: 8px 0;
+  border-top: 1px solid #e0e0e0;
+}
+
 .print-total {
   margin-top: 8px;
   font-weight: 700;
@@ -124,6 +148,29 @@ body.print-body {
   font-size: 11px;
   line-height: 1.4;
   color: #333;
+}
+
+.print-features {
+  font-size: 10px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.print-notes-textarea {
+  width: 100%;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.print-notes-textarea:focus {
+  outline: none;
+  border-color: #999;
 }
 
 .print-thumbs {
@@ -170,23 +217,34 @@ body.print-body {
 }
 
 @media print {
+  /* Hide everything first */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the print container */
+  #printRoot,
+  #printRoot * {
+    visibility: visible;
+  }
+
+  #printRoot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0.25in;
+    box-shadow: none;
+  }
+
   body.print-body {
     background: #fff;
   }
 
-  .print-toolbar {
-    display: none;
-  }
-
-  .print-page {
-    margin: 0;
-    box-shadow: none;
-    width: auto;
-    min-height: auto;
-    padding: 0;
-  }
-
-  .screen-only {
-    display: none;
+  .print-notes-textarea {
+    border: none;
+    resize: none;
+    background: transparent;
   }
 }

@@ -49,8 +49,31 @@ async function fetchPortalData(stockNumber) {
  * @returns {object} Normalized data object.
  */
 function buildDisplayData(apiData) {
-  const images = (apiData?.Images || []).map((img) => img.ImgURL).filter(Boolean);
+  // Debug: log first image object to see its structure
+  if (apiData?.Images && apiData.Images.length > 0) {
+    console.log("First image object structure:", apiData.Images[0]);
+    console.log("All image keys:", Object.keys(apiData.Images[0]));
+  }
+  
+  // Try multiple possible property names for image URL
+  const images = (apiData?.Images || []).map((img) => {
+    return img.ImgURL || img.ImageURL || img.Url || img.url || img.src || img.URL;
+  }).filter(Boolean);
   const uniqueImages = [...new Set(images)];
+  
+  // Debug logging
+  console.log("API Images array length:", apiData?.Images?.length);
+  console.log("API ImageUrl (single):", apiData?.ImageUrl);
+  console.log("Extracted image URLs:", uniqueImages);
+  
+  // Fallback to single ImageUrl if Images array is empty
+  if (uniqueImages.length === 0) {
+    const singleImage = apiData?.ImageUrl || apiData?.ImageURL || apiData?.imageUrl;
+    if (singleImage) {
+      uniqueImages.push(singleImage);
+      console.log("Using single image fallback:", singleImage);
+    }
+  }
 
   return {
     title: [apiData?.ModelYear, apiData?.Manufacturer, apiData?.ModelName].filter(Boolean).join(" "),
@@ -65,6 +88,7 @@ function buildDisplayData(apiData) {
     modelType: apiData?.ModelType || "",
     usage: apiData?.Usage || "",
     description: apiData?.B50Desc || "",
+    standardFeatures: apiData?.StandardFeatures || "",
     images: uniqueImages,
     phone: apiData?.Phone || "",
   };
@@ -156,15 +180,20 @@ function renderLineItems(items, isCredit = false) {
  * @param {object} data Normalized display data.
  * @param {object} apiData Raw API data.
  * @param {string} overrideImage Optional override image.
+ * @param {string} xmlDescription Optional XML description for dealer notes.
  */
-function renderPrint(data, apiData, overrideImage) {
+function renderPrint(data, apiData, overrideImage, xmlDescription = "") {
   const salePrice = apiData?.QuotePrice || apiData?.SalePrice || apiData?.Price || data.price;
   const msrpValue = apiData?.MSRPUnit || apiData?.MSRP || data.msrp;
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
   const totalValue = apiData?.OTDPrice;
-  const heroImage = overrideImage || data.images[0] || "../img/fallback.jpg";
+  const heroImage = overrideImage || data.images[0] || "../img/noimage.png";
+  console.log("Hero image URL:", heroImage);
+  console.log("All data.images:", data.images);
   const thumbnails = data.images.slice(0, 12);
-  const descriptionText = stripHtml(data.description);
+  // Use XML description if available, otherwise fall back to API description
+  const dealerNotesText = stripHtml(xmlDescription) || stripHtml(data.description);
+  const standardFeaturesText = stripHtml(data.standardFeatures);
   const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
   const rebatesMarkup = renderLineItems(apiData?.MfgRebatesFrontEnd || [], true);
@@ -177,15 +206,28 @@ function renderPrint(data, apiData, overrideImage) {
 
   ROOT.innerHTML = `
     <div class="print-header">
-      <img src="../img/fom-app-logo-01.svg" alt="Flatout Motorsports" />
-      <div class="print-title">${data.title || "Vehicle"}</div>
+      <img src="../img/fom-logo.png" alt="Flatout Motorsports" />
+      <div class="print-header-right">
+        <div class="print-title">${data.title || "Vehicle"}</div>
+        <div class="print-meta-row">
+          <span><strong>Stock:</strong> ${data.stockNumber || "N/A"}</span>
+          <span><strong>VIN:</strong> ${data.vin || "N/A"}</span>
+          <span><strong>Condition:</strong> ${data.usage || "N/A"}</span>
+        </div>
+      </div>
     </div>
 
     <div class="row g-3 mt-3">
-      <div class="col-7">
-        ${heroImage ? `<img class="print-hero" src="${heroImage}" alt="Vehicle image" />` : ""}
+      <div class="col-6">
+        ${heroImage ? `<img class="print-hero" src="${heroImage}" alt="Vehicle image" onerror="this.onerror=null;this.src='../img/noimage.png';" />` : ""}
+        ${standardFeaturesText ? `
+          <div class="print-panel mt-2">
+            <div class="print-panel-title">Standard Features</div>
+            <div class="print-features">${standardFeaturesText.replace(/\n/g, "<br />")}</div>
+          </div>
+        ` : ""}
       </div>
-      <div class="col-5">
+      <div class="col-6">
         <div class="print-panel">
           ${showBothPrices 
             ? `<div class="print-price-row">
@@ -201,9 +243,6 @@ function renderPrint(data, apiData, overrideImage) {
           ${rebatesMarkup ? `<div class="mt-2">${rebatesMarkup}</div>` : ""}
           ${discountsMarkup ? `<div class="mt-1">${discountsMarkup}</div>` : ""}
           ${paymentValue ? `<div class="print-sub mt-2">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
-          <div class="print-meta mt-3">Stock: ${data.stockNumber || "N/A"}</div>
-          <div class="print-meta">VIN: ${data.vin || "N/A"}</div>
-          <div class="print-meta">Condition: ${data.usage || "N/A"}</div>
         </div>
         <div class="print-panel mt-3">
           <div class="print-panel-title">Fees & Taxes</div>
@@ -218,8 +257,8 @@ function renderPrint(data, apiData, overrideImage) {
     <div class="row g-3 mt-3">
       <div class="col-9">
         <div class="print-panel">
-          <div class="print-panel-title">Description & Dealer Notes</div>
-          <div class="print-description">${descriptionText ? descriptionText.replace(/\n/g, "<br />") : "No description available."}</div>
+          <div class="print-panel-title">Dealer Notes</div>
+          <textarea class="print-notes-textarea" rows="4" placeholder="Add dealer notes here...">${dealerNotesText || ""}</textarea>
         </div>
       </div>
       <div class="col-3">
@@ -234,7 +273,7 @@ function renderPrint(data, apiData, overrideImage) {
       thumbnails.length
         ? `
           <div class="print-thumbs mt-3">
-            ${thumbnails.map((url) => `<img src="${url}" alt="Thumbnail" />`).join("")}
+            ${thumbnails.map((url) => `<img src="${url}" alt="Thumbnail" onerror="this.onerror=null;this.src='../img/noimage.png';" />`).join("")}
           </div>
         `
         : ""
@@ -245,47 +284,54 @@ function renderPrint(data, apiData, overrideImage) {
 }
 
 /**
- * Save the print page as a PDF file.
+ * Save the page as PDF using Adobe PDF Services API.
  * @param {string} filename Filename for the PDF.
  */
-function savePdf(filename) {
-  const element = document.getElementById("printRoot");
-  if (!element || !window.html2pdf) {
-    alert("PDF generation not available");
-    return;
-  }
-
+async function savePdf(filename) {
   const btn = document.getElementById("savePdfBtn");
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generating...';
   }
 
-  const opt = {
-    margin: 0.35,
-    filename: filename,
-    image: { type: "jpeg", quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-  };
+  try {
+    // Get the current page URL
+    const pageUrl = window.location.href;
 
-  html2pdf()
-    .set(opt)
-    .from(element)
-    .save()
-    .then(() => {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
-      }
-    })
-    .catch((err) => {
-      console.error("PDF save error:", err);
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
-      }
+    const response = await fetch("/api/generate-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: pageUrl, filename }),
     });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || error.error || "PDF generation failed");
+    }
+
+    // Get the PDF blob and trigger download
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
+    }
+  } catch (error) {
+    console.error("PDF save error:", error);
+    alert(`PDF generation failed: ${error.message}\n\nTry using the Print button instead.`);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
+    }
+  }
 }
 
 /**
@@ -299,14 +345,24 @@ async function initPrint() {
   }
 
   try {
-    const apiData = await fetchPortalData(stockNumber);
+    // Fetch both API and XML data in parallel
+    const [apiData, xmlData] = await Promise.all([
+      fetchPortalData(stockNumber),
+      window.getCachedXmlVehicle ? window.getCachedXmlVehicle(stockNumber) : null
+    ]);
+    
     if (!apiData) {
       ROOT.innerHTML = `<div class="text-center text-secondary py-5">Stock number "${stockNumber}" not found.</div>`;
       return;
     }
 
     const data = buildDisplayData(apiData);
-    renderPrint(data, apiData, imageUrl);
+    
+    // Use XML description for dealer notes if available
+    const xmlDescription = xmlData?.Description || "";
+    console.log("XML Description:", xmlDescription);
+    
+    renderPrint(data, apiData, imageUrl, xmlDescription);
 
     // Wire up save PDF button
     const savePdfBtn = document.getElementById("savePdfBtn");

@@ -11,14 +11,14 @@
 	</head>
 	<body class="print-body">
 		<div class="print-toolbar screen-only">
+			<button class="btn btn-primary me-2" type="button" id="savePdfBtn">
+				<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF
+			</button>
 			<button
-				class="btn btn-danger me-2"
+				class="btn btn-outline-secondary"
 				type="button"
 				onclick="window.print()">
 				<i class="bi bi-printer me-2"></i>Print
-			</button>
-			<button class="btn btn-primary" type="button" id="savePdfBtn">
-				<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF
 			</button>
 		</div>
 
@@ -26,8 +26,8 @@
 			<div class="text-center text-secondary py-5">Loading print layout…</div>
 		</main>
 
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 		<script src="../js/qrcode.min.js"></script>
+		<script src="../js/xml-cache.js"></script>
 		<script src="./print.js"></script>
 	</body>
 </html>

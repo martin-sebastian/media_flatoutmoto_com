@@ -82,6 +82,7 @@ function buildXmlVehicleData(xmlItem) {
     VIN: getXmlText(xmlItem, ["vin", "vin_number"]),
     Price: getXmlText(xmlItem, ["price", "msrp"]),
     ImageUrl: getXmlText(xmlItem, ["imageurl", "image_url"]),
+    Description: getXmlText(xmlItem, ["description", "dealernotes", "dealer_notes", "notes"]),
   };
 }
 

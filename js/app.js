@@ -747,23 +747,28 @@ function showPlaceholder(rowCount = 10) {
 
 		// Set innerHTML once per row
 		row1.innerHTML = `
+    <td class="placeholder-wave"><span class="placeholder col-6 ms-2"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-6"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-4"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
+    <td class="placeholder-wave">
+		<span class="placeholder col-1"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+	</td>
     `; // Your placeholder cells
 		row2.innerHTML = `
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8 ms-2"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
@@ -772,7 +777,16 @@ function showPlaceholder(rowCount = 10) {
     <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
     <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
-    <td class="placeholder-wave"><span class="placeholder col-10"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-8"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-7"></span></td>
+    <td class="placeholder-wave"><span class="placeholder col-9"></span></td>
+    <td class="placeholder-wave">
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+		<span class="placeholder col-2"></span>
+	</td>
     `; // Your placeholder cells
 
 		fragment.appendChild(row1);
@@ -1276,8 +1290,15 @@ function filterTable() {
 		return searchMatch && filterMatch;
 	});
 
-	// Re-apply sort if active
-	sortFilteredItems();
+	// Clear sort when filters change (user can re-sort if needed)
+	if (State.sort.column) {
+		State.sort.column = null;
+		State.sort.direction = "asc";
+		// Remove sort indicators from headers
+		document.querySelectorAll("#vehiclesTable th").forEach(th => {
+			th.classList.remove("sort-asc", "sort-desc");
+		});
+	}
 
 	// Reset to first page when filters change
 	State.pagination.currentPage = 1;
@@ -1567,24 +1588,27 @@ function printNewOverlayIframe() {
  * Sorts the underlying data array and re-renders.
  */
 function sortTableByColumn(header) {
+	// Check if column has data-no-sort attribute
+	if (header.hasAttribute("data-no-sort")) return;
+	
 	const columnIndex = Array.from(header.parentElement.children).indexOf(header);
 	
 	// Map column index to data property
 	const columnMap = {
-		0: "imageUrl",     // Image (not sortable, but included)
-		1: "title",        // Title
-		2: "stockNumber",  // Stock
-		3: "usage",        // Usage
-		4: "year",         // Year
-		5: "manufacturer", // Make
-		6: "modelName",    // Model
-		7: "modelType",    // Type
-		8: "webPrice",     // Price
-		9: "updated",      // Updated
+		2: "stockNumber",   // Stock #
+		3: "usage",         // Usage
+		4: "year",          // Year
+		5: "manufacturer",  // Make
+		6: "modelName",     // Model
+		7: "modelType",     // Type
+		8: "color",         // Color
+		9: "webPrice",      // Web Price
+		10: "imageElements", // Photos (numeric count)
+		11: "updated",      // Updated
 	};
 	
 	const sortKey = columnMap[columnIndex];
-	if (!sortKey || sortKey === "imageUrl") return; // Don't sort by image column
+	if (!sortKey) return; // Column not in map = not sortable
 	
 	// Toggle sort direction
 	const isSameColumn = State.sort.column === sortKey;
@@ -1610,69 +1634,61 @@ function sortTableByColumn(header) {
 
 /**
  * Sort State.filteredItems based on current sort state.
+ * Pre-computes sort keys for performance.
  */
 function sortFilteredItems() {
 	const { column, direction } = State.sort;
 	if (!column) return;
 	
 	const isAsc = direction === "asc";
+	const multiplier = isAsc ? 1 : -1;
 	
-	State.filteredItems.sort((a, b) => {
-		let aVal = a[column] ?? "";
-		let bVal = b[column] ?? "";
+	// Numeric columns
+	const numericColumns = ["year", "webPrice", "imageElements"];
+	const isNumeric = numericColumns.includes(column);
+	const isDate = column === "updated";
+	
+	// Pre-compute sort keys for performance
+	const items = State.filteredItems.map((item) => {
+		let sortKey;
+		const val = item[column] ?? "";
 		
-		// Handle price sorting (remove currency symbols)
-		if (column === "webPrice") {
-			const aNum = parseFloat(String(aVal).replace(/[^0-9.-]+/g, "")) || 0;
-			const bNum = parseFloat(String(bVal).replace(/[^0-9.-]+/g, "")) || 0;
-			return isAsc ? aNum - bNum : bNum - aNum;
+		if (isNumeric) {
+			sortKey = parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
+		} else if (isDate) {
+			// Convert moment to unix timestamp for numeric sorting
+			const momentDate = normalizeDate(val);
+			sortKey = momentDate ? momentDate.valueOf() : 0;
+		} else {
+			sortKey = String(val).toLowerCase();
 		}
 		
-		// Handle year sorting (numeric)
-		if (column === "year") {
-			const aNum = parseInt(aVal) || 0;
-			const bNum = parseInt(bVal) || 0;
-			return isAsc ? aNum - bNum : bNum - aNum;
-		}
-		
-		// Handle date sorting (updated field)
-		if (column === "updated") {
-			const aDate = normalizeDate(aVal) || 0;
-			const bDate = normalizeDate(bVal) || 0;
-			return isAsc ? aDate - bDate : bDate - aDate;
-		}
-		
-		// Default string comparison
-		aVal = String(aVal).toLowerCase();
-		bVal = String(bVal).toLowerCase();
-		return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+		return { sortKey, item };
 	});
+	
+	// Sort by pre-computed keys
+	items.sort((a, b) => {
+		if (typeof a.sortKey === "number" && typeof b.sortKey === "number") {
+			return (a.sortKey - b.sortKey) * multiplier;
+		}
+		return String(a.sortKey).localeCompare(String(b.sortKey)) * multiplier;
+	});
+	
+	// Update filtered items with sorted order
+	State.filteredItems = items.map(x => x.item);
 }
 
-function createImageCell(imageUrl) {
-	// Base thumbnail URL
-	const thumbBase =
-		"https://cdnmedia.endeavorsuite.com/images/ThumbGenerator/Thumb.aspx";
-
-	// Parameters for table thumbnails
-	const params = {
-		img: imageUrl,
-		mw: 100, // Max width of 100px for table
-		mh: 66, // Maintaining aspect ratio of ~1.5
-		f: 1, // Format parameter
-	};
-
-	// Create thumbnail URL
-	const thumbUrl = `${thumbBase}?img=${encodeURIComponent(params.img)}&mw=${params.mw}&mh=${params.mh}&f=${params.f}`;
-
-	return `
-    <td>
-      <img src="${thumbUrl}" 
-           alt="Vehicle Image" 
-           class="img-fluid"
-           loading="lazy">
-    </td>
-  `;
+/**
+ * Generate a thumbnail URL using the CDN thumb generator.
+ * @param {string} imageUrl - Original image URL
+ * @param {number} maxWidth - Max thumbnail width
+ * @param {number} maxHeight - Max thumbnail height
+ * @returns {string} Thumbnail URL
+ */
+function getThumbUrl(imageUrl, maxWidth = 100, maxHeight = 66) {
+	if (!imageUrl || imageUrl === "N/A") return imageUrl;
+	const thumbBase = "https://cdnmedia.endeavorsuite.com/images/ThumbGenerator/Thumb.aspx";
+	return `${thumbBase}?img=${encodeURIComponent(imageUrl)}&mw=${maxWidth}&mh=${maxHeight}&f=1`;
 }
 
 function initializeClipboardTooltips() {
@@ -1888,7 +1904,7 @@ function updateTable() {
       <td data-cell="image" data-column="image" class="text-center" nowrap>
         <a href="${webURL}" target="_blank">
           <div class="table-image-container">
-          ${imageUrl !== "N/A" ? `<img src="${imageUrl}" alt="${title}" width="100%" height="100%" loading="lazy" />` : `<i class="bi bi-card-image fs-1"></i>`}
+          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 100, 66)}" alt="${title}" width="100" height="66" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" width="100" height="66" />`}
           </div>
           </a>
       </td>
