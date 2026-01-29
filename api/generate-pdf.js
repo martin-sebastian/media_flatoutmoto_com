@@ -20,17 +20,28 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { html, filename = "document.pdf" } = req.body;
+  const { html, filename = "document.pdf" } = req.body || {};
+
+  console.log("PDF API called, html length:", html ? html.length : 0);
 
   if (!html) {
     return res.status(400).json({ error: "HTML content is required" });
   }
 
+  const clientId = process.env.PDF_SERVICES_CLIENT_ID || process.env.ADOBE_CLIENT_ID;
+  const clientSecret = process.env.PDF_SERVICES_CLIENT_SECRET || process.env.ADOBE_CLIENT_SECRET;
+  
+  console.log("Credentials present:", !!clientId, !!clientSecret);
+
+  if (!clientId || !clientSecret) {
+    return res.status(500).json({ error: "Adobe credentials not configured" });
+  }
+
   try {
     // Create credentials from environment variables
     const credentials = new ServicePrincipalCredentials({
-      clientId: process.env.PDF_SERVICES_CLIENT_ID || process.env.ADOBE_CLIENT_ID,
-      clientSecret: process.env.PDF_SERVICES_CLIENT_SECRET || process.env.ADOBE_CLIENT_SECRET
+      clientId,
+      clientSecret
     });
 
     // Create PDF Services instance

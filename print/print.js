@@ -336,11 +336,18 @@ async function savePdf(filename) {
       </html>
     `;
 
+    // Add timeout for the API call (60 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    
     const response = await fetch("/api/generate-pdf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ html, filename }),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
@@ -364,7 +371,10 @@ async function savePdf(filename) {
     }
   } catch (error) {
     console.error("PDF save error:", error);
-    alert(`PDF generation failed: ${error.message}\n\nTry using the Print button instead.`);
+    const msg = error.name === "AbortError" 
+      ? "Request timed out after 60 seconds" 
+      : error.message;
+    alert(`PDF generation failed: ${msg}\n\nTry using the Print button instead.`);
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-file-earmark-pdf me-2"></i>Save PDF';
