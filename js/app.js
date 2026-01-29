@@ -941,7 +941,7 @@ function showDataLoadError(message) {
 	// Create error message row
 	const row = document.createElement("tr");
 	row.innerHTML = `
-    <td colspan="12" class="text-center p-5">
+    <td colspan="13" class="text-center p-5">
       <div class="alert alert-danger" role="alert">
         <i class="bi bi-exclamation-triangle me-2"></i>
         ${message}
@@ -2234,6 +2234,9 @@ function updateTable() {
 
 		const row = document.createElement("tr");
 		row.innerHTML = `
+      <td data-column="select" class="text-center" nowrap>
+        <input type="checkbox" class="form-check-input tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
+      </td>
       <td data-cell="image" data-column="image" class="text-center" nowrap>
         <a href="${webURL}" target="_blank">
           <div class="table-image-container">
@@ -2531,4 +2534,87 @@ function setupNetworkMonitoring() {
 	}
 
 	return initialStatus;
+}
+
+// =============================================
+// TV Grid Selection Functions
+// =============================================
+
+/**
+ * Get all selected stock numbers for TV Grid.
+ * @returns {string[]} Array of selected stock numbers.
+ */
+function getSelectedTvGridItems() {
+	const checkboxes = document.querySelectorAll(".tv-grid-select:checked");
+	return Array.from(checkboxes).map(cb => cb.dataset.stock).filter(Boolean);
+}
+
+/**
+ * Update the TV Grid button state and count.
+ */
+function updateTvGridButton() {
+	const selected = getSelectedTvGridItems();
+	const btn = document.getElementById("sendToTvGridBtn");
+	const countSpan = document.getElementById("selectedCount");
+	
+	if (btn) {
+		btn.disabled = selected.length === 0;
+	}
+	if (countSpan) {
+		countSpan.textContent = selected.length;
+	}
+}
+
+/**
+ * Send selected items to TV Grid launcher.
+ */
+function sendToTvGrid() {
+	const selected = getSelectedTvGridItems();
+	if (selected.length === 0) return;
+	
+	// Limit to 10 items
+	const stocks = selected.slice(0, 10).join(",");
+	window.location.href = `tv/?s=${encodeURIComponent(stocks)}&layout=grid`;
+}
+
+/**
+ * Initialize TV Grid selection handlers.
+ */
+function initTvGridSelection() {
+	// Select all checkbox
+	const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+	if (selectAllCheckbox) {
+		selectAllCheckbox.addEventListener("change", (e) => {
+			const checkboxes = document.querySelectorAll(".tv-grid-select");
+			checkboxes.forEach(cb => cb.checked = e.target.checked);
+			updateTvGridButton();
+		});
+	}
+	
+	// Individual checkbox changes (delegated)
+	document.addEventListener("change", (e) => {
+		if (e.target.classList.contains("tv-grid-select")) {
+			updateTvGridButton();
+			// Update select all checkbox state
+			const allCheckboxes = document.querySelectorAll(".tv-grid-select");
+			const checkedCheckboxes = document.querySelectorAll(".tv-grid-select:checked");
+			if (selectAllCheckbox) {
+				selectAllCheckbox.checked = allCheckboxes.length === checkedCheckboxes.length;
+				selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
+			}
+		}
+	});
+	
+	// Send to TV Grid button
+	const sendBtn = document.getElementById("sendToTvGridBtn");
+	if (sendBtn) {
+		sendBtn.addEventListener("click", sendToTvGrid);
+	}
+}
+
+// Initialize TV Grid selection when DOM is ready
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", initTvGridSelection);
+} else {
+	initTvGridSelection();
 }

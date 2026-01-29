@@ -5,6 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>TV Display Launcher</title>
 		<link rel="stylesheet" href="../css/bootstrap.css" />
+		<link rel="stylesheet" href="../css/bootstrap-icons.css" />
 		<link rel="stylesheet" href="../css/style.css" />
 		<link rel="stylesheet" href="./tv.css" />
 	</head>
@@ -34,15 +35,40 @@
 
 						<div class="row g-3">
 							<div class="col-12">
-								<label for="stockInput" class="form-label">Stock Number</label>
+								<label for="stockInput" class="form-label"
+									>Stock Number(s)</label
+								>
 								<input
 									type="text"
 									class="form-control"
 									id="stockInput"
 									placeholder="SD21374" />
+								<div class="form-text" id="stockInputHelp">
+									Enter a single stock number for portrait/landscape, or
+									comma-separated for grid (up to 10).
+								</div>
 							</div>
-							<div class="col-12 col-md-6">
-								<label class="form-label d-block mt-4 text-muted">Layout</label>
+							<!-- Vehicle Preview -->
+							<div class="col-12 d-none" id="vehiclePreview">
+								<div
+									class="d-flex align-items-center gap-3 p-3 rounded"
+									style="background: rgba(255, 255, 255, 0.05)">
+									<img
+										id="vehiclePreviewImg"
+										src=""
+										alt="Vehicle"
+										class="rounded"
+										style="width: 80px; height: 60px; object-fit: cover" />
+									<div>
+										<div id="vehiclePreviewTitle" class="fw-semibold"></div>
+										<div
+											id="vehiclePreviewStock"
+											class="text-secondary small"></div>
+									</div>
+								</div>
+							</div>
+							<div class="col-12">
+								<label class="form-label d-block mt-3 text-muted">Layout</label>
 								<div
 									class="btn-group w-100"
 									role="group"
@@ -71,104 +97,106 @@
 										id="layoutLandscape"
 										value="landscape"
 										autocomplete="off" />
-									<label class="btn btn-outline-light" for="layoutLandscape"
-										><i class="bi bi-tv-fill me-2"></i> Horizontal
+									<label class="btn btn-outline-light" for="layoutLandscape">
+										<i class="bi bi-tv-fill me-2"></i> Horizontal
+									</label>
+									<input
+										type="radio"
+										class="btn-check"
+										name="layoutOption"
+										id="layoutGrid"
+										value="grid"
+										autocomplete="off" />
+									<label class="btn btn-outline-light" for="layoutGrid">
+										<i class="bi bi-grid-3x3-gap me-2"></i> Grid (10)
 									</label>
 								</div>
 							</div>
-							<div class="col-12 col-md-6">
-								<label for="templateSelect" class="form-label mt-4 text-muted"
-									>Template</label
-								>
-								<select id="templateSelect" class="form-select">
-									<option value="default">Default (4 boxes)</option>
-									<option value="minimal">Minimal (2 boxes)</option>
-									<option value="pricing">Pricing Focus</option>
-									<option value="features">Features Focus</option>
-								</select>
-							</div>
-							<div class="col-12">
-								<label for="imageUrlInput" class="form-label w-100 mt-3"
-									><h5 class="w-100 border-bottom mt-4 pb-2">
+							<div id="singleVehicleOptions">
+								<div class="col-12">
+									<h5 class="w-100 border-bottom mt-4 pb-2">
 										Select Slideshow Images
-									</h5></label
-								>
-								<div class="d-flex align-items-center gap-2">
-									<button
-										class="btn btn-outline-light"
-										type="button"
-										id="loadImagesBtn">
-										<i class="bi bi-images me-2"></i>Load Images
-									</button>
-									<span class="text-secondary small">Select slides below.</span>
+									</h5>
+									<div class="d-flex align-items-center gap-2">
+										<button
+											class="btn btn-outline-light"
+											type="button"
+											id="loadImagesBtn">
+											<i class="bi bi-images me-2"></i>Load Images
+										</button>
+										<button
+											class="btn btn-outline-secondary d-none"
+											type="button"
+											id="clearImagesBtn">
+											<i class="bi bi-x-lg me-1"></i>Clear
+										</button>
+										<span class="text-secondary small"
+											>Select slides below.</span
+										>
+									</div>
+									<input
+										type="url"
+										class="form-control visually-hidden"
+										id="imageUrlInput"
+										placeholder="https://..." />
 								</div>
-								<input
-									type="url"
-									class="form-control visually-hidden"
-									id="imageUrlInput"
-									placeholder="https://..." />
-							</div>
-							<div class="col-12">
-								<h5 class="text-white d-none">Image Choices</h5>
-								<div id="imageResults" class="row g-3"></div>
-							</div>
-							<div class="col-12">
-								<label for="customTextInput" class="form-label w-100"
-									><h5 class="mt-4 mb-0">
-										Custom Message
-										<span class="small text-secondary">(optional)</span>
-									</h5></label
-								>
-								<textarea
-									class="form-control"
-									id="customTextInput"
-									rows="3"
-									placeholder="Boat show special, etc."></textarea>
-							</div>
-							<div class="col-12">
-								<label for="colorPickerInput" class="form-label w-100"
-									><h5 class="mt-4 border-bottom pb-2">
+								<div class="col-12">
+									<h5 class="text-white d-none">Image Choices</h5>
+									<div id="imageResults" class="row g-3"></div>
+								</div>
+								<div class="col-12">
+									<h5 class="mt-4 border-bottom pb-2">
 										Select Vehicle Colors
 										<span class="small text-secondary">(optional)</span>
-									</h5></label
-								>
-								<div class="row g-2">
-									<div class="col-12 col-md-4">
-										<label for="colorPickerInput" class="form-label"
-											>Main color</label
-										>
-										<input
-											type="color"
-											class="form-control form-control-color"
-											id="colorPickerInput"
-											value="#4bd2b1"
-											title="Choose a main color" />
-									</div>
-									<div class="col-12 col-md-4">
-										<label for="accentColorOneInput" class="form-label"
-											>Accent 1</label
-										>
-										<input
-											type="color"
-											class="form-control form-control-color"
-											id="accentColorOneInput"
-											value="#1f6feb"
-											title="Choose an accent color" />
-									</div>
-									<div class="col-12 col-md-4">
-										<label for="accentColorTwoInput" class="form-label"
-											>Accent 2</label
-										>
-										<input
-											type="color"
-											class="form-control form-control-color"
-											id="accentColorTwoInput"
-											value="#f97316"
-											title="Choose an accent color" />
+									</h5>
+									<div class="row g-2">
+										<div class="col-12 col-md-4">
+											<label for="colorPickerInput" class="form-label"
+												>Main color</label
+											>
+											<input
+												type="color"
+												class="form-control form-control-color"
+												id="colorPickerInput"
+												value="#4bd2b1"
+												title="Choose a main color" />
+										</div>
+										<div class="col-12 col-md-4">
+											<label for="accentColorOneInput" class="form-label"
+												>Accent 1</label
+											>
+											<input
+												type="color"
+												class="form-control form-control-color"
+												id="accentColorOneInput"
+												value="#1f6feb"
+												title="Choose an accent color" />
+										</div>
+										<div class="col-12 col-md-4">
+											<label for="accentColorTwoInput" class="form-label"
+												>Accent 2</label
+											>
+											<input
+												type="color"
+												class="form-control form-control-color"
+												id="accentColorTwoInput"
+												value="#f97316"
+												title="Choose an accent color" />
+										</div>
 									</div>
 								</div>
-								<div class="form-text d-none">
-									Used for the color feature swatches.
+								<div class="col-12">
+									<label for="customTextInput" class="form-label w-100"
+										><h5 class="mt-4 mb-0">
+											Custom Message
+											<span class="small text-secondary">(optional)</span>
+										</h5></label
+									>
+									<textarea
+										class="form-control"
+										id="customTextInput"
+										rows="3"
+										placeholder="Boat show special, etc."></textarea>
 								</div>
 							</div>
 							<div class="col-12 d-none">
@@ -207,39 +235,11 @@
 
 						<div class="d-flex flex-wrap gap-2 mt-4">
 							<button
-								class="btn btn-danger btn-lg w-50"
+								class="btn btn-danger btn-lg flex-grow-1"
 								type="button"
 								id="buildUrlBtn">
-								<i class="bi bi-link-45deg me-2"></i>Build TV Display URL
+								<i class="bi bi-tv me-2"></i>Build & Preview Display
 							</button>
-							<button
-								class="btn btn-outline-light"
-								type="button"
-								id="previewDisplayBtn">
-								<i class="bi bi-eye me-2"></i>Preview Display
-							</button>
-							<button
-								class="btn btn-outline-secondary"
-								type="button"
-								id="copyUrlBtn">
-								<i class="bi bi-clipboard-check me-2"></i>Copy
-							</button>
-						</div>
-
-						<div class="mt-4">
-							<h5 class="mb-2">Preview</h5>
-							<div class="tv-preview-box tv-preview-portrait" id="previewBox">
-								<iframe
-									id="previewInlineFrame"
-									title="TV Display Inline Preview"
-									loading="lazy"></iframe>
-							</div>
-						</div>
-
-						<div class="mt-3">
-							<label for="urlOutput" class="form-label">Your Display URL</label>
-							<input type="text" class="form-control" id="urlOutput" readonly />
-							<div class="form-text">Paste this into AbleSign/OptiSigns.</div>
 						</div>
 					</div>
 				</div>
@@ -264,7 +264,7 @@
 							data-bs-dismiss="modal"
 							aria-label="Close"></button>
 					</div>
-					<div class="modal-body">
+					<div class="modal-body overflow-hidden">
 						<div class="tv-preview-stage">
 							<div class="tv-preview-grid">
 								<div class="tv-preview-card" id="previewLandscapeCard">
@@ -279,31 +279,43 @@
 						</div>
 					</div>
 					<div class="modal-footer border-0">
-						<div class="btn-group me-auto" role="group">
+						<div class="btn-group me-3" role="group">
 							<button
 								type="button"
-								class="btn btn-outline-light"
+								class="btn btn-outline-light btn-sm"
 								id="previewZoomOutBtn">
-								<i class="bi bi-dash-square"></i>
+								<i class="bi bi-dash"></i>
 							</button>
 							<button
 								type="button"
-								class="btn btn-outline-light"
+								class="btn btn-outline-light btn-sm"
 								id="previewZoomResetBtn">
 								Reset
 							</button>
 							<button
 								type="button"
-								class="btn btn-outline-light"
+								class="btn btn-outline-light btn-sm"
 								id="previewZoomInBtn">
-								<i class="bi bi-plus-square"></i>
+								<i class="bi bi-plus"></i>
 							</button>
 						</div>
+						<input
+							type="text"
+							class="form-control form-control-sm bg-dark text-light border-secondary me-2"
+							id="urlOutput"
+							readonly
+							style="max-width: 350px" />
 						<button
 							type="button"
-							class="btn btn-outline-secondary"
+							class="btn btn-outline-light btn-sm me-1"
+							id="copyUrlBtn">
+							<i class="bi bi-clipboard"></i>
+						</button>
+						<button
+							type="button"
+							class="btn btn-outline-secondary btn-sm"
 							id="previewOpenBtn">
-							<i class="bi bi-box-arrow-up-right me-2"></i>Open in new tab
+							<i class="bi bi-box-arrow-up-right"></i>
 						</button>
 					</div>
 				</div>

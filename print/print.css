@@ -63,10 +63,21 @@ body.print-body {
   margin-bottom: 8px;
 }
 
+.print-msrp {
+  font-size: 14px;
+  color: #888;
+  text-decoration: line-through;
+}
+
 .print-price {
   font-size: 28px;
   font-weight: 700;
   color: #c61f2b;
+}
+
+.print-phone {
+  font-size: 12px;
+  color: #555;
 }
 
 .print-sub {

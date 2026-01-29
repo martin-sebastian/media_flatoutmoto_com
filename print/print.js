@@ -1,4 +1,3 @@
-const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml";
 const PORTAL_API_BASE = "https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/";
 
 const ROOT = document.getElementById("printRoot");
@@ -16,15 +15,6 @@ function getQueryParams() {
 }
 
 /**
- * Normalize stock numbers for consistent comparisons.
- * @param {string} value Raw stock number.
- * @returns {string} Normalized string.
- */
-function normalizeStockNumber(value) {
-  return (value || "").trim().toUpperCase();
-}
-
-/**
  * Format a number into US currency.
  * @param {number|string} value Price value.
  * @returns {string} Formatted price string.
@@ -36,73 +26,6 @@ function formatPrice(value) {
 }
 
 /**
- * Fetch XML feed text.
- * @returns {Promise<string>} XML text.
- */
-async function fetchXmlText() {
-  const response = await fetch(XML_FEED_URL, { cache: "no-cache" });
-  if (!response.ok) {
-    throw new Error(`XML fetch failed: ${response.status}`);
-  }
-  return response.text();
-}
-
-/**
- * Parse XML text into item elements.
- * @param {string} xmlText XML feed text.
- * @returns {Element[]} Parsed item nodes.
- */
-function parseItems(xmlText) {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-  return Array.from(xmlDoc.getElementsByTagName("item"));
-}
-
-/**
- * Read text content for a tag name on an XML item.
- * @param {Element} item XML item element.
- * @param {string} tagName Tag name.
- * @returns {string} Text content.
- */
-function getItemText(item, tagName) {
-  return item.getElementsByTagName(tagName)[0]?.textContent?.trim() || "";
-}
-
-/**
- * Extract image URLs from an XML item.
- * @param {Element} item XML item element.
- * @returns {string[]} Image URLs.
- */
-function getItemImages(item) {
-  return Array.from(item.getElementsByTagName("imageurl"))
-    .map((node) => node.textContent?.trim() || "")
-    .filter(Boolean);
-}
-
-/**
- * Build a normalized data object from XML item fields.
- * @param {Element} item XML item element.
- * @returns {object} Data object.
- */
-function buildXmlData(item) {
-  return {
-    title: getItemText(item, "title"),
-    webURL: getItemText(item, "link"),
-    stockNumber: getItemText(item, "stocknumber"),
-    vin: getItemText(item, "vin"),
-    price: getItemText(item, "price"),
-    manufacturer: getItemText(item, "manufacturer"),
-    year: getItemText(item, "year"),
-    modelName: getItemText(item, "model_name"),
-    modelType: getItemText(item, "model_type"),
-    usage: getItemText(item, "usage"),
-    updated: getItemText(item, "updated"),
-    description: getItemText(item, "description"),
-    images: getItemImages(item),
-  };
-}
-
-/**
  * Fetch portal API data for a stock number.
  * @param {string} stockNumber Stock number to query.
  * @returns {Promise<object|null>} API response or null on failure.
@@ -110,7 +33,8 @@ function buildXmlData(item) {
 async function fetchPortalData(stockNumber) {
   if (!stockNumber) return null;
   try {
-    const response = await fetch(`${PORTAL_API_BASE}${encodeURIComponent(stockNumber)}`);
+    const timestamp = Date.now();
+    const response = await fetch(`${PORTAL_API_BASE}${encodeURIComponent(stockNumber)}?_t=${timestamp}`);
     if (!response.ok) return null;
     return response.json();
   } catch (error) {
@@ -120,35 +44,33 @@ async function fetchPortalData(stockNumber) {
 }
 
 /**
- * Fetch selected image overrides from JSON.
- * @returns {Promise<object>} Selected images map.
+ * Build display data from API response.
+ * @param {object} apiData Portal API response.
+ * @returns {object} Normalized data object.
  */
-async function fetchSelectedImages() {
-  try {
-    const response = await fetch("../tv/selected-images.json", { cache: "no-cache" });
-    if (!response.ok) return {};
-    return response.json();
-  } catch (error) {
-    console.error("Selected images load failed:", error);
-    return {};
-  }
-}
+function buildDisplayData(apiData) {
+  // Keep full image URLs exactly as returned from API
+  const images = (apiData?.Images || []).map((img) => img.ImgURL).filter(Boolean);
+  const uniqueImages = [...new Set(images)];
+  
+  console.log("API Images:", apiData?.Images);
+  console.log("Processed images:", uniqueImages);
 
-/**
- * Get saved picks for a stock number.
- * @param {object} map Selected images map.
- * @param {string} stockNumber Stock number key.
- * @returns {{images: string[], text: string}} Saved picks.
- */
-function getSavedPicks(map, stockNumber) {
-  if (!map || !stockNumber) return { images: [], text: "" };
-  const direct = map[stockNumber];
-  const upper = map[stockNumber.toUpperCase()];
-  const lower = map[stockNumber.toLowerCase()];
-  const entry = direct || upper || lower || {};
   return {
-    images: Array.isArray(entry.images) ? entry.images.filter(Boolean) : [],
-    text: typeof entry.text === "string" ? entry.text : "",
+    title: [apiData?.ModelYear, apiData?.Manufacturer, apiData?.ModelName].filter(Boolean).join(" "),
+    webURL: apiData?.DetailUrl || "",
+    stockNumber: apiData?.StockNumber || "",
+    vin: apiData?.VIN || "",
+    price: apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || "",
+    msrp: apiData?.MSRPUnit || apiData?.MSRP || "",
+    manufacturer: apiData?.Manufacturer || "",
+    year: apiData?.ModelYear || "",
+    modelName: apiData?.ModelName || "",
+    modelType: apiData?.ModelType || "",
+    usage: apiData?.Usage || "",
+    description: apiData?.B50Desc || "",
+    images: uniqueImages,
+    phone: apiData?.Phone || "",
   };
 }
 
@@ -232,34 +154,30 @@ function renderLineItems(items) {
 
 /**
  * Render the print layout.
- * @param {object} xmlData XML data.
- * @param {object} apiData API data.
- * @param {string[]} preferredImages Preferred image URLs.
+ * @param {object} data Normalized display data.
+ * @param {object} apiData Raw API data.
  * @param {string} overrideImage Optional override image.
  */
-function renderPrint(xmlData, apiData, preferredImages, overrideImage) {
-  const priceValue = apiData?.Price || apiData?.SalePrice || apiData?.QuotePrice || xmlData.price;
-  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP;
+function renderPrint(data, apiData, overrideImage) {
+  const priceValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.Price || data.price;
+  const msrpValue = apiData?.MSRPUnit || apiData?.MSRP || data.msrp;
   const paymentValue = apiData?.Payment || apiData?.PaymentAmount;
   const totalValue = apiData?.OTDPrice;
-  const heroImage =
-    overrideImage ||
-    preferredImages[0] ||
-    apiData?.Images?.[0]?.ImgURL ||
-    xmlData.images[0] ||
-    "";
-  const thumbnails = (apiData?.Images || [])
-    .map((img) => img.ImgURL)
-    .filter(Boolean)
-    .slice(0, 12);
-  const descriptionText = stripHtml(apiData?.B50Desc || xmlData.description || "");
+  const heroImage = overrideImage || data.images[0] || "../img/fallback.jpg";
+  const thumbnails = data.images.slice(0, 12);
+  const descriptionText = stripHtml(data.description);
   const featureMarkup = renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems);
   const feesMarkup = renderLineItems(apiData?.OTDItems || []);
+
+  // Pricing logic: if new and MSRP > price, show both
+  const isNew = (data.usage || "").toLowerCase() === "new";
+  const hasDiscount = msrpValue && priceValue && Number(msrpValue) > Number(priceValue);
+  const showBothPrices = isNew && hasDiscount;
 
   ROOT.innerHTML = `
     <div class="print-header">
       <img src="../img/fom-app-logo-01.svg" alt="Flatout Motorsports" />
-      <div class="print-title">${xmlData.year || ""} ${xmlData.title || ""}</div>
+      <div class="print-title">${data.title || "Vehicle"}</div>
     </div>
 
     <div class="row g-3 mt-3">
@@ -268,16 +186,16 @@ function renderPrint(xmlData, apiData, preferredImages, overrideImage) {
       </div>
       <div class="col-4">
         <div class="print-panel">
-          <div class="print-price">${formatPrice(priceValue)}</div>
-          ${msrpValue ? `<div class="print-sub">MSRP ${formatPrice(msrpValue)}</div>` : ""}
+          ${showBothPrices ? `<div class="print-msrp">${formatPrice(msrpValue)}</div>` : ""}
+          <div class="print-price">${formatPrice(showBothPrices ? priceValue : (priceValue || msrpValue))}</div>
           ${paymentValue ? `<div class="print-sub mt-2">Payment ${formatPrice(paymentValue)}/mo</div>` : ""}
-          <div class="print-meta mt-3">Stock: ${xmlData.stockNumber || "N/A"}</div>
-          <div class="print-meta">VIN: ${xmlData.vin || apiData?.VIN || "N/A"}</div>
-          <div class="print-meta">Usage: ${xmlData.usage || apiData?.Usage || "N/A"}</div>
+          <div class="print-meta mt-3">Stock: ${data.stockNumber || "N/A"}</div>
+          <div class="print-meta">VIN: ${data.vin || "N/A"}</div>
+          <div class="print-meta">Condition: ${data.usage || "N/A"}</div>
         </div>
         <div class="print-panel mt-3">
           <div class="print-panel-title">Fees & Taxes</div>
-          ${feesMarkup}
+          ${feesMarkup || '<div class="print-list"><span class="text-secondary">No fees data available</span></div>'}
           ${totalValue ? `<div class="print-total">Total ${formatPrice(totalValue)}</div>` : ""}
         </div>
       </div>
@@ -289,12 +207,13 @@ function renderPrint(xmlData, apiData, preferredImages, overrideImage) {
       <div class="col-9">
         <div class="print-panel">
           <div class="print-panel-title">Description & Dealer Notes</div>
-          <div class="print-description">${descriptionText.replace(/\n/g, "<br />")}</div>
+          <div class="print-description">${descriptionText ? descriptionText.replace(/\n/g, "<br />") : "No description available."}</div>
         </div>
       </div>
       <div class="col-3">
-        <div class="print-panel h-100 d-flex align-items-center justify-content-center">
+        <div class="print-panel h-100 d-flex flex-column align-items-center justify-content-center">
           <div id="printQrCode"></div>
+          ${data.phone ? `<div class="print-phone mt-2">${data.phone}</div>` : ""}
         </div>
       </div>
     </div>
@@ -310,7 +229,7 @@ function renderPrint(xmlData, apiData, preferredImages, overrideImage) {
     }
   `;
 
-  renderQrCode(xmlData.webURL || apiData?.DetailUrl || "");
+  renderQrCode(data.webURL);
 }
 
 /**
@@ -319,23 +238,19 @@ function renderPrint(xmlData, apiData, preferredImages, overrideImage) {
 async function initPrint() {
   const { stockNumber, imageUrl } = getQueryParams();
   if (!stockNumber) {
-    ROOT.innerHTML = `<div class="text-center text-secondary py-5">Provide a stock number.</div>`;
+    ROOT.innerHTML = `<div class="text-center text-secondary py-5">Provide a stock number via <code>?s=STOCKNUMBER</code></div>`;
     return;
   }
 
   try {
-    const [xmlText, selectedMap] = await Promise.all([fetchXmlText(), fetchSelectedImages()]);
-    const items = parseItems(xmlText).map(buildXmlData);
-    const normalized = normalizeStockNumber(stockNumber);
-    const match = items.find((item) => normalizeStockNumber(item.stockNumber) === normalized);
-    if (!match) {
-      ROOT.innerHTML = `<div class="text-center text-secondary py-5">Stock number not found.</div>`;
+    const apiData = await fetchPortalData(stockNumber);
+    if (!apiData) {
+      ROOT.innerHTML = `<div class="text-center text-secondary py-5">Stock number "${stockNumber}" not found.</div>`;
       return;
     }
 
-    const apiData = await fetchPortalData(normalized);
-    const saved = getSavedPicks(selectedMap, normalized);
-    renderPrint(match, apiData, saved.images, imageUrl);
+    const data = buildDisplayData(apiData);
+    renderPrint(data, apiData, imageUrl);
   } catch (error) {
     console.error("Print error:", error);
     ROOT.innerHTML = `<div class="text-center text-secondary py-5">Failed to load print data.</div>`;

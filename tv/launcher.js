@@ -1,4 +1,7 @@
 const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml";
+const PORTAL_API_BASE = "https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/";
+
+let vehiclePreviewTimeout = null;
 
 /**
  * Collect DOM references for the launcher UI.
@@ -7,8 +10,8 @@ const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml"
 function getLauncherDom() {
   return {
     stockInput: document.getElementById("stockInput"),
+    stockInputHelp: document.getElementById("stockInputHelp"),
     layoutOptions: Array.from(document.querySelectorAll("input[name='layoutOption']")),
-    templateSelect: document.getElementById("templateSelect"),
     imageUrlInput: document.getElementById("imageUrlInput"),
     customTextInput: document.getElementById("customTextInput"),
     colorPickerInput: document.getElementById("colorPickerInput"),
@@ -19,8 +22,8 @@ function getLauncherDom() {
     urlOutput: document.getElementById("urlOutput"),
     imageResults: document.getElementById("imageResults"),
     loadImagesBtn: document.getElementById("loadImagesBtn"),
+    clearImagesBtn: document.getElementById("clearImagesBtn"),
     buildUrlBtn: document.getElementById("buildUrlBtn"),
-    previewDisplayBtn: document.getElementById("previewDisplayBtn"),
     copyUrlBtn: document.getElementById("copyUrlBtn"),
     toggleThemeButton: document.getElementById("toggleThemeButton"),
     themeIcon: document.getElementById("theme-icon"),
@@ -31,8 +34,10 @@ function getLauncherDom() {
     previewZoomResetBtn: document.getElementById("previewZoomResetBtn"),
     previewZoomInBtn: document.getElementById("previewZoomInBtn"),
     previewOpenBtn: document.getElementById("previewOpenBtn"),
-    previewInlineFrame: document.getElementById("previewInlineFrame"),
-    previewBox: document.getElementById("previewBox"),
+    vehiclePreview: document.getElementById("vehiclePreview"),
+    vehiclePreviewImg: document.getElementById("vehiclePreviewImg"),
+    vehiclePreviewTitle: document.getElementById("vehiclePreviewTitle"),
+    vehiclePreviewStock: document.getElementById("vehiclePreviewStock"),
   };
 }
 
@@ -264,8 +269,7 @@ function renderImageChoices(urls) {
  */
 function buildDisplayUrl() {
   const layout = getSelectedLayout();
-  const template = DOM.templateSelect?.value || "default";
-  const stockNumber = normalizeStockNumber(DOM.stockInput.value);
+  const stockInput = DOM.stockInput.value.trim();
   const imageUrl = selectedHeroUrl || DOM.imageUrlInput.value.trim();
   const customText = DOM.customTextInput.value.trim();
   const swatchColor = DOM.colorPickerInput?.value?.trim();
@@ -278,23 +282,30 @@ function buildDisplayUrl() {
 
   const url = new URL(getDisplayBaseUrl());
   url.searchParams.set("layout", layout);
-  url.searchParams.set("template", template);
 
-  if (stockNumber) url.searchParams.set("s", stockNumber);
-  if (imageUrl) url.searchParams.set("img", imageUrl);
-  if (customText) url.searchParams.set("note", customText);
-  if (swatchColor) url.searchParams.set("swatch", swatchColor);
-  if (accentOne) url.searchParams.set("accent1", accentOne);
-  if (accentTwo) url.searchParams.set("accent2", accentTwo);
-  if (Number.isFinite(slideStart)) url.searchParams.set("slideStart", slideStart);
-  if (Number.isFinite(slideEnd)) url.searchParams.set("slideEnd", slideEnd);
-  if (theme) url.searchParams.set("theme", theme);
-  if (slideList.length) {
-    url.searchParams.set(
-      "slides",
-      slideList.map((url) => encodeURIComponent(url)).join("|")
-    );
+  // For grid, pass comma-separated stock numbers; otherwise normalize single stock
+  if (layout === "grid") {
+    const stocks = stockInput.split(",").map(s => s.trim().toUpperCase()).filter(Boolean).join(",");
+    if (stocks) url.searchParams.set("s", stocks);
+  } else {
+    const stockNumber = normalizeStockNumber(stockInput);
+    if (stockNumber) url.searchParams.set("s", stockNumber);
+    if (imageUrl) url.searchParams.set("img", imageUrl);
+    if (customText) url.searchParams.set("note", customText);
+    if (swatchColor) url.searchParams.set("swatch", swatchColor);
+    if (accentOne) url.searchParams.set("accent1", accentOne);
+    if (accentTwo) url.searchParams.set("accent2", accentTwo);
+    if (Number.isFinite(slideStart)) url.searchParams.set("slideStart", slideStart);
+    if (Number.isFinite(slideEnd)) url.searchParams.set("slideEnd", slideEnd);
+    if (slideList.length) {
+      url.searchParams.set(
+        "slides",
+        slideList.map((u) => encodeURIComponent(u)).join("|")
+      );
+    }
   }
+  
+  if (theme) url.searchParams.set("theme", theme);
 
   return url.toString();
 }
@@ -362,9 +373,28 @@ async function handleLoadImages() {
     }
     const mergedImages = [...saved.images, ...getItemImages(match).filter((url) => !saved.images.includes(url))];
     renderImageChoices(mergedImages);
+    // Show clear button
+    if (DOM.clearImagesBtn) {
+      DOM.clearImagesBtn.classList.remove("d-none");
+    }
   } catch (error) {
     console.error("Image load error:", error);
     DOM.imageResults.innerHTML = `<div class="col-12"><div class="alert alert-danger">Failed to load images.</div></div>`;
+  }
+}
+
+/**
+ * Clear image selection and hide images.
+ */
+function clearImageSelection() {
+  DOM.imageResults.innerHTML = "";
+  selectedHeroUrl = "";
+  selectedSlideUrls.clear();
+  if (DOM.imageUrlInput) {
+    DOM.imageUrlInput.value = "";
+  }
+  if (DOM.clearImagesBtn) {
+    DOM.clearImagesBtn.classList.add("d-none");
   }
 }
 
@@ -461,7 +491,8 @@ function updatePreviewZoom(delta) {
  * Open the preview modal with the current display URL.
  */
 function openPreviewModal() {
-  const previewUrl = buildPreviewUrl("landscape");
+  const layout = getSelectedLayout();
+  const previewUrl = buildPreviewUrl(layout);
   if (!previewUrl) return;
   DOM.urlOutput.value = buildDisplayUrl();
   if (DOM.previewDisplayFrameLandscape) {
@@ -485,9 +516,6 @@ function openPreviewInNewTab() {
  * Initialize preview modal controls.
  */
 function initializePreviewControls() {
-  if (DOM.previewDisplayBtn) {
-    DOM.previewDisplayBtn.addEventListener("click", openPreviewModal);
-  }
   if (DOM.previewZoomInBtn) {
     DOM.previewZoomInBtn.addEventListener("click", () => updatePreviewZoom(0.1));
   }
@@ -510,23 +538,120 @@ function initializePreviewControls() {
 }
 
 /**
- * Update the inline preview frame source.
+ * Fetch and display vehicle preview from Portal API.
+ * @param {string} stockNumber Stock number to look up.
  */
-function updateInlinePreviewUrl() {
-  if (!DOM.previewInlineFrame) return;
-  const url = buildPreviewUrl("portrait");
-  if (url) {
-    DOM.previewInlineFrame.src = url;
+async function fetchVehiclePreview(stockNumber) {
+  if (!stockNumber || stockNumber.includes(",")) {
+    // Hide preview for empty or multiple stock numbers
+    if (DOM.vehiclePreview) {
+      DOM.vehiclePreview.classList.add("d-none");
+    }
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${PORTAL_API_BASE}${encodeURIComponent(stockNumber)}`);
+    if (!response.ok) {
+      DOM.vehiclePreview?.classList.add("d-none");
+      return;
+    }
+    
+    const data = await response.json();
+    if (!data) {
+      DOM.vehiclePreview?.classList.add("d-none");
+      return;
+    }
+    
+    // Build title from year, manufacturer, model
+    const title = [data.ModelYear, data.Manufacturer, data.ModelName].filter(Boolean).join(" ");
+    const firstImage = data.Images?.[0]?.ImgURL || "";
+    
+    if (DOM.vehiclePreviewTitle) {
+      DOM.vehiclePreviewTitle.textContent = title || "Unknown Vehicle";
+    }
+    if (DOM.vehiclePreviewStock) {
+      DOM.vehiclePreviewStock.textContent = `Stock: ${data.StockNumber || stockNumber}`;
+    }
+    if (DOM.vehiclePreviewImg) {
+      DOM.vehiclePreviewImg.src = firstImage || "../img/fallback.jpg";
+    }
+    if (DOM.vehiclePreview) {
+      DOM.vehiclePreview.classList.remove("d-none");
+    }
+  } catch (error) {
+    console.error("Vehicle preview error:", error);
+    DOM.vehiclePreview?.classList.add("d-none");
+  }
+}
+
+/**
+ * Handle stock input changes with debounce.
+ */
+function handleStockInputChange() {
+  clearTimeout(vehiclePreviewTimeout);
+  const stockNumber = normalizeStockNumber(DOM.stockInput?.value || "");
+  
+  // Debounce: wait 500ms after typing stops
+  vehiclePreviewTimeout = setTimeout(() => {
+    fetchVehiclePreview(stockNumber);
+  }, 500);
+}
+
+/**
+ * Update UI based on selected layout.
+ */
+function updateLayoutUI() {
+  const layout = getSelectedLayout();
+  const isGrid = layout === "grid";
+  
+  // Update stock input placeholder
+  if (DOM.stockInput) {
+    DOM.stockInput.placeholder = isGrid 
+      ? "STOCK1, STOCK2, STOCK3, ... (up to 10)" 
+      : "SD21374";
+  }
+  
+  // Update help text
+  if (DOM.stockInputHelp) {
+    DOM.stockInputHelp.textContent = isGrid
+      ? "Enter up to 10 stock numbers, separated by commas."
+      : "Enter a single stock number.";
+  }
+  
+  // Hide/show single vehicle options (images, colors, custom text)
+  const singleVehicleOptions = document.getElementById("singleVehicleOptions");
+  if (singleVehicleOptions) {
+    singleVehicleOptions.style.display = isGrid ? "none" : "block";
+  }
+  
+  // Hide vehicle preview for grid layout
+  if (DOM.vehiclePreview && isGrid) {
+    DOM.vehiclePreview.classList.add("d-none");
   }
 }
 
 function initLauncher() {
   refreshLauncherDom();
   if (!DOM.stockInput) return;
+  
+  // Check for layout parameter in URL
+  const urlLayout = getLauncherTextParam("layout");
+  if (urlLayout) {
+    const layoutRadio = document.querySelector(`input[name="layoutOption"][value="${urlLayout}"]`);
+    if (layoutRadio) {
+      layoutRadio.checked = true;
+    }
+  }
+  
+  // Listen for stock input changes to show vehicle preview
+  DOM.stockInput.addEventListener("input", handleStockInputChange);
+  
   const initialStock = getLauncherStockFromUrl();
   if (initialStock) {
     DOM.stockInput.value = initialStock;
-    DOM.stockInput.dispatchEvent(new Event("input", { bubbles: true }));
+    // Trigger preview fetch for initial stock
+    fetchVehiclePreview(normalizeStockNumber(initialStock));
   }
   const savedTheme = localStorage.getItem("theme") || "dark";
   document.body.setAttribute("data-bs-theme", savedTheme);
@@ -561,17 +686,20 @@ function initLauncher() {
     DOM.toggleThemeButton.addEventListener("click", toggleTheme);
   }
   DOM.loadImagesBtn.addEventListener("click", handleLoadImages);
+  if (DOM.clearImagesBtn) {
+    DOM.clearImagesBtn.addEventListener("click", clearImageSelection);
+  }
   DOM.buildUrlBtn.addEventListener("click", () => {
     DOM.urlOutput.value = buildDisplayUrl();
-    updateInlinePreviewUrl();
+    openPreviewModal();
   });
   DOM.copyUrlBtn.addEventListener("click", copyUrlToClipboard);
   DOM.imageResults.addEventListener("change", handleImageSelection);
   DOM.imageResults.addEventListener("change", handleSlideSelection);
   DOM.layoutOptions.forEach((option) => {
-    option.addEventListener("change", updateInlinePreviewUrl);
+    option.addEventListener("change", updateLayoutUI);
   });
-  updateInlinePreviewUrl();
+  updateLayoutUI();
   initializePreviewControls();
 }
 
