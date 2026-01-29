@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/generate-pdf.js": {
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": "node_modules/@sparticuz/chromium/**"
+    }
+  }
+}

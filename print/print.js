@@ -1,6 +1,7 @@
 const PORTAL_API_BASE = "https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/";
 
 const ROOT = document.getElementById("printRoot");
+let currentStockNumber = "";
 
 /**
  * Read query parameters for the print page.
@@ -284,6 +285,42 @@ function renderPrint(data, apiData, overrideImage, xmlDescription = "") {
 }
 
 /**
+ * Download the print layout as a PDF file via server-side Adobe API.
+ */
+async function downloadPdf() {
+  const btn = document.getElementById("downloadPdfBtn");
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Generating...';
+
+  try {
+    const response = await fetch(`/api/generate-pdf?s=${encodeURIComponent(currentStockNumber)}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.details || error.error || "PDF generation failed");
+    }
+
+    // Get PDF blob and trigger download
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentStockNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("PDF generation error:", err);
+    alert("PDF generation failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+/**
  * Initialize the print page.
  */
 async function initPrint() {
@@ -308,11 +345,19 @@ async function initPrint() {
     }
 
     const data = buildDisplayData(apiData);
+    currentStockNumber = data.stockNumber;
     
     // Use XML description for dealer notes if available
     const xmlDescription = xmlData?.Description || "";
     
     renderPrint(data, apiData, imageUrl, xmlDescription);
+
+    // Enable download button and wire up click handler
+    const downloadBtn = document.getElementById("downloadPdfBtn");
+    if (downloadBtn) {
+      downloadBtn.disabled = false;
+      downloadBtn.addEventListener("click", downloadPdf);
+    }
   } catch (error) {
     console.error("Print error:", error);
     ROOT.innerHTML = `<div class="text-center text-secondary py-5">Failed to load print data.</div>`;

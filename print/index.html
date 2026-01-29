@@ -11,12 +11,21 @@
 	</head>
 	<body class="print-body">
 		<div class="print-toolbar screen-only">
-			<button class="btn btn-danger" type="button" onclick="window.print()">
-				<i class="bi bi-file-earmark-pdf me-2"></i>Print / Save PDF
+			<button
+				class="btn btn-dark"
+				type="button"
+				onclick="window.history.back()">
+				<i class="bi bi-arrow-left me-2"></i>Back
 			</button>
-			<small class="text-muted ms-3"
-				>Select "Save as PDF" as destination to download</small
-			>
+			<button class="btn btn-danger" type="button" id="downloadPdfBtn" disabled>
+				<i class="bi bi-download me-2"></i>Download PDF
+			</button>
+			<button
+				class="btn btn-outline-secondary"
+				type="button"
+				onclick="window.print()">
+				<i class="bi bi-printer me-2"></i>Print
+			</button>
 		</div>
 
 		<main class="print-page" id="printRoot">

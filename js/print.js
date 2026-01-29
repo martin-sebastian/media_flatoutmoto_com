@@ -91,9 +91,11 @@ function loadIframeImages (images) {
 function loadIframeImage (image) {
   return new Promise(resolve => {
     const pollImage = () => {
-      !image || typeof image.naturalWidth === 'undefined' || image.naturalWidth === 0 || !image.complete
-        ? setTimeout(pollImage, 500)
-        : resolve()
+      if (!image || typeof image.naturalWidth === 'undefined' || image.naturalWidth === 0 || !image.complete) {
+        setTimeout(pollImage, 500)
+      } else {
+        resolve()
+      }
     }
     pollImage()
   })

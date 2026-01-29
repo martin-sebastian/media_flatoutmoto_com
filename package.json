@@ -1,11 +1,14 @@
 {
   "dependencies": {
+    "@adobe/pdfservices-node-sdk": "^4.1.0",
+    "@sparticuz/chromium": "^143.0.4",
     "axios": "^1.7.4",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "moment": "^2.30.1",
     "numeral": "^2.0.6",
-    "print-js": "^1.6.0"
+    "print-js": "^1.6.0",
+    "puppeteer-core": "^24.36.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
