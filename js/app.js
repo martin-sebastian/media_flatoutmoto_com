@@ -2023,7 +2023,7 @@ function updateTable() {
 
 				<li><hr class="dropdown-divider m-0"></li>
 
-				<li class="small">
+				<li class="small d-none">
 						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openOverlayModal('${stockNumber}')">
 							<i class="bi bi-card-image dropdown-icon small me-2"></i>
 							Build a Quote
