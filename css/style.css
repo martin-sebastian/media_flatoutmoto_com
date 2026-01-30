@@ -478,6 +478,9 @@ th {
 .updated-badge {
   font-size: 12px;
 }
+.action-button-group .btn .btn-danger {
+  border-right: 1px solid rgba(255, 255, 255, 0.9)!important;
+}
 .action-button-group i {
   display: block;
   color: #fff;
@@ -485,13 +488,13 @@ th {
   padding: 0;
   text-transform: uppercase;
 }
-.action-button-group small {
+.action-button-group .action-button-label {
   display: block;
   min-width: 50px;
   font-size: 10px;
   line-height: 10px;
   font-weight: 700;
-  padding: 0;
+  padding-left: 5px;
   text-transform: uppercase;
 }
 .action-button-group .dropdown-item .dropdown-icon {

@@ -470,6 +470,12 @@ function updateSearchSuggestions(query) {
 
 			// Add event to select the suggestion when clicked
 			item.addEventListener("click", () => {
+				// If it's a stock number, navigate to details page
+				if (window.searchSuggestions.stockNumbers.includes(suggestion)) {
+					window.location.href = `./details/?search=${encodeURIComponent(suggestion)}`;
+					return;
+				}
+				// Otherwise, filter the table
 				const searchInput = getActiveFilterElement("search");
 				if (searchInput) {
 					searchInput.value = suggestion;
@@ -586,11 +592,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 			handleSearchInputDebounced(e.target.value);
 		});
 
+		// Handle paste - close dropdown and filter immediately
+		searchInput.addEventListener("paste", () => {
+			setTimeout(() => {
+				clearSearchSuggestions();
+				filterTable();
+			}, 0);
+		});
+
 		// Handle keyboard navigation inside the dropdown
 		searchInput.addEventListener("keydown", (e) => {
 			const dropdown = document.getElementById("custom-suggestions");
-			if (!dropdown || dropdown.style.display === "none") return;
+			
+			// Handle Tab - close dropdown and let default behavior happen
+			if (e.key === "Tab") {
+				clearSearchSuggestions();
+				filterTable();
+				return;
+			}
 
+			// Handle Enter - close dropdown and filter (even without highlighted item)
+			if (e.key === "Enter") {
+				e.preventDefault();
+				const highlighted = dropdown?.querySelector(".suggestion-item.highlighted");
+				if (highlighted) {
+					searchInput.value = highlighted.textContent;
+				}
+				clearSearchSuggestions();
+				filterTable();
+				return;
+			}
+
+			// Handle Escape - just close dropdown
+			if (e.key === "Escape") {
+				clearSearchSuggestions();
+				return;
+			}
+
+			// Below only applies if dropdown is visible with items
+			if (!dropdown || dropdown.style.display === "none") return;
 			const items = dropdown.querySelectorAll(".suggestion-item");
 			if (items.length === 0) return;
 
@@ -619,15 +659,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 					items[index - 1].classList.add("highlighted");
 					items[index - 1].scrollIntoView({ block: "nearest" });
 				}
-			} else if (e.key === "Enter") {
-				e.preventDefault();
-				if (highlighted) {
-					searchInput.value = highlighted.textContent;
-					filterTable();
-					clearSearchSuggestions();
-				}
-			} else if (e.key === "Escape") {
-				clearSearchSuggestions();
 			}
 		});
 	});
@@ -1983,137 +2014,154 @@ function updateTable() {
       </td>
 
 
-      <td class="text-center nowrap action-cell">
-        <div class="action-button-group" role="group" aria-label="Vehicles">
+      <td class="text-center nowrap action-cell p-2">
+		<div class="action-button-group btn-group btn-group-sm" role="group" aria-label="Button group with nested dropdown">
+				<button type="button" id="keytagModalButton" class="btn btn-danger ps-2" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+					<i class="bi bi-tag"></i>
+					<span class="action-button-label">KEY TAG</span>
+				</button>
+				<button type="button" class="btn btn-danger px-0" onclick="openHangTagsModal('${stockNumber}')">
+					<i class="bi bi-tags"></i>
+					<span class="action-button-label">Hang TAG</span>
+				</button>
+				<button type="button" class="btn btn-danger" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+					<i class="bi bi-card-image"></i>
+					<span class="action-button-label">Quote</span>
+				</button>
 
-        <!-- Dropdown for creating keytags, hang tags, quotes, tv displays -->
-          <div class="dropdown d-inline-block">
-            <button class="btn btn-dark btn-sm rounded-pill px-3 d-flex align-items-center dropdown-toggle mx-1 no-caret" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
-				<div class="tag-key-group position-relative d-inline-block mx-1">
-					<i class="bi bi-tag" style="font-size: 1.35rem;"></i>
-					<i class="bi bi-key-fill position-absolute top-0" style="font-size: 0.8rem; color: white; transform: rotate(45deg); display: inline-block; margin-left: -8px; margin-top: 5px;"></i>
-				</div>
-               <i class="bi bi-tags mx-1"></i> <i class="bi bi-card-image ms-1 me-2"></i> <i class="bi bi-card-heading mx-1"></i> <i class="bi bi-tv mx-1"></i> 
-            </button>
+			<div class="btn-group" role="group">
+				<button type="button" class="btn btn-danger dropdown-toggle no-caret" data-bs-toggle="dropdown" aria-expanded="false">
+				</button>
+				<ul class="dropdown-menu small text-capitalize text-start overflow-hidden">
 
-            <ul class="dropdown-menu small text-capitalize text-start p-0 overflow-hidden">
+					<li class="small">
+						<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+							<i class="bi bi-tag dropdown-icon small me-2"></i>
+							Key Tags
+						</a>
+					</li>
 
-				<li class="small">
-					<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
-						<i class="bi bi-tag me-2"></i>
-						Key Tags
-					</a>
-				</li>
 
-				<li><hr class="dropdown-divider m-0"></li>
+					<li class="small">
+						<a href="javascript:void(0);" class="dropdown-item pe-5" onclick="openHangTagsModal('${stockNumber}')">
+							<i class="bi bi-tags dropdown-icon small me-2"></i>
+							Hang Tags
+						</a>
+					</li>
 
-				<li class="small">
-					<a href="javascript:void(0);" class="dropdown-item pe-5" onclick="openHangTagsModal('${stockNumber}')">
-						<i class="bi bi-tags dropdown-icon me-2"></i>
-						Hang Tags
-					</a>
-				</li>
+					<li><hr class="dropdown-divider m-0"></li>
 
-				<li class="small">
-					<a href="javascript:void(0);" class="dropdown-item pe-5" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
-						<i class="bi bi-card-image dropdown-icon me-2"></i>
-						Quote
-					</a>
-				</li>
+					<li class="small">
+						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+							<i class="bi bi-card-image dropdown-icon small me-2"></i>
+							Create Quote for SMS
+						</a>
+					</li>
 
-				<li><hr class="dropdown-divider m-0"></li>
 
-				<li class="small d-none">
+					<li class="small d-none">
 						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openOverlayModal('${stockNumber}')">
 							<i class="bi bi-card-image dropdown-icon small me-2"></i>
 							Build a Quote
 						</a>
 					</li>
+					
+					
+
+					<li class="d-none">
+						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openQuoteModal('${stockNumber}')">
+						<i class="bi bi-card-heading dropdown-icon small me-1"></i>
+						Print Quote</a>
+					</li>
+
+					<li class="small">
+						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="window.location.href = 'print/?s=${stockNumber}'">
+						<i class="bi bi-card-heading dropdown-icon small me-2"></i>
+						Generate PDF Brochure</a>
+					</li>
+					
+
+					<li class="small">
+						<a class="dropdown-item pe-5" href="javascript:void(0);" title="Vehicle Details" onclick="window.location.href = 'details/?s=${stockNumber}'">
+						<i class="bi bi-card-heading dropdown-icon small me-2"></i>
+						Vehicle Details</a>
+					</li>
+					
+					<li><hr class="dropdown-divider m-0"></li>
+
+					<li class="small">
+						<a 
+						href="javascript:void(0);" 
+						type="button"
+						class="dropdown-item pe-5"
+						title="Goto TV Display Launcher"
+						onclick="window.location.href = 'tv/?stockInput=${stockNumber}'">
+						<i class="bi bi-tv dropdown-icon small me-2"></i>TV Display</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	
+
+        <div class="button-group d-none" role="group" aria-label="Vehicles">
+        	<!-- Dropdown for creating keytags, hang tags, quotes, tv displays -->
+			<div class="dropdown d-inline-block">
+				<button class="btn btn-dark btn-sm rounded-pill px-3 d-flex align-items-center dropdown-toggle mx-1 no-caret" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
+					<i class="bi bi-card-image ms-1 me-2"></i> <i class="bi bi-card-heading mx-1"></i> <i class="bi bi-tv mx-1"></i> 
+				</button>
+
 				
-				<li><hr class="dropdown-divider m-0"></li>
+			</div>
+		
 
-				<li class="small">
-					<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openQuoteModal('${stockNumber}')">
-					<i class="bi bi-card-heading dropdown-icon small me-1"></i>
-					Print Quote</a>
-				</li>
+				<!-- hidden buttons for now -->          
+				<div class="d-none">
+				<button type="button" id="keytagModalButton" class="btn btn-danger action-button mx-1" title="Print Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+					<i class="bi bi-tag"></i>
+					<span style="font-size:10px; text-transform:uppercase;">Key Tags</span>
+				</button>
 
-				<li class="small">
-					<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="window.location.href = 'print/?s=${stockNumber}'">
-					<i class="bi bi-card-heading dropdown-icon small me-1"></i>
-					Print PDF</a>
-				</li>
+				<button type="button" class="btn btn-danger action-button mx-1" title="Print Hang Tags" data-bs-toggle="modal" data-bs-target="#HangTagModal" data-bs-stocknumber="${stockNumber}" onclick="openHangTagsModal('${stockNumber}')">
+					<i class="bi bi-tags"></i>
+					<span style="font-size:10px; margin-top:-10px; padding:0; text-transform:uppercase;">Hang Tags</span>
+				</button>
 				
-				<li><hr class="dropdown-divider m-0"></li>
+				<btn
+					href="javascript:void(0);" 
+					type="button" 
+					class="btn btn-danger action-button mx-1"
+					title="Quote this vehicle"
+					onclick="window.location.href = 'quote/?search=${stockNumber}'"
+				>
+					<i class="bi bi-card-heading"></i>
+					<span style="font-size:10px; text-transform:uppercase;">Quote</span>
+				</btn>
 
-				<li class="small">
-					<a class="dropdown-item pe-5" href="javascript:void(0);" title="Vehicle Details" onclick="window.location.href = 'details/?s=${stockNumber}'">
-					<i class="bi bi-card-heading dropdown-icon small me-1"></i>
-					Vehicle Details</a>
-				</li>
-				
-				<li><hr class="dropdown-divider m-0"></li>
-
-				<li class="small">
-					<a 
+				<btn
 					href="javascript:void(0);" 
 					type="button"
-					class="dropdown-item pe-5"
+					class="d-none btn btn-danger action-button mx-1"
 					title="Goto TV Display Launcher"
-					onclick="window.location.href = 'tv/?stockInput=${stockNumber}'">
-					<i class="bi bi-tv dropdown-icon small me-1"></i>TV Display</a>
-				</li>
-			</ul>
-		</div>
+					onclick="window.location.href = 'tv/?stockInput=${stockNumber}'"
+				>
+					<i class="bi bi-tv"></i>
+					<span style="font-size:10px; text-transform:uppercase;">TV DISPLAY</span>
+				</btn>
 
-        <!-- hidden buttons for now -->          
-        <div class="d-none">
-          <button type="button" id="keytagModalButton" class="btn btn-danger action-button mx-1" title="Print Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
-            <i class="bi bi-tag"></i>
-            <span style="font-size:10px; text-transform:uppercase;">Key Tags</span>
-          </button>
-
-          <button type="button" class="btn btn-danger action-button mx-1" title="Print Hang Tags" data-bs-toggle="modal" data-bs-target="#HangTagModal" data-bs-stocknumber="${stockNumber}" onclick="openHangTagsModal('${stockNumber}')">
-            <i class="bi bi-tags"></i>
-            <span style="font-size:10px; margin-top:-10px; padding:0; text-transform:uppercase;">Hang Tags</span>
-          </button>
-          
-          <btn
-            href="javascript:void(0);" 
-            type="button" 
-            class="btn btn-danger action-button mx-1"
-            title="Quote this vehicle"
-            onclick="window.location.href = 'quote/?search=${stockNumber}'"
-          >
-            <i class="bi bi-card-heading"></i>
-            <span style="font-size:10px; text-transform:uppercase;">Quote</span>
-          </btn>
-
-          <btn
-            href="javascript:void(0);" 
-            type="button"
-            class="d-none btn btn-danger action-button mx-1"
-            title="Goto TV Display Launcher"
-            onclick="window.location.href = 'tv/?stockInput=${stockNumber}'"
-          >
-            <i class="bi bi-tv"></i>
-            <span style="font-size:10px; text-transform:uppercase;">TV DISPLAY</span>
-          </btn>
-
-          <btn
-            href="javascript:void(0);" 
-            type="button" 
-            class="btn btn-danger action-button mx-1"
-            style="display: none;"
-            title="Pricing"
-            data-bs-toggle="modal"
-            data-bs-target="#pricingModal"
-            onclick="openNewOverlayModal('${stockNumber}')"
-          >
-            <i class="bi bi-card-heading"></i>
-            <span style="font-size:10px; text-transform:uppercase;">Overlay</span>
-          </btn>
-      </div>
+				<btn
+					href="javascript:void(0);" 
+					type="button" 
+					class="btn btn-danger action-button mx-1"
+					style="display: none;"
+					title="Pricing"
+					data-bs-toggle="modal"
+					data-bs-target="#pricingModal"
+					onclick="openNewOverlayModal('${stockNumber}')"
+				>
+					<i class="bi bi-card-heading"></i>
+					<span style="font-size:10px; text-transform:uppercase;">Overlay</span>
+				</btn>
+			</div>
 
         </div>  
       </td>`;
