@@ -9,7 +9,7 @@
 
 /* Dots background for screen only */
 .hang-tags-body {
-  background-image: radial-gradient(#999999 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
   min-height: 100vh;
 }
@@ -31,8 +31,11 @@
   height: 11in;
   margin: 0;
   padding: 0;
-  border: 1px dashed #ddd;
   box-sizing: border-box;
+}
+
+.tag-left {
+  border-right: 1px dashed #ccc;
 }
 
 /* ===========================================
@@ -103,6 +106,16 @@
 }
 
 .ht-badge-usage {
+  background: #f0ad4e;
+  color: #fff;
+}
+
+.ht-badge-new {
+  background: #5cb85c;
+  color: #fff;
+}
+
+.ht-badge-used {
   background: #f0ad4e;
   color: #fff;
 }
@@ -189,6 +202,124 @@
   font-weight: 600;
   color: #666;
   margin-bottom: 5px;
+}
+
+/* ===========================================
+   NEW PRICING LAYOUT (Left Tag)
+   =========================================== */
+
+.ht-body-pricing {
+  padding: 10px;
+}
+
+/* MSRP Line */
+.ht-msrp-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.ht-msrp-line .ht-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+.ht-msrp-line .ht-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.ht-strikethrough {
+  text-decoration: line-through;
+  text-decoration-color: #c00;
+  text-decoration-thickness: 2px;
+  color: #999;
+}
+
+/* Large Price Display */
+.ht-price-large {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 900;
+  color: #c00;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.ht-price-large .ht-yellow-tag {
+  height: 28px;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+/* Savings Box - Yellow */
+.ht-savings-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: #fff3cd;
+  border: 2px solid #ffc107;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.ht-savings-box .ht-savings-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #856404;
+  text-transform: uppercase;
+}
+
+.ht-savings-box .ht-savings-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: #856404;
+}
+
+/* Section Headers */
+.ht-section {
+  margin-bottom: 8px;
+}
+
+.ht-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #666;
+  margin: 0 0 4px 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Compact List */
+.ht-list-compact {
+  font-size: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ht-list-compact .ht-list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  border-bottom: 1px dotted #eee;
+}
+
+.ht-list-compact .ht-list-item:last-child {
+  border-bottom: none;
+}
+
+.ht-list-compact .ht-amount {
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .ht-our-price {
@@ -393,6 +524,39 @@
   color: #ffc107;
 }
 
+/* Sold state */
+.ht-sold-banner {
+  background: #333;
+  color: #fff;
+  font-size: 32px;
+  font-weight: 900;
+  text-align: center;
+  padding: 8px 20px;
+  margin: -10px -10px 10px -10px;
+  letter-spacing: 4px;
+}
+
+.ht-footer-sold {
+  background: #666 !important;
+}
+
+.ht-footer-sold-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: -5px;
+}
+
+.ht-sold .ht-footer-price {
+  font-size: 28px;
+}
+
+.ht-price-strikethrough {
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+}
+
 .ht-placeholder-bar {
   display: block;
   background: #e0e0e0;
@@ -512,9 +676,13 @@
     width: 4.25in !important;
     height: 11in !important;
     flex: 0 0 4.25in !important;
-    border: 1px dashed #ccc !important;
+    border: none !important;
     overflow: hidden !important;
     page-break-inside: avoid !important;
+  }
+  
+  .tag-left {
+    border-right: 1px dashed #ccc !important;
   }
   
   .ht-print-tag {

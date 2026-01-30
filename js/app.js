@@ -2014,6 +2014,13 @@ function updateTable() {
 					</a>
 				</li>
 
+				<li class="small">
+					<a href="javascript:void(0);" class="dropdown-item pe-5" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+						<i class="bi bi-card-image dropdown-icon me-2"></i>
+						Quote
+					</a>
+				</li>
+
 				<li><hr class="dropdown-divider m-0"></li>
 
 				<li class="small">
@@ -2035,6 +2042,14 @@ function updateTable() {
 					<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="window.location.href = 'print/?s=${stockNumber}'">
 					<i class="bi bi-card-heading dropdown-icon small me-1"></i>
 					Print PDF</a>
+				</li>
+				
+				<li><hr class="dropdown-divider m-0"></li>
+
+				<li class="small">
+					<a class="dropdown-item pe-5" href="javascript:void(0);" title="Vehicle Details" onclick="window.location.href = 'details/?s=${stockNumber}'">
+					<i class="bi bi-card-heading dropdown-icon small me-1"></i>
+					Vehicle Details</a>
 				</li>
 				
 				<li><hr class="dropdown-divider m-0"></li>

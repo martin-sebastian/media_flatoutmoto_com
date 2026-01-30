@@ -1,8 +1,12 @@
 /**
  * Hang Tag Component
- * Renders and prints vehicle hang tags using XML/portal data.
+ * Modular template system for rendering vehicle hang tags.
  * @module hang-tag
  */
+
+// ===========================================
+// UTILITY FUNCTIONS
+// ===========================================
 
 /**
  * Format a number as currency.
@@ -37,15 +41,11 @@ function formatDate(dateStr) {
  */
 function cleanDescription(description) {
   if (!description) return "";
-  
-  // Look for "Engine Type" (case insensitive) and keep from there
   const engineTypeMatch = description.match(/Engine Type[:\s]/i);
   if (engineTypeMatch) {
     const startIndex = description.indexOf(engineTypeMatch[0]);
     return description.substring(startIndex).trim();
   }
-  
-  // Fallback: if no Engine Type found, return original
   return description;
 }
 
@@ -63,39 +63,158 @@ function generateListItems(items, maxItems = 10) {
     .join("");
 }
 
-/**
- * Get unit location label based on lot code.
- * @param {string} lot - Lot code.
- * @param {string} arrivalDate - Estimated arrival date.
- * @returns {string} Location HTML.
- */
-function getUnitLocation(lot, arrivalDate) {
-  const mainLots = ["SUZ", "KAW", "POL", "PREOWNED", "PRE OWNED"];
-  const onOrderLots = ["ONORDER", "ON ORDER"];
-  if (mainLots.includes(lot)) {
-    return `<small class="ht-location ht-location-stock">IN STOCK - Main Showroom</small>`;
-  }
-  if (onOrderLots.includes(lot)) {
-    return `<small class="ht-location ht-location-order">ON ORDER - Arriving ${arrivalDate}</small>`;
-  }
-  if (lot === "VH") {
-    return `<small class="ht-location ht-location-stock">IN STOCK - Vanderhall Showroom</small>`;
-  }
-  if (lot === "IMC") {
-    return `<small class="ht-location ht-location-stock">IN STOCK - Indian Showroom</small>`;
-  }
-  return "";
-}
+// ===========================================
+// SHARED TEMPLATE PARTIALS
+// ===========================================
+
+const HangTagPartials = {
+  /**
+   * Render the hang hole punch circle.
+   */
+  hole: () => `<div class="ht-hole"></div>`,
+
+  /**
+   * Render the logo container.
+   */
+  logo: () => `
+    <div class="ht-logo-container">
+      <img src="../img/fom-app-logo.svg" alt="Flat Out Motorsports" class="ht-logo">
+    </div>
+  `,
+
+  /**
+   * Render badges row.
+   * @param {object} options - Badge options.
+   */
+  badges: ({ year, usage, metricValue, metricType }) => {
+    const yearBadge = year ? `<span class="ht-badge ht-badge-year">${year}</span>` : "";
+    const usageBadge = usage ? `<span class="ht-badge ht-badge-${usage.toLowerCase()}">${usage}</span>` : "";
+    let metricBadge = "";
+    if (metricValue && parseFloat(metricValue) > 0) {
+      const label = metricType || "Miles";
+      metricBadge = `<span class="ht-badge ht-badge-metric">${Number(metricValue).toLocaleString()} ${label}</span>`;
+    }
+    return `<div class="ht-badges">${yearBadge}${usageBadge}${metricBadge}</div>`;
+  },
+
+  /**
+   * Render title and stock badge.
+   * @param {string} title - Vehicle title.
+   * @param {string} stockNumber - Stock number.
+   */
+  titleBlock: (title, stockNumber) => `
+    <h1 class="ht-title">${title}</h1>
+    <div class="ht-stock-badge">${stockNumber}</div>
+  `,
+
+  /**
+   * Render yellow tag image if applicable.
+   * @param {boolean} hasYellowTag - Whether to show yellow tag.
+   */
+  yellowTag: (hasYellowTag) => hasYellowTag 
+    ? `<img src="https://newportal.flatoutmotorcycles.com/Portal/content/icons/ylwtag.png" class="ht-yellow-tag">` 
+    : "",
+
+  /**
+   * Render image container.
+   * @param {string} imageUrl - Image URL.
+   * @param {string} alt - Alt text.
+   */
+  image: (imageUrl, alt) => imageUrl 
+    ? `<div class="ht-image-container" id="photoLine"><img src="${imageUrl}" alt="${alt}" class="ht-image"></div>` 
+    : "",
+
+  /**
+   * Render QR code container.
+   */
+  qrCode: () => `<div class="ht-qr-container" id="qrcode"></div>`,
+
+  /**
+   * Render barcode container.
+   * @param {string} id - Unique ID for barcode SVG.
+   */
+  barcode: (id = "barcode") => `
+    <div class="ht-barcode-container">
+      <svg id="${id}" class="ht-barcode"></svg>
+    </div>
+  `,
+
+  /**
+   * Render description section.
+   * @param {string} description - Description text.
+   * @param {string} title - Section title.
+   * @param {boolean} clean - Whether to clean the description.
+   */
+  description: (description, title = "Specifications", clean = true) => {
+    const content = clean ? cleanDescription(description) : description;
+    if (!content) return "";
+    return `
+      <div class="ht-description" id="descriptionLine">
+        <h5 class="ht-section-title">${title}</h5>
+        <div class="ht-description-content">${content}</div>
+      </div>
+    `;
+  },
+
+  /**
+   * Render accessories section.
+   * @param {Array} items - Accessory items.
+   */
+  accessories: (items) => {
+    if (!items || !items.length) return "";
+    return `
+      <div class="ht-accessories">
+        <h5 class="ht-section-title">Added Accessories</h5>
+        <ul class="ht-list">${generateListItems(items, 30)}</ul>
+      </div>
+    `;
+  },
+
+  /**
+   * Render standard footer with price.
+   * @param {object} options - Footer options.
+   */
+  footer: ({ price, expireDate, yellowTag, id = "footerLine" }) => `
+    <div class="ht-footer" id="${id}">
+      <div class="ht-footer-price">${HangTagPartials.yellowTag(yellowTag)} ${formatCurrency(price)}</div>
+      <div class="ht-footer-expires">Sale Program Ends: ${expireDate}</div>
+    </div>
+  `,
+
+  /**
+   * Render sold footer with strikethrough price.
+   * @param {string} price - Original price (formatted).
+   */
+  footerSold: (price) => price 
+    ? `
+      <div class="ht-footer ht-footer-sold">
+        <div class="ht-footer-sold-label">price</div>
+        <div class="ht-footer-price ht-price-strikethrough">${price}</div>
+      </div>
+    ` 
+    : `
+      <div class="ht-footer ht-footer-sold">
+        <div class="ht-footer-price">SOLD</div>
+      </div>
+    `,
+
+  /**
+   * Render SOLD banner.
+   */
+  soldBanner: () => `<div class="ht-sold-banner">SOLD</div>`,
+};
+
+// ===========================================
+// DATA NORMALIZATION
+// ===========================================
 
 /**
- * Normalize hang tag data from portal API response.
- * @param {object} data - Portal API data.
+ * Normalize portal API data into hang tag format.
+ * @param {object} data - Raw API data.
  * @returns {object} Normalized data.
  */
 function normalizeHangTagData(data) {
-  if (!data) return null;
-  
-  const msrp = data.MSRP || 0;
+  const msrp = data.MSRPUnit || data.MSRP || 0;
   const accessoryTotal = data.AccessoryItemsTotal || 0;
   const matTotal = data.MatItemsTotal || 0;
   const discountTotal = data.DiscountItemsTotal || 0;
@@ -148,262 +267,412 @@ function normalizeHangTagData(data) {
     
     // Item lists
     accessoryItems: data.AccessoryItems || [],
-    discountItems: data.DiscountItems || [],
     matItems: data.MatItems || [],
-    otdItems: data.OTDItems || [],
+    discountItems: data.DiscountItems || [],
     tradeInItems: data.TradeInItems || [],
+    otdItems: data.OTDItems || [],
   };
 }
 
 /**
- * Render the left hang tag (pricing focused).
- * @param {object} data - Normalized hang tag data.
- * @param {HTMLElement|string} container - Container element or selector.
+ * Normalize XML cache data into hang tag format.
+ * @param {object} xmlData - Raw XML data.
+ * @returns {object} Normalized data.
  */
-function renderHangTagLeft(data, container) {
-  const el = typeof container === "string" ? document.querySelector(container) : container;
-  if (!el) {
-    console.error("Hang tag left container not found");
-    return;
-  }
+function normalizeXmlData(xmlData) {
+  return {
+    stockNumber: xmlData.StockNumber || "",
+    vin: xmlData.VIN || "",
+    modelYear: xmlData.ModelYear || "",
+    manufacturer: xmlData.Manufacturer || "",
+    modelName: xmlData.ModelName || "",
+    usage: xmlData.Usage || "",
+    metricType: xmlData.B50MetricType || xmlData.MetricType || "",
+    metricValue: xmlData.B50MetricValue || xmlData.MetricValue || "",
+    imageUrl: xmlData.ImageUrl || "",
+    description: xmlData.Description || xmlData.B50Desc || "",
+    price: xmlData.Price || xmlData.MSRP || "",
+    color: xmlData.Color || "",
+  };
+}
 
-  const title = `${data.manufacturer} ${data.modelName}`.trim();
-  const yellowTagImg = data.yellowTag 
-    ? `<img src="https://newportal.flatoutmotorcycles.com/Portal/content/icons/ylwtag.png" class="ht-yellow-tag">` 
-    : "";
-  const arrivalDate = formatDate(data.estimatedArrival);
-  const expireDate = formatDate(data.salePriceExpireDate);
-  
-  // Hide MSRP and savings if no discount (MSRP equals our price)
-  const hasDiscount = data.msrpPlusAccessories !== data.ourPrice && data.savings > 0;
-  const msrpHtml = hasDiscount 
-    ? `<div class="ht-msrp" id="msrpLine">MSRP: ${formatCurrency(data.msrpPlusAccessories)}</div>` 
-    : "";
-  const savingsHtml = hasDiscount 
-    ? `<div class="ht-savings" id="savingsLine">
-        <span class="ht-savings-label">Savings</span>
-        <span class="ht-savings-arrow">→</span>
-        <span class="ht-savings-value">${formatCurrency(data.savings)}</span>
-      </div>` 
-    : "";
+// ===========================================
+// TEMPLATE REGISTRY
+// ===========================================
 
-  el.innerHTML = `
-    <div class="ht-print-tag">
-      <div class="ht-hole"></div>
-      <div class="ht-logo-container">
-        <img src="../img/fom-app-logo.svg" alt="Flat Out Motorsports" class="ht-logo">
-      </div>
+/**
+ * Template registry - add new templates here.
+ * Each template has: name, description, renderLeft, renderRight
+ */
+const HangTagTemplates = {
+  /**
+   * Default template - pricing on left, image/specs on right.
+   */
+  default: {
+    name: "Default",
+    description: "Pricing details on left, image and specifications on right",
+    
+    renderLeft: (data, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const title = `${data.manufacturer} ${data.modelName}`.trim();
+      const expireDate = formatDate(data.salePriceExpireDate);
+      const hasDiscount = data.msrpPlusAccessories > data.ourPrice && data.savings > 0;
+
+      // MSRP - only show if there's a discount (crossed out)
+      const msrpHtml = hasDiscount 
+        ? `<p class="text-center text-muted mb-0" id="msrpLine">MSRP: <span class="text-decoration-line-through">${formatCurrency(data.msrpPlusAccessories)}</span></p>`
+        : "";
+
+      // Our Price - large font with yellow tag
+      const priceHtml = `
+        <p class="text-center fs-1 fw-bold text-danger mb-1">
+          ${HangTagPartials.yellowTag(data.yellowTag)}
+          ${formatCurrency(data.ourPrice)}
+        </p>
+      `;
+
+      // Savings badge - only show if there's savings
+      const savingsHtml = hasDiscount 
+        ? `<p class="text-center mb-1" id="savingsLine">
+            <span class="badge bg-success">Savings</span>
+            <span class="text-success fw-bold">➜</span>
+            <span class="text-danger fw-bold fs-5">${formatCurrency(data.savings)}</span>
+          </p>` 
+        : "";
+
+      // Expiration line
+      const expiresHtml = `<p class="text-center text-muted small mb-2">Sale Program Ends: ${expireDate}</p>`;
+
+      // Build combined line items list
+      let lineItems = [];
       
-      <div class="ht-header">
-        <div class="ht-badges">
-          <span class="ht-badge ht-badge-usage">${data.usage}</span>
-          <span class="ht-badge ht-badge-year">${data.modelYear}</span>
-          <span class="ht-badge ht-badge-metric">${data.metricValue} ${data.metricType}</span>
-        </div>
-        <h1 class="ht-title">${title}</h1>
-        <div class="ht-stock-badge">${data.stockNumber}</div>
-      </div>
+      // Unit Price (MSRP)
+      lineItems.push({ Description: "Unit Price", Amount: data.msrpUnit });
       
-      <div class="ht-body">
-        <div class="ht-price-card">
-          <div class="ht-price-card-header">
-            ${msrpHtml}
-            <div class="ht-our-price">${yellowTagImg} ${formatCurrency(data.ourPrice)}</div>
-            ${savingsHtml}
-            <div class="ht-expires">Sale Program Ends: ${expireDate}</div>
+      // Discounts
+      if (data.discountItems && data.discountItems.length > 0) {
+        lineItems = lineItems.concat(data.discountItems);
+      }
+      
+      // MAT/Rebates  
+      if (data.matItems && data.matItems.length > 0) {
+        lineItems = lineItems.concat(data.matItems);
+      }
+      
+      // Accessories
+      if (data.accessoryItems && data.accessoryItems.length > 0) {
+        lineItems = lineItems.concat(data.accessoryItems);
+      }
+      
+      // OTD Items (fees, taxes)
+      if (data.otdItems && data.otdItems.length > 0) {
+        lineItems = lineItems.concat(data.otdItems);
+      }
+
+      // Generate line items as Bootstrap list group
+      const lineItemsHtml = lineItems.length > 0
+        ? `<ul class="list-group list-group-flush small">
+            ${lineItems.map(item => `
+              <li class="list-group-item d-flex justify-content-between align-items-center px-2 py-1">
+                <span>${item.Description}</span>
+                <span class="fw-semibold">${formatCurrency(item.Amount)}</span>
+              </li>
+            `).join("")}
+          </ul>`
+        : "";
+
+      el.innerHTML = `
+        <div class="ht-print-tag">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.badges({ year: data.modelYear, usage: data.usage, metricValue: data.metricValue, metricType: data.metricType })}
+            ${HangTagPartials.titleBlock(title, data.stockNumber)}
           </div>
-          <div class="ht-price-card-body">
-            <ul class="ht-list">
-              <li class="ht-list-item ht-list-header">${data.msrpTitle} <span class="ht-amount">${formatCurrency(data.msrpUnit)}</span></li>
-              <div id="rebatesLine">${generateListItems(data.matItems, 4)}</div>
-              <div id="discountsLine">${generateListItems(data.discountItems, 20)}</div>
-              <div id="tradeInsLine">${generateListItems(data.tradeInItems, 5)}</div>
-              <div id="feesLine">${generateListItems(data.otdItems, 9)}</div>
-            </ul>
+          
+          <div class="ht-body ht-body-pricing">
+            <div class="text-center py-2 border-bottom">
+              ${msrpHtml}
+              ${priceHtml}
+              ${savingsHtml}
+              ${expiresHtml}
+            </div>
+            ${lineItemsHtml}
+            ${HangTagPartials.qrCode()}
+          </div>
+          
+          ${HangTagPartials.footer({ price: data.ourPrice, expireDate, yellowTag: data.yellowTag, id: "footerLineLeft" })}
+        </div>
+      `;
+    },
+
+    renderRight: (data, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const title = `${data.manufacturer} ${data.modelName}`.trim();
+      const expireDate = formatDate(data.salePriceExpireDate);
+
+      el.innerHTML = `
+        <div class="ht-print-tag">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.badges({ year: data.modelYear, usage: data.usage, metricValue: data.metricValue, metricType: data.metricType })}
+            ${HangTagPartials.titleBlock(title, data.stockNumber)}
+          </div>
+          
+          <div class="ht-body">
+            ${HangTagPartials.image(data.imageUrl, title)}
+            ${HangTagPartials.accessories(data.accessoryItems)}
+            ${HangTagPartials.description(data.description)}
+            ${HangTagPartials.barcode()}
+          </div>
+          
+          ${HangTagPartials.footer({ price: data.ourPrice, expireDate, yellowTag: data.yellowTag, id: "footerLineRight" })}
+        </div>
+      `;
+    },
+  },
+
+  /**
+   * Sold template - for units sold but awaiting pickup.
+   */
+  sold: {
+    name: "Sold",
+    description: "SOLD banner with strikethrough price for units awaiting pickup",
+    
+    renderLeft: (xmlData, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const data = normalizeXmlData(xmlData);
+      const title = `${data.manufacturer} ${data.modelName}`.trim();
+      const priceDisplay = data.price ? formatCurrency(parseFloat(data.price) || 0) : "";
+      const barcodeId = `barcode-left-${data.stockNumber.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+      el.innerHTML = `
+        <div class="ht-print-tag ht-sold">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.soldBanner()}
+            ${HangTagPartials.badges({ year: data.modelYear, usage: data.usage, metricValue: data.metricValue, metricType: data.metricType })}
+            ${HangTagPartials.titleBlock(title, data.stockNumber)}
+          </div>
+          
+          <div class="ht-body">
+            ${HangTagPartials.image(data.imageUrl, title)}
+            ${HangTagPartials.description(data.description, "Description")}
+            ${HangTagPartials.barcode(barcodeId)}
+          </div>
+          
+          ${HangTagPartials.footerSold(priceDisplay)}
+        </div>
+      `;
+
+      // Initialize barcode
+      if (data.vin && typeof JsBarcode !== "undefined") {
+        try {
+          JsBarcode(`#${barcodeId}`, data.vin, { height: 40 });
+        } catch (e) {
+          console.warn("Barcode init failed:", e);
+        }
+      }
+    },
+
+    renderRight: (xmlData, container) => {
+      // Same as left for sold template
+      HangTagTemplates.sold.renderLeft(xmlData, container);
+    },
+  },
+
+  /**
+   * Simple template - works with XML cache data only.
+   */
+  simple: {
+    name: "Simple",
+    description: "Basic hang tag using XML cache data (no detailed pricing)",
+    
+    renderLeft: (xmlData, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const data = normalizeXmlData(xmlData);
+      const title = `${data.manufacturer} ${data.modelName}`.trim();
+      const priceDisplay = data.price ? formatCurrency(parseFloat(data.price) || 0) : "";
+
+      el.innerHTML = `
+        <div class="ht-print-tag">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.badges({ year: data.modelYear, usage: data.usage, metricValue: data.metricValue, metricType: data.metricType })}
+            ${HangTagPartials.titleBlock(title, data.stockNumber)}
+          </div>
+          
+          <div class="ht-body">
+            ${HangTagPartials.image(data.imageUrl, title)}
+            ${HangTagPartials.description(data.description, "Description")}
+            ${HangTagPartials.barcode("barcode-left")}
+          </div>
+          
+          ${priceDisplay ? `
+            <div class="ht-footer">
+              <div class="ht-footer-price">${priceDisplay}</div>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    },
+
+    renderRight: (xmlData, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const data = normalizeXmlData(xmlData);
+      const title = `${data.manufacturer} ${data.modelName}`.trim();
+      const priceDisplay = data.price ? formatCurrency(parseFloat(data.price) || 0) : "";
+
+      el.innerHTML = `
+        <div class="ht-print-tag">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.badges({ year: data.modelYear, usage: data.usage, metricValue: data.metricValue, metricType: data.metricType })}
+            ${HangTagPartials.titleBlock(title, data.stockNumber)}
+          </div>
+          
+          <div class="ht-body">
+            ${HangTagPartials.image(data.imageUrl, title)}
+            ${HangTagPartials.description(data.description, "Specifications")}
+            ${HangTagPartials.barcode("barcode-right")}
+          </div>
+          
+          ${priceDisplay ? `
+            <div class="ht-footer">
+              <div class="ht-footer-price">${priceDisplay}</div>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    },
+  },
+
+  /**
+   * Baseline/loading template - placeholder while data loads.
+   */
+  baseline: {
+    name: "Baseline",
+    description: "Loading placeholder with basic info from XML cache",
+    
+    renderLeft: (xmlData, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      const title = `${xmlData.Manufacturer || ""} ${xmlData.ModelName || ""}`.trim();
+      const year = xmlData.ModelYear || "";
+      const stockNumber = xmlData.StockNumber || "";
+      const imageUrl = xmlData.ImageUrl || "";
+      const price = xmlData.Price || "";
+      const priceDisplay = price ? formatCurrency(parseFloat(price) || 0) : "Loading...";
+
+      el.innerHTML = `
+        <div class="ht-print-tag ht-baseline">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          
+          <div class="ht-header">
+            ${HangTagPartials.badges({ year })}
+            ${HangTagPartials.titleBlock(title || "Loading...", stockNumber)}
+          </div>
+          
+          <div class="ht-body">
+            ${imageUrl ? HangTagPartials.image(imageUrl, title) : '<div class="ht-image-placeholder">Loading image...</div>'}
+            <div class="ht-loading-indicator">
+              <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <span class="ms-2 text-muted">Loading full details...</span>
+            </div>
+          </div>
+          
+          <div class="ht-footer">
+            <div class="ht-footer-price">${priceDisplay}</div>
           </div>
         </div>
-        
-        <div class="ht-qr-container" id="qrcode"></div>
-      </div>
-      
-      <div class="ht-footer" id="footerLineLeft">
-        <div class="ht-footer-price">${yellowTagImg} ${formatCurrency(data.ourPrice)}</div>
-        <div class="ht-footer-expires">Sale Program Ends: ${expireDate}</div>
-      </div>
-    </div>
-  `;
-}
+      `;
+    },
+
+    renderRight: (xmlData, container) => {
+      HangTagTemplates.baseline.renderLeft(xmlData, container);
+    },
+  },
+
+  /**
+   * Error template - displays error message.
+   */
+  error: {
+    name: "Error",
+    description: "Error state with retry button",
+    
+    renderLeft: (message, container) => {
+      const el = typeof container === "string" ? document.querySelector(container) : container;
+      if (!el) return;
+
+      el.innerHTML = `
+        <div class="ht-print-tag ht-error">
+          ${HangTagPartials.hole()}
+          ${HangTagPartials.logo()}
+          <div class="ht-header">
+            <h1 class="ht-title text-danger">Error Loading Data</h1>
+          </div>
+          <div class="ht-body text-center p-4">
+            <i class="bi bi-exclamation-triangle text-warning" style="font-size: 48px;"></i>
+            <p class="mt-3">${message}</p>
+            <button class="btn btn-outline-secondary btn-sm mt-2" onclick="location.reload()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Retry
+            </button>
+          </div>
+        </div>
+      `;
+    },
+
+    renderRight: (message, container) => {
+      HangTagTemplates.error.renderLeft(message, container);
+    },
+  },
+};
+
+// ===========================================
+// PUBLIC API
+// ===========================================
 
 /**
- * Render the right hang tag (image/description focused).
- * @param {object} data - Normalized hang tag data.
- * @param {HTMLElement|string} container - Container element or selector.
- */
-function renderHangTagRight(data, container) {
-  const el = typeof container === "string" ? document.querySelector(container) : container;
-  if (!el) {
-    console.error("Hang tag right container not found");
-    return;
-  }
-
-  const title = `${data.manufacturer} ${data.modelName}`.trim();
-  const yellowTagImg = data.yellowTag 
-    ? `<img src="https://newportal.flatoutmotorcycles.com/Portal/content/icons/ylwtag.png" class="ht-yellow-tag">` 
-    : "";
-  const expireDate = formatDate(data.salePriceExpireDate);
-
-  // Build accessories section
-  let accessoriesHtml = "";
-  if (data.accessoryItems && data.accessoryItems.length > 0) {
-    accessoriesHtml = `
-      <div class="ht-accessories">
-        <h5 class="ht-section-title">Added Accessories</h5>
-        <ul class="ht-list">${generateListItems(data.accessoryItems, 30)}</ul>
-      </div>
-    `;
-  }
-
-  // Build description section (cleaned - specs only)
-  let descriptionHtml = "";
-  const cleanedDesc = cleanDescription(data.description);
-  if (cleanedDesc) {
-    descriptionHtml = `
-      <div class="ht-description" id="descriptionLine">
-        <h5 class="ht-section-title">Specifications</h5>
-        <div class="ht-description-content">${cleanedDesc}</div>
-      </div>
-    `;
-  }
-
-  // Build features section
-  let featuresHtml = "";
-  if (data.standardFeatures && data.standardFeatures.trim()) {
-    featuresHtml = `
-      <div class="ht-features">
-        <h5 class="ht-section-title">Standard Features</h5>
-        <div class="ht-features-content">${data.standardFeatures}</div>
-      </div>
-    `;
-  }
-
-  el.innerHTML = `
-    <div class="ht-print-tag">
-      <div class="ht-hole"></div>
-      <div class="ht-logo-container">
-        <img src="../img/fom-app-logo.svg" alt="Flat Out Motorsports" class="ht-logo">
-      </div>
-      
-      <div class="ht-header">
-        <div class="ht-badges">
-          <span class="ht-badge ht-badge-usage">${data.usage}</span>
-          <span class="ht-badge ht-badge-year">${data.modelYear}</span>
-          <span class="ht-badge ht-badge-metric">${data.metricValue} ${data.metricType}</span>
-        </div>
-        <h1 class="ht-title">${title}</h1>
-        <div class="ht-stock-badge">${data.stockNumber}</div>
-      </div>
-      
-      <div class="ht-body">
-        <div class="ht-image-container" id="photoLine">
-          ${data.imageUrl ? `<img src="${data.imageUrl}" alt="${title}" class="ht-image">` : ""}
-        </div>
-        
-        ${accessoriesHtml}
-        ${descriptionHtml}
-        ${featuresHtml}
-        
-        <div class="ht-barcode-container">
-          <svg id="barcode" class="ht-barcode"></svg>
-        </div>
-      </div>
-      
-      <div class="ht-footer" id="footerLineRight">
-        <div class="ht-footer-price">${yellowTagImg} ${formatCurrency(data.ourPrice)}</div>
-        <div class="ht-footer-expires">Sale Program Ends: ${expireDate}</div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Render baseline placeholder while loading.
- * @param {object} xmlData - Basic XML data.
- * @param {HTMLElement|string} container - Container element or selector.
- */
-function renderHangTagBaseline(xmlData, container) {
-  const el = typeof container === "string" ? document.querySelector(container) : container;
-  if (!el || !xmlData) return;
-
-  const title = `${xmlData.ModelYear || ""} ${xmlData.Manufacturer || ""} ${xmlData.ModelName || ""}`.trim();
-  const imageHtml = xmlData.ImageUrl 
-    ? `<img src="${xmlData.ImageUrl}" class="ht-image">` 
-    : "";
-
-  el.innerHTML = `
-    <div class="ht-print-tag ht-loading">
-      <div class="ht-hole"></div>
-      <div class="ht-logo-container">
-        <img src="../img/fom-app-logo.svg" alt="Flat Out Motorsports" class="ht-logo">
-      </div>
-      <div class="ht-header">
-        <h1 class="ht-title">${title || "Loading vehicle..."}</h1>
-        <div class="ht-stock-badge">${xmlData.StockNumber || "Stock #"}</div>
-      </div>
-      <div class="ht-body">
-        <div class="ht-image-container">${imageHtml}</div>
-        <div class="ht-loading-message">Loading latest pricing...</div>
-        <div class="h6 text-center fw-semibold text-secondary-emphasis">Not Found in Portal</div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Clear hang tag and show placeholders.
+ * Clear hang tag container.
  * @param {HTMLElement|string} container - Container element or selector.
  */
 function clearHangTag(container) {
   const el = typeof container === "string" ? document.querySelector(container) : container;
-  if (!el) return;
-
-  el.innerHTML = `
-    <div class="ht-print-tag ht-placeholder">
-      <div class="ht-hole"></div>
-      <div class="ht-logo-container">
-        <span class="ht-placeholder-bar" style="width: 60%;"></span>
-      </div>
-      <div class="ht-header">
-        <div class="ht-badges">
-          <span class="ht-placeholder-bar" style="width: 40px;"></span>
-          <span class="ht-placeholder-bar" style="width: 50px;"></span>
-        </div>
-        <span class="ht-placeholder-bar" style="width: 80%; height: 24px;"></span>
-        <span class="ht-placeholder-bar" style="width: 100px; height: 20px;"></span>
-      </div>
-      <div class="ht-body">
-        <span class="ht-placeholder-bar" style="width: 100%; height: 150px;"></span>
-        <span class="ht-placeholder-bar" style="width: 70%;"></span>
-        <span class="ht-placeholder-bar" style="width: 90%;"></span>
-        <span class="ht-placeholder-bar" style="width: 60%;"></span>
-      </div>
-    </div>
-  `;
+  if (el) el.innerHTML = "";
 }
 
 /**
- * Initialize QR code for hang tag.
+ * Initialize QR code in container.
  * @param {string} url - URL to encode.
- * @param {string} selector - QR container selector.
  */
-function initHangTagQR(url, selector = "#qrcode") {
-  if (typeof QRCode === "undefined") {
-    console.warn("QRCode library not loaded");
-    return;
-  }
-  const el = document.querySelector(selector);
-  if (el && url) {
-    el.innerHTML = "";
-    new QRCode(el, {
+function initHangTagQR(url) {
+  const qrContainer = document.getElementById("qrcode");
+  if (qrContainer && url && typeof QRCode !== "undefined") {
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, {
       text: url,
       width: 100,
       height: 100,
@@ -412,90 +681,82 @@ function initHangTagQR(url, selector = "#qrcode") {
 }
 
 /**
- * Initialize barcode for hang tag.
+ * Initialize barcode in container.
  * @param {string} vin - VIN to encode.
- * @param {string} selector - Barcode SVG selector.
+ * @param {string} selector - Barcode element selector.
  */
 function initHangTagBarcode(vin, selector = "#barcode") {
-  if (typeof JsBarcode === "undefined") {
-    console.warn("JsBarcode library not loaded");
-    return;
-  }
-  if (vin) {
-    JsBarcode(selector, vin, { height: 40 });
+  if (vin && typeof JsBarcode !== "undefined") {
+    try {
+      JsBarcode(selector, vin, { height: 40 });
+    } catch (e) {
+      console.warn("Barcode init failed:", e);
+    }
   }
 }
 
 /**
- * Fetch hang tag data from portal API with timeout.
+ * Fetch hang tag data from portal API.
+ * Uses the public API endpoint (CORS enabled).
  * @param {string} stockNumber - Stock number to fetch.
- * @param {number} timeout - Timeout in milliseconds.
  * @returns {Promise<object>} Normalized hang tag data.
  */
-async function fetchHangTagData(stockNumber, timeout = 15000) {
+async function fetchHangTagData(stockNumber) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
   try {
     const response = await fetch(
-      `https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/${stockNumber}`,
+      `https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/${encodeURIComponent(stockNumber)}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`API returned ${response.status}`);
     }
     const data = await response.json();
     console.log("Portal API response for", stockNumber, ":", data);
-    
-    // Check if API returned empty or error response
-    if (!data || Object.keys(data).length === 0) {
-      console.warn("Portal returned empty response for:", stockNumber);
-      return null;
+
+    if (data && data.StockNumber) {
+      return normalizeHangTagData(data);
     }
-    
-    return normalizeHangTagData(data);
+    return null;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === "AbortError") {
-      throw new Error("Request timed out - please try again");
+      throw new Error("Request timed out. Please check your connection and try again.");
     }
     throw error;
   }
 }
 
 /**
- * Show error message in hang tag container.
- * @param {string} message - Error message to display.
- * @param {HTMLElement|string} container - Container element or selector.
+ * Render hang tags using specified template.
+ * @param {string} templateName - Template name from registry.
+ * @param {object} data - Data to render.
+ * @param {string} leftContainer - Left container selector.
+ * @param {string} rightContainer - Right container selector.
  */
-function showHangTagError(message, container) {
-  const el = typeof container === "string" ? document.querySelector(container) : container;
-  if (!el) return;
-
-  el.innerHTML = `
-    <div class="ht-print-tag ht-error">
-      <div class="ht-hole"></div>
-      <div class="ht-logo-container">
-        <img src="../img/fom-app-logo.svg" alt="Flat Out Motorsports" class="ht-logo">
-      </div>
-      <div class="ht-header">
-        <h1 class="ht-title text-danger">Error Loading Data</h1>
-      </div>
-      <div class="ht-body text-center p-4">
-        <i class="bi bi-exclamation-triangle text-warning" style="font-size: 48px;"></i>
-        <p class="mt-3">${message}</p>
-        <button class="btn btn-outline-secondary btn-sm mt-2" onclick="location.reload()">
-          <i class="bi bi-arrow-clockwise me-1"></i>Retry
-        </button>
-      </div>
-    </div>
-  `;
+function renderHangTags(templateName, data, leftContainer = ".tag-left", rightContainer = ".tag-right") {
+  const template = HangTagTemplates[templateName];
+  if (!template) {
+    console.error(`Template "${templateName}" not found`);
+    return;
+  }
+  try {
+    console.log(`Rendering template: ${templateName}`);
+    template.renderLeft(data, leftContainer);
+    template.renderRight(data, rightContainer);
+    console.log(`Template ${templateName} rendered successfully`);
+  } catch (error) {
+    console.error(`Error rendering template ${templateName}:`, error);
+  }
 }
 
 /**
  * Load and render hang tags for a stock number.
+ * Uses XML cache as primary data source, with portal API as enhancement.
  * @param {string} stockNumber - Stock number to load.
  */
 async function loadHangTags(stockNumber) {
@@ -505,73 +766,81 @@ async function loadHangTags(stockNumber) {
     return;
   }
 
-  let hasBaseline = false;
+  let xmlData = null;
 
-  // Try to load baseline from cached XML first
+  // Load from XML cache (primary data source)
   try {
     if (typeof window.getCachedXmlVehicle === "function") {
       console.log("Fetching XML cache for:", stockNumber);
-      const xmlData = await window.getCachedXmlVehicle(stockNumber);
+      xmlData = await window.getCachedXmlVehicle(stockNumber);
       console.log("XML cache result:", xmlData);
-      if (xmlData) {
-        renderHangTagBaseline(xmlData, ".tag-left");
-        renderHangTagBaseline(xmlData, ".tag-right");
-        hasBaseline = true;
-      } else {
-        console.warn("No XML cache data found for:", stockNumber);
-      }
     } else {
       console.warn("getCachedXmlVehicle function not available");
     }
   } catch (error) {
-    console.error("Cached XML baseline failed:", error);
+    console.error("XML cache fetch failed:", error);
   }
 
-  // Fetch full data from portal
-  try {
-    const data = await fetchHangTagData(stockNumber);
+  // If we have XML data, render the simple template
+  if (xmlData) {
+    console.log("Rendering simple template with XML data");
+    renderHangTags("simple", xmlData);
     
-    if (data && data.stockNumber) {
-      renderHangTagLeft(data, ".tag-left");
-      renderHangTagRight(data, ".tag-right");
-      
-      // Initialize QR and barcode after render
-      initHangTagQR(data.detailUrl);
-      initHangTagBarcode(data.vin);
+    // Initialize barcode
+    if (xmlData.VIN) {
+      initHangTagBarcode(xmlData.VIN, "#barcode-left");
+      initHangTagBarcode(xmlData.VIN, "#barcode-right");
+    }
+  } else {
+    // No data found
+    const message = `Stock number "${stockNumber}" not found.<br><small class="text-muted">Unit may not be in inventory.</small>`;
+    renderHangTags("error", message);
+  }
+
+  // Try to enhance with portal data (may fail due to CORS on localhost)
+  try {
+    console.log("Attempting portal API fetch for:", stockNumber);
+    const portalData = await fetchHangTagData(stockNumber);
+    
+    if (portalData && portalData.stockNumber) {
+      console.log("Portal data available, rendering full template");
+      console.log("Portal data:", portalData);
+      renderHangTags("default", portalData);
+      initHangTagQR(portalData.detailUrl);
+      initHangTagBarcode(portalData.vin);
     } else {
-      // Stock number not found in portal
-      const message = `Stock number "${stockNumber}" not found in Digital IQ Portal.<br><small class="text-muted">Unit may be pending, sold, or not yet synced.</small>`;
-      console.warn("No portal data for:", stockNumber);
-      if (!hasBaseline) {
-        showHangTagError(message, ".tag-left");
-        showHangTagError(message, ".tag-right");
-      } else {
-        // We have baseline but no portal data - show a notice but keep baseline visible
-        console.log("Showing cached baseline data only for:", stockNumber);
-      }
+      console.log("Portal returned but no stockNumber:", portalData);
     }
-  } catch (error) {
-    console.error("Error fetching hang tag data:", error);
-    // Show error if we don't have baseline data to fall back on
-    if (!hasBaseline) {
-      showHangTagError(error.message || "Failed to load data", ".tag-left");
-      showHangTagError(error.message || "Failed to load data", ".tag-right");
-    }
+  } catch {
+    // Portal API failed (likely CORS) - keep showing XML-based template
+    console.log("Portal API unavailable (CORS), using XML data only");
   }
 }
 
-// Export for global use
-if (typeof window !== "undefined") {
-  window.HangTagComponent = {
-    renderLeft: renderHangTagLeft,
-    renderRight: renderHangTagRight,
-    renderBaseline: renderHangTagBaseline,
-    clear: clearHangTag,
-    showError: showHangTagError,
-    normalize: normalizeHangTagData,
-    fetch: fetchHangTagData,
-    load: loadHangTags,
-    initQR: initHangTagQR,
-    initBarcode: initHangTagBarcode,
-  };
+/**
+ * Get list of available templates.
+ * @returns {Array} Array of template info objects.
+ */
+function getAvailableTemplates() {
+  return Object.entries(HangTagTemplates).map(([key, template]) => ({
+    id: key,
+    name: template.name,
+    description: template.description,
+  }));
 }
+
+// Export for use in other modules
+window.HangTagTemplates = HangTagTemplates;
+window.HangTagPartials = HangTagPartials;
+window.loadHangTags = loadHangTags;
+window.renderHangTags = renderHangTags;
+window.getAvailableTemplates = getAvailableTemplates;
+
+// Backward compatible API
+window.HangTagComponent = {
+  load: loadHangTags,
+  clear: clearHangTag,
+  render: renderHangTags,
+  templates: HangTagTemplates,
+  partials: HangTagPartials,
+};
