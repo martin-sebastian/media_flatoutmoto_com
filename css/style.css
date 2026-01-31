@@ -357,6 +357,16 @@ th {
   width: 100%;
   border-collapse: collapse;
 }
+
+/* Select checkbox column - space on left, none on right */
+#vehiclesTable th[data-column="select"],
+#vehiclesTable td[data-column="select"] {
+  padding-left: 0.25rem !important;
+  padding-right: 0 !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  max-width: 30px !important;
+}
 #vehiclesTable td.text-center.nowrap {
   width: fit-content;
   min-width: 300px;

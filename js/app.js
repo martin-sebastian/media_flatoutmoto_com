@@ -1950,8 +1950,8 @@ function updateTable() {
 
 		const row = document.createElement("tr");
 		row.innerHTML = `
-      <td data-column="select" class="text-center" style="width: 50px !important;" nowrap>
-        <input type="checkbox" class="form-check-input p-2 tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
+      <td data-column="select" class="text-center" style="max-width: 25px !important;" nowrap>
+        <input type="checkbox" class="form-check-input p-2 m-0 tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
       </td>
       <td data-cell="image" data-column="image" class="text-center" nowrap>
         <a href="${webURL}" target="_blank">
@@ -2015,7 +2015,7 @@ function updateTable() {
 
 
       <td class="text-center nowrap action-cell p-2">
-		<div class="action-button-group btn-group btn-group-sm" role="group" aria-label="Button group with nested dropdown">
+		<div class="action-button-group btn-group btn-group-sm rounded-pill" role="group" aria-label="Button group with nested dropdown">
 				<button type="button" id="keytagModalButton" class="btn btn-danger ps-2" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
 					<i class="bi bi-tag"></i>
 					<span class="action-button-label">KEY TAG</span>
