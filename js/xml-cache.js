@@ -66,23 +66,59 @@ function findXmlItemByStockNumber(xmlDoc, stockNumber) {
 }
 
 /**
+ * Get all image URLs from an XML item.
+ * @param {Element} xmlItem XML item element.
+ * @returns {string[]} Array of image URLs.
+ */
+function getXmlImages(xmlItem) {
+  const images = [];
+  const imagesContainer = xmlItem.getElementsByTagName("images")[0];
+  if (imagesContainer) {
+    const imageUrls = imagesContainer.getElementsByTagName("imageurl");
+    for (const img of imageUrls) {
+      const url = img.textContent?.trim();
+      if (url) images.push(url);
+    }
+  }
+  // Fallback to single imageurl if no images container
+  if (images.length === 0) {
+    const singleUrl = getXmlText(xmlItem, ["imageurl", "image_url"]);
+    if (singleUrl) images.push(singleUrl);
+  }
+  return images;
+}
+
+/**
  * Build a baseline vehicle data object from XML data.
+ * NOTE: Price is intentionally excluded - pricing must ONLY come from Portal API.
  * @param {Element} xmlItem Matching XML item element.
  * @returns {object} Normalized vehicle data.
  */
 function buildXmlVehicleData(xmlItem) {
+  const year = getXmlText(xmlItem, ["year", "model_year"]);
+  const manufacturer = getXmlText(xmlItem, ["manufacturer", "make"]);
+  const modelName = getXmlText(xmlItem, ["model_name", "model", "modelname"]);
+  const images = getXmlImages(xmlItem);
+  
   return {
     StockNumber: getXmlText(xmlItem, ["stocknumber", "stock_number", "stock"]),
-    Usage: getXmlText(xmlItem, ["usage", "newused", "condition"]),
-    ModelYear: getXmlText(xmlItem, ["year", "model_year"]),
-    Manufacturer: getXmlText(xmlItem, ["manufacturer", "make"]),
-    ModelName: getXmlText(xmlItem, ["model_name", "model", "modelname"]),
+    Usage: getXmlText(xmlItem, ["usage", "newused"]),
+    ModelYear: year,
+    Manufacturer: manufacturer,
+    ModelName: modelName,
+    Title: [year, manufacturer, modelName].filter(Boolean).join(" "),
     ModelCode: getXmlText(xmlItem, ["model_code", "modelcode"]),
     Color: getXmlText(xmlItem, ["color", "colour"]),
     VIN: getXmlText(xmlItem, ["vin", "vin_number"]),
-    Price: getXmlText(xmlItem, ["price", "msrp"]),
-    ImageUrl: getXmlText(xmlItem, ["imageurl", "image_url"]),
+    // Price intentionally omitted - must come from Portal API only
+    Images: images,
+    ImageUrl: images[0] || "",
     Description: getXmlText(xmlItem, ["description", "dealernotes", "dealer_notes", "notes"]),
+    ModelType: getXmlText(xmlItem, ["model_type"]),
+    Location: getXmlText(xmlItem, ["location"]),
+    Updated: getXmlText(xmlItem, ["updated"]),
+    Miles: getXmlText(xmlItem, ["metric_value"]),
+    MilesType: getXmlText(xmlItem, ["metric_type"]),
   };
 }
 

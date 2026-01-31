@@ -11,6 +11,7 @@ module.exports = async (req, res) => {
     name,     // Customer name
     info,     // Additional info (phone, email, notes)
     hide,     // Comma-separated toggle IDs to hide
+    img,      // First image URL (from XML merge on client)
   } = req.query;
 
   if (!stockNumber) {
@@ -26,6 +27,7 @@ module.exports = async (req, res) => {
   if (name) quoteParams.set("name", name);
   if (info) quoteParams.set("info", info);
   if (hide) quoteParams.set("hide", hide);
+  if (img) quoteParams.set("img", img);
   
   const quoteUrl = `${baseUrl}/quote/?${quoteParams.toString()}`;
 

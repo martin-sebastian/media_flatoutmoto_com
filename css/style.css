@@ -36,12 +36,18 @@ body {
   hyphens: none;
 }
 
+
+.action-button-group button:nth-child(-n+3):not(:nth-child(4)) {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  margin-right: 1px;
+}
+
 .action-button-group .dropdown-toggle::after {
   border: none;
   /* Removes the default CSS triangle borders */
   content: "•••";
   /* Inserts new text/icon */
-  font-size: 0.8rem;
+  font-size: 1rem;
   vertical-align: middle;
 }
 .action-button-group.vertical-dots .dropdown-toggle::after {
@@ -910,8 +916,8 @@ th {
   font-weight: bold;
 }
 
-/* Make dropdown scrollable on mobile */
-@media (max-width: 768px) {
+/* Make dropdown scrollable on mobile (below lg breakpoint) */
+@media (max-width: 991.98px) {
   .search-suggestions-dropdown {
     min-width: 200px;
     width: 100%;

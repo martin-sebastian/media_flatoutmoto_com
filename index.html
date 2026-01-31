@@ -38,8 +38,14 @@
 
 
   <body data-bs-theme="dark">
+    <div class="alert alert-danger bg-danger border-0 rounded-0 mb-0 alert-dismissible fade show" role="alert">
+      <div class="container-fluid small">
+        <span class="fw-semibold text-light small">New Version V.1.1.26!</span> <small class="text-light">If you don't see this message you are on the old version.</small>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    </div>
       <header class="d-print-none">
-        <nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom border-danger bg-blur flex-nowrap justify-content-center">
+        <nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom border-secondary-subtle bg-blur flex-nowrap justify-content-center">
           <div class="container-fluid flex-nowrap justify-content-center">
             <div class="navbar-left d-flex flex-row align-items-center w-100">
               <a class="navbar-brand m-0 p-0" href="./">
@@ -84,7 +90,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
-          <form class="form-group d-flex flex-column justify-content-center align-items-center d-md-none" role="search" data-filter-group="mobile">
+          <form class="form-group d-flex flex-column d-lg-none" role="search" data-filter-group="mobile">
             <label for="searchFilterMobile" class="visually-hidden">Search</label>
             <input
               type="search"
@@ -127,15 +133,39 @@
               <option value="INHOUSE">In-House</option>
               <option value="STOCK">Stock</option>
             </select>
-            <div class="card px-2 my-2 text-start">
-              <div class="small text-muted px-2 pt-2">Columns</div>
-              <div class="form-check p-2">
-                <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumnMobile" checked>
-                <label class="form-check-label" for="toggleTypeColumnMobile">Type</label>
-              </div>
-              <div class="form-check p-2">
-                <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumnMobile" checked>
-                <label class="form-check-label" for="toggleColorColumnMobile">Color</label>
+            <div class="dropdown w-100 my-1">
+              <button class="form-select w-100 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Columns
+              </button>
+              <div class="dropdown-menu w-100 p-2">
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="image" id="toggleImageColumnMobile" checked>
+                  <label class="form-check-label" for="toggleImageColumnMobile">Image</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="usage" id="toggleUsageColumnMobile" checked>
+                  <label class="form-check-label" for="toggleUsageColumnMobile">Usage</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="price" id="togglePriceColumnMobile" checked>
+                  <label class="form-check-label" for="togglePriceColumnMobile">Price</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="updated" id="toggleUpdatedColumnMobile" checked>
+                  <label class="form-check-label" for="toggleUpdatedColumnMobile">Updated</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="photos" id="togglePhotosColumnMobile" checked>
+                  <label class="form-check-label" for="togglePhotosColumnMobile">Photos</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="type" id="toggleTypeColumnMobile" checked>
+                  <label class="form-check-label" for="toggleTypeColumnMobile">Type</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input column-toggle" type="checkbox" value="color" id="toggleColorColumnMobile" checked>
+                  <label class="form-check-label" for="toggleColorColumnMobile">Color</label>
+                </div>
               </div>
             </div>
             <label for="updatedFilterMobile" class="visually-hidden">Updated From:</label>
@@ -184,12 +214,12 @@
               </div>
               <div id="button-group-right" class="mb-1 d-flex flex-row justify-content-between align-items-center gap-2">
                 <button type="button" class="btn btn-danger btn-sm rounded-3 my-2 px-3" title="Create custom label" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
-                  <i class="bi bi-plus-lg h6 my-1 ms-1"></i> <span class="mx-1 pe-2 fw-normal">Custom Label</span>
+                  <i class="bi bi-plus-lg h6 my-1 ms-1"></i> <span class="mx-1 pe-2 fw-normal d-none d-lg-inline-block">Custom Label</span>
                 </button>
                 <button type="button" id="forceRefreshBtn" class="btn btn-outline-secondary btn-sm rounded-3 my-2 px-3" title="Refresh inventory data">
-                  <i class="bi bi-arrow-clockwise h6 my-1"></i> <span class="mx-1 pe-2 fw-normal">Refresh</span>
+                  <i class="bi bi-arrow-clockwise h6 my-1"></i> <span class="mx-1 pe-2 fw-normal d-none d-lg-inline-block">API Data</span>
                 </button>
-                <button id="sendToTvGridBtn" class="btn btn-danger btn-sm rounded-3 my-2 px-3" disabled title="Send selected items to TV Grid">
+                <button id="sendToTvGridBtn" class="btn btn-danger btn-sm rounded-3 my-2 px-3 d-none d-lg-block" disabled title="Send selected items to TV Grid">
                   <i class="bi bi-tv me-1"></i>TV Grid (<span id="selectedCount">0</span>)
                 </button>
               </div>
@@ -198,9 +228,9 @@
           <!-- END ELEMENT FOR DISPLAYING ROW COUNT -->
 
           <!-- FILTERS -->
-           <div class="bg-body-tertiary border border-secondary-subtle rounded-3 p-1 mb-2">
+           <div class="bg-body-tertiary border border-secondary-subtle rounded-3 p-1 mb-2 d-none d-lg-block">
               <form class="form-group form-group-sm d-flex justify-content-between" role="search" data-filter-group="desktop">
-                <div class="left-group d-flex align-items-center gap-2">
+                <div class="w-75 left-group d-flex align-items-center gap-2">
                   <label for="searchFilter" class="visually-hidden">Search</label>
                   <input
                     type="search"
@@ -247,7 +277,7 @@
                   </div>
                 </div>
 
-                <div class="left-group d-flex align-items-center gap-2">
+                <div class="w-25 text-end right-group d-flex align-items-center justify-content-end gap-2">
                   <div class="dropdown">
                     <button class="form-select form-select-sm text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                       Columns
@@ -289,9 +319,8 @@
 
           <!-- TABLE START -->
           <div class="table-scroll-container rounded-3 border border-1 border-secondary-subtle">
-            <div class="overflow-hidden">
-              <div class="table-responsive">
-                <table id="vehiclesTable" class="table table-borderless table-hover table-sm">
+              <div class="table-responsive w-100">
+                <table id="vehiclesTable" class="table table-borderless table-hover table-sm w-100">
                   <colgroup class="my-2">
                     <col style="width: 45px" data-column="select">
                     <col style="width: 75px" data-column="image">
@@ -333,7 +362,6 @@
                   </tbody>
                 </table>
               </div>
-            </div>
           </div>
           
           <!-- Pagination controls -->
@@ -371,8 +399,8 @@
 
 
       <!-- FOOTER -->
-      <footer class="bg-dark text-light d-sm-block d-md-none">
-        <div class="navbar fixed-bottom">
+      <footer class="bg-dark text-light d-none">
+        <div class="w-100 navbar fixed-bottom">
           <div class="mx-auto">
               <button class="btn btn-danger mx-1"><i class="bi bi-house fs-5"></i></button> 
               <button class="btn btn-danger mx-1"><i class="bi bi-calendar-event fs-5"></i></button> 

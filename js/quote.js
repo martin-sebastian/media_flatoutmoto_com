@@ -343,11 +343,36 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       return response.json();
     })
-    .then((data) => {
-      console.log("Data received:", data);
+    .then(async (data) => {
+      console.log("API Data received:", data);
       if (!data || !data.StockNumber) {
         throw new Error("Invalid data received from API");
       }
+
+      // Merge XML data over API data (XML is more up to date)
+      try {
+        const xmlData = await window.getCachedXmlVehicle(data.StockNumber);
+        if (xmlData) {
+          console.log("XML Data found, merging:", xmlData);
+          // Override API fields with XML data where available
+          if (xmlData.ModelYear) data.ModelYear = xmlData.ModelYear;
+          if (xmlData.Manufacturer) data.Manufacturer = xmlData.Manufacturer;
+          if (xmlData.ModelName) data.B50ModelName = xmlData.ModelName;
+          if (xmlData.Color) data.Color = xmlData.Color;
+          if (xmlData.VIN) data.VIN = xmlData.VIN;
+          if (xmlData.Usage) data.Usage = xmlData.Usage;
+          if (xmlData.Description) data.Description = xmlData.Description;
+          // Override first image if XML has images (API uses {ImgURL: "..."} format)
+          if (xmlData.Images?.length > 0 && data.Images?.length > 0) {
+            data.Images[0] = { ImgURL: xmlData.Images[0] };
+          }
+        }
+      } catch (e) {
+        console.warn("XML merge failed, using API data only:", e);
+      }
+
+      // Generate Title from current data (after XML merge)
+      data.Title = [data.ModelYear, data.Manufacturer, data.B50ModelName].filter(Boolean).join(" ");
 
       // Store data globally
       window.vehicleData = data;
@@ -364,7 +389,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       console.log("data.StockNumber", data.StockNumber);
       const stockNumber = data.StockNumber;
-      const prodTitle = data.ModelYear + " " + data.Manufacturer + " " + data.B50ModelName;
+      const prodTitle = data.Title;
       const arrivalDate = moment(data.EstimatedArrival).format("MM/DD/YYYY");
       const newUsed = data.Usage === "New" ? "New" : "Pre-Owned";
       const msrpDsrpLabel = data.Usage === "New" ? "MSRP" : "DSRP";
@@ -951,13 +976,12 @@ document.addEventListener("DOMContentLoaded", function () {
           <div class="sidebar-card-body">
             <!-- Search Input -->
             <div class="mb-3">
-            <label for="sidebarStockSearch" class="form-label m-0 small text-secondary">Search</label>
-            <div class="input-group input-group-sm">
-              <input type="text" class="form-control" id="sidebarStockSearch" placeholder="Enter stock number">
-              <button class="btn btn-outline-secondary" type="button" onclick="handleSidebarSearch(event)">
-                <i class="bi bi-search"></i>
-              </button>
-            </div>
+              <div class="input-group input-group-sm pt-3">
+                <input type="text" class="form-control" id="sidebarStockSearch" placeholder="Enter stock number">
+                <button class="btn btn-outline-secondary" type="button" onclick="handleSidebarSearch(event)">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
           </div>
         </div>
       `;
@@ -1157,7 +1181,7 @@ function showError(message) {
       <pre style="auto: none;">${new Error().stack}</pre>
       <p class="small">Search for a new stock number in the bar above, or return to inventory and click quote next to a vehicle.</p>
       <a href="../" class="btn btn-secondary">
-        <i class="bi bi-arrow-bar-left"></i> Back to Major Units
+        <i class="bi bi-database"></i> View Available Data
       </a>
     </div>
   `;
@@ -1182,15 +1206,21 @@ window.addEventListener("error", function (event) {
 });
 
 /**
- * Get current quote state (customer info and toggle states).
- * @returns {object} State object with name, info, and hidden sections.
+ * Get current quote state (customer info, toggle states, and first image URL).
+ * @returns {object} State object with name, info, hidden sections, and image.
  */
 function getQuoteState() {
   const state = {
     name: document.getElementById("inputFullName")?.value || "",
     info: document.getElementById("inputLastName")?.value || "",
     hide: [],
+    img: "", // First image URL (may be from XML merge)
   };
+
+  // Get the first image URL from the current vehicleData (includes XML merge)
+  if (window.vehicleData?.Images?.[0]?.ImgURL) {
+    state.img = window.vehicleData.Images[0].ImgURL;
+  }
 
   // Toggle IDs that map to sections
   const toggleIds = [
@@ -1235,6 +1265,7 @@ function buildSaveUrl(format = "jpeg") {
   if (state.name) params.set("name", state.name);
   if (state.info) params.set("info", state.info);
   if (state.hide.length > 0) params.set("hide", state.hide.join(","));
+  if (state.img) params.set("img", state.img);
   
   return `/api/generate-image?${params.toString()}`;
 }
@@ -1305,18 +1336,19 @@ function createExportButton() {
   dropdownContainer.id = "saveQuoteDropdown";
   dropdownContainer.className = "dropdown mt-2 me-2";
   dropdownContainer.innerHTML = `
-    <button class="btn btn-danger dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-      <i class="bi bi-download"></i>
-      <span class="d-none d-sm-inline">Save As...</span>
+    <button class="btn btn-danger dropdown-toggle d-flex flex-row align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="bi bi-save2 h5"></i>
+      <span class="d-none d-sm-inline">Save As ...</span> <span class="d-inline d-sm-none">Save</span>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('jpeg'); return false;">
+          <i class="bi bi-filetype-jpg me-2"></i> Save quote as .jpg
+        </a></li>
+        <li><hr class="dropdown-divider m-0"></li>
+        <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('png'); return false;">
+          <i class="bi bi-filetype-png me-2"></i> Save quote as .png
+        </a></li>
+      </ul>
     </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li><a class="dropdown-item" href="#" onclick="saveQuoteImage('jpeg'); return false;">
-        <i class="bi bi-image me-2"></i>Save as JPEG
-      </a></li>
-      <li><a class="dropdown-item" href="#" onclick="saveQuoteImage('png'); return false;">
-        <i class="bi bi-file-image me-2"></i>Save as PNG
-      </a></li>
-    </ul>
   `;
 
   // Add it to the right buttons container
@@ -1485,9 +1517,10 @@ function applyStateFromUrlParams() {
   const hideParam = params.get("hide");
   const nameParam = params.get("name");
   const infoParam = params.get("info");
+  const imgParam = params.get("img");
   
   // If no state params, return false to use localStorage instead
-  if (!hideParam && !nameParam && !infoParam) {
+  if (!hideParam && !nameParam && !infoParam && !imgParam) {
     return false;
   }
   
@@ -1544,7 +1577,16 @@ function applyStateFromUrlParams() {
     }
   }
   
-  console.log("Applied state from URL params:", { hide: hideParam, name: nameParam, info: infoParam });
+  // Apply first image URL from URL param (overrides API image with XML-sourced image)
+  if (imgParam) {
+    const firstCarouselImg = document.querySelector(".carousel-inner .carousel-item.active img");
+    if (firstCarouselImg) {
+      firstCarouselImg.src = imgParam;
+      console.log("Applied image URL from params:", imgParam);
+    }
+  }
+  
+  console.log("Applied state from URL params:", { hide: hideParam, name: nameParam, info: infoParam, img: imgParam ? "yes" : "no" });
   return true;
 }
 

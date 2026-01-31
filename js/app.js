@@ -93,9 +93,9 @@ const State = {
 	},
 };
 
-// Return the active filter group based on Bootstrap md breakpoint.
+// Return the active filter group based on Bootstrap lg breakpoint.
 function getActiveFilterGroupName() {
-	return window.matchMedia("(min-width: 768px)").matches ? "desktop" : "mobile";
+	return window.matchMedia("(min-width: 992px)").matches ? "desktop" : "mobile";
 }
 
 // Return all filter elements for a given filter name.
@@ -2014,19 +2014,19 @@ function updateTable() {
       </td>
 
 
-      <td class="text-center nowrap action-cell p-2">
-		<div class="action-button-group btn-group btn-group-sm rounded-pill" role="group" aria-label="Button group with nested dropdown">
-				<button type="button" id="keytagModalButton" class="btn btn-danger ps-2" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+      <td class="text-center nowrap action-cell p-1">
+		<div class="action-button-group btn-group btn-group-sm rounded-5" role="group" aria-label="Button group with nested dropdown">
+				<button type="button" id="keytagModalButton" class="btn btn-danger" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
 					<i class="bi bi-tag"></i>
-					<span class="action-button-label">KEY TAG</span>
+					<span class="action-button-label mx-1">KEY TAG</span>
 				</button>
-				<button type="button" class="btn btn-danger px-0" onclick="openHangTagsModal('${stockNumber}')">
+				<button type="button" id="hangTagModalButton" class="btn btn-danger px-2" onclick="openHangTagsModal('${stockNumber}')">
 					<i class="bi bi-tags"></i>
-					<span class="action-button-label">Hang TAG</span>
+					<span class="action-button-label px-2">Hang TAG</span>
 				</button>
-				<button type="button" class="btn btn-danger" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+				<button type="button" id="quotePageButtom" class="btn btn-danger" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
 					<i class="bi bi-card-image"></i>
-					<span class="action-button-label">Quote</span>
+					<span class="action-button-label px-2">Quote</span>
 				</button>
 
 			<div class="btn-group" role="group">
@@ -2035,24 +2035,24 @@ function updateTable() {
 				<ul class="dropdown-menu small text-capitalize text-start overflow-hidden">
 
 					<li class="small">
-						<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+						<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Print Key Tags" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
 							<i class="bi bi-tag dropdown-icon small me-2"></i>
-							Key Tags
+							Print Key Tags
 						</a>
 					</li>
 
 
 					<li class="small">
-						<a href="javascript:void(0);" class="dropdown-item pe-5" onclick="openHangTagsModal('${stockNumber}')">
+						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Print Hang Tags" onclick="openHangTagsModal('${stockNumber}')">
 							<i class="bi bi-tags dropdown-icon small me-2"></i>
-							Hang Tags
+							Print Hang Tags
 						</a>
 					</li>
 
 					<li><hr class="dropdown-divider m-0"></li>
 
 					<li class="small">
-						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Quote" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
 							<i class="bi bi-card-image dropdown-icon small me-2"></i>
 							Create Quote for SMS
 						</a>

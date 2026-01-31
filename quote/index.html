@@ -92,7 +92,7 @@
 					data-bs-target="#sidebarOffcanvas"
 					aria-controls="sidebarOffcanvas"
 				>
-					<i class="bi bi-gear h5"></i>
+					<i class="bi bi-gear h5"></i> 
 				</button>
 				<button
 					class="btn btn-secondary mt-2 me-2"
@@ -143,29 +143,56 @@
 						<h5 class="h6 small text-start">Add Customer to Quote</h5>
 					</div>
 					<div class="sidebar-card-body">
-						<form class="m-0">
+						<form class="m-0 py-1">
 							<div class="form-group">
-								<label for="inputFullName" class="form-label m-0 small text-secondary"
+								<label for="inputFullName" class="form-label m-0 small text-secondary visually-hidden"
 									>Full Name (optional)</label
 								>
 								<input
 									type="text"
-									class="form-control form-control-sm"
+									class="form-control form-control-sm mt-2"
 									id="inputFullName"
 									placeholder="Full Name"
 									x-model="firstName"
 								/>
-								<label for="inputLastName" class="form-label m-0 small text-secondary"
+								<label for="inputLastName" class="form-label m-0 mt-2 small text-secondary visually-hidden"
 									>Additional Info (optional)</label
 								>
-								<input
-									type="text"
-									class="form-control form-control-sm"
+								<textarea
+									class="form-control form-control-sm mt-2"
 									id="inputLastName"
 									placeholder="Phone, Email, Notes"
 									x-model="lastName"
+								></textarea>
+							</div>
+						</form>
+					</div>
+				</div>
+				<div id="addAccessoriesContainer" class="sidebar-card d-none">
+					<div class="sidebar-card-header">
+						<h5 class="h6 small text-start">Add Accessories to Quote</h5>
+					</div>
+					<div class="sidebar-card-body">
+						<form class="m-0 py-1">
+							<div class="form-group d-flex flex-row align-items-center">
+								
+								<input
+									type="text"
+									class="form-control form-control-sm w-75 me-2 mt-2"
+									id="inputAccessoryName"
+									placeholder="Accessory Name"
+									x-model="accessoryName"
+								/>
+			
+								<input
+									type="number"
+									class="form-control form-control-sm w-25 text-end ms-2 mt-2"
+									id="inputAccessoryPrice"
+									placeholder="$0.00"
+									x-model="accessoryPrice"
 								/>
 							</div>
+							<button class="btn btn-danger btn-sm mt-2" type="button" onclick="addAccessory()">Add Accessory</button>
 						</form>
 					</div>
 				</div>
@@ -177,7 +204,7 @@
 
 					<!-- Sidebar Footer -->
 					<div class="text-center small text-secondary mt-auto">
-						Version 1.0.1
+						
 					</div>
 				</div>
 			</div>

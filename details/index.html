@@ -112,7 +112,12 @@
 		<main class="container-fluid py-4">
 			<!-- Search -->
 			<div class="row mb-4">
-				<div class="col-md-6 mx-auto">
+				<div class="col-md-3">
+					<button class="btn btn-secondary" onclick="history.back(1)">
+						<i class="bi bi-arrow-left"></i> Back
+					</button>
+				</div>
+				<div class="col-md-6">
 					<div class="input-group">
 						<span class="input-group-text"><i class="bi bi-search"></i></span>
 						<input
@@ -126,6 +131,7 @@
 						</button>
 					</div>
 				</div>
+				<div class="col-md-3"></div>
 			</div>
 
 			<!-- Data Columns -->
@@ -251,7 +257,7 @@
 					.slice(0, 12)
 					.map(
 						(url) =>
-							`<img src="${url}" alt="Vehicle" onerror="this.style.display='none'" />`,
+							`<img src="${url}" alt="Vehicle" onerror="this.style.display='none'" />`
 					)
 					.join("");
 
@@ -408,7 +414,7 @@
 
 				try {
 					const response = await fetch(
-						`https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/${stockNumber}`,
+						`https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/${stockNumber}`
 					);
 
 					if (!response.ok) {
@@ -457,10 +463,10 @@
 				stockNumber = stockNumber.trim().toUpperCase();
 				document.getElementById("stockInput").value = stockNumber;
 
-				// Update URL
+				// Update URL without adding history entry
 				const url = new URL(window.location);
 				url.searchParams.set("s", stockNumber);
-				window.history.pushState({}, "", url);
+				window.history.replaceState({}, "", url);
 
 				// Show data container, hide empty state
 				document.getElementById("dataContainer").style.display = "flex";
