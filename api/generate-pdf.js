@@ -10,7 +10,7 @@ module.exports = async (req, res) => {
   }
 
   const isVercel = !!process.env.VERCEL;
-  const baseUrl = "https://media-flatoutmoto.vercel.app";
+  const baseUrl = isVercel ? "https://media-flatoutmoto.vercel.app" : "http://localhost:3001";
   const printUrl = `${baseUrl}/print/?s=${encodeURIComponent(stockNumber)}`;
 
   let browser = null;

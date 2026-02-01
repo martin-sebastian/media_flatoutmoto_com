@@ -231,9 +231,11 @@
 				if (Array.isArray(data.Images)) {
 					data.Images.forEach((img) => {
 						if (typeof img === "string") images.push(img);
+						else if (img && img.ImgURL) images.push(img.ImgURL);
 						else if (img && img.Url) images.push(img.Url);
 						else if (img && img.url) images.push(img.url);
 						else if (img && img.ImageUrl) images.push(img.ImageUrl);
+						else if (img && img.ImageURL) images.push(img.ImageURL);
 					});
 				}
 

@@ -964,19 +964,21 @@ document.addEventListener("DOMContentLoaded", function () {
       
       // Search and Controls Card template
       const searchControlsTemplate = `
-        <div class="search-controls-container sidebar-card flex-column flex-nowrap text-start">
-          <div class="sidebar-card-header">
-            <h5 class="h6 small text-start">Quote Another Vehicle</h5>
-          </div>
-          <div class="sidebar-card-body">
-            <!-- Search Input -->
-            <div class="mb-3">
-              <div class="input-group input-group-sm pt-3">
-                <input type="text" class="form-control" id="sidebarStockSearch" placeholder="Enter stock number">
-                <button class="btn btn-outline-secondary" type="button" onclick="handleSidebarSearch(event)">
-                  <i class="bi bi-search"></i>
-                </button>
-              </div>
+        <div class="search-controls-container-container position-absolute w-100 mt-5 pt-5 h-25 top-0 bottom-0 start-0 end-0">
+          <div class="search-controls-container sidebar-card mx-auto my-auto flex-column align-items-center justify-content-center" style="width: 350px;">
+            <div class="sidebar-card-header">
+              <h5 class="h6 small text-center">Quote Another Vehicle</h5>
+            </div>
+            <div class="sidebar-card-body text-center">
+              <!-- Search Input -->
+              <div class="mb-3">
+                <div class="input-group input-group-sm pt-3">
+                  <input type="text" class="form-control" id="sidebarStockSearch" placeholder="Enter stock number">
+                  <button class="btn btn-outline-secondary" type="button" onclick="handleSidebarSearch(event)">
+                    <i class="bi bi-search"></i>
+                  </button>
+                </div>
+            </div>
           </div>
         </div>
       `;
@@ -1272,7 +1274,7 @@ function buildSaveUrl(format = "jpeg") {
 }
 
 /** Default button HTML for save dropdown. */
-const SAVE_BUTTON_HTML = `<i class="bi bi-save2 h5 m-0"></i><span class="d-none d-sm-inline">Save As</span>`;
+const SAVE_BUTTON_HTML = `<i class="bi bi-save2"></i><span class="d-none d-md-inline">Save As</span>`;
 
 /**
  * Trigger save with current state. Shows loading spinner during generation.
@@ -1339,18 +1341,18 @@ function createExportButton() {
   // Create dropdown container
   const dropdownContainer = document.createElement("div");
   dropdownContainer.id = "saveQuoteDropdown";
-  dropdownContainer.className = "dropdown mt-2 me-2";
+  dropdownContainer.className = "dropdown";
   dropdownContainer.innerHTML = `
-    <button class="btn btn-danger dropdown-toggle d-flex flex-row align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="btn btn-danger text-light dropdown-toggle d-flex flex-row align-items-center gap-2 px-4 mx-4" type="button" data-bs-toggle="dropdown" aria-expanded="false">
       ${SAVE_BUTTON_HTML}
     </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('jpeg'); return false;">
-        <i class="bi bi-filetype-jpg me-2"></i> Save quote as .jpg
+    <ul class="dropdown-menu dropdown-menu-end bg-light text-dark">
+      <li class="p-2"><a class="dropdown-item fs-6 p-2 pe-4" href="#" onclick="saveQuoteImage('jpeg'); return false;">
+        <i class="bi bi-filetype-jpg me-2"></i> Save quote as jpeg
       </a></li>
       <li><hr class="dropdown-divider m-0"></li>
-      <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('png'); return false;">
-        <i class="bi bi-filetype-png me-2"></i> Save quote as .png
+      <li class="p-2"><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('png'); return false;">
+        <i class="bi bi-filetype-png me-2"></i> Save quote as png
       </a></li>
     </ul>
   `;
@@ -1373,18 +1375,18 @@ function createFloatingZoomControls() {
   zoomControls.id = "floatingZoomControls";
   zoomControls.className = "position-fixed bottom-0 end-0 m-3 z-3";
   zoomControls.innerHTML = `
-    <div class="bg-light border rounded p-2 shadow-sm">
+    <div class="bg-tertiary border-0 rounded p-2 shadow-sm">
       <div class="text-center mb-2">
-        <small class="text-muted"><span id="zoomLevel" class="small">100%</span></small>
+        <small class="text-secondary"><span id="zoomLevel" class="small">100%</span></small>
       </div>
       <div class="btn-group-vertical" role="group">
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="adjustZoom(0.1)" title="Zoom In">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustZoom(0.1)" title="Zoom In">
           <i class="bi bi-zoom-in"></i>
         </button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetZoom()" title="Reset Zoom">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetZoom()" title="Reset Zoom">
           <i class="bi bi-arrow-clockwise"></i>
         </button>
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="adjustZoom(-0.1)" title="Zoom Out">
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="adjustZoom(-0.1)" title="Zoom Out">
           <i class="bi bi-zoom-out"></i>
         </button>
       </div>

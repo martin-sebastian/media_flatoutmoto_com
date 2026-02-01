@@ -73,7 +73,7 @@
 		<link rel="stylesheet" href="../css/quote.css" />
 	</head>
 	<body class="dots">
-		<div id="topBar" class="fixed-top d-flex flex-row justify-content-between bg-light border-bottom">
+		<div id="topBar" class="fixed-top d-flex flex-row align-items-start justify-content-between border-0 py-2">
 			<a href="../" class="float-start my-3 px-2 ms-2">
 				<img
 					src="../img/fom-app-logo-01.svg"
@@ -83,10 +83,14 @@
 					class="logo-full"
 				/>
 			</a>
+			<!-- Search Controls Container (added above visibility toggles) -->
+				<div id="searchControlsContainer" class="collapse text-center">
+					<!-- This will be populated by JavaScript -->
+				</div>
 			<!-- Floating Menu Button -->
-			<div id="rightButtons" class="d-flex flex-row justify-content-end">
+			<div id="rightButtons" class="d-flex flex-row align-items-center">
 				<button
-					class="btn btn-danger mt-2 me-2"
+					class="btn btn-danger me-1"
 					type="button"
 					data-bs-toggle="offcanvas"
 					data-bs-target="#sidebarOffcanvas"
@@ -95,11 +99,20 @@
 					<i class="bi bi-gear h5"></i> 
 				</button>
 				<button
-					class="btn btn-secondary mt-2 me-2"
+					class="btn btn-secondary me-1"
+					type="button"
+					data-bs-toggle="collapse"
+					data-bs-target="#searchControlsContainer"
+					aria-controls="searchControlsContainer"
+				>
+					<i class="bi bi-search h6"></i>
+				</button>
+				<button
+					class="btn btn-secondary me-1"
 					type="button"
 					onclick="history.back()"
 				>
-					Cancel
+					<i class="bi bi-x-lg me-1"></i> Cancel
 				</button>
 			</div>
 		</div>
@@ -126,10 +139,7 @@
 			<div
 				class="offcanvas-body d-flex flex-column flex-shrink-0 p-2 overflow-hidden"
 			>
-				<!-- Search Controls Container (added above visibility toggles) -->
-				<div id="searchControlsContainer">
-					<!-- This will be populated by JavaScript -->
-				</div>
+				
 				<div id="customerInfoContainer" class="sidebar-card">
 					<div class="sidebar-card-header">
 						<h5 class="h6 small text-start">Add Customer to Quote</h5>
@@ -191,10 +201,10 @@
 			
 			
 			<!-- Full-Width Main Content Area -->
-			<div class="d-flex flex-column vh-100 overflow-hidden w-100 bg-dark text-lights">
+			<div class="dots d-flex flex-column vh-100 overflow-hidden w-100 bg-dark text-lights">
 				<!-- QUOTE CONTENT TEMPLATE -->
 				<main
-					class="overflow-y-auto d-flex flex-column align-items-center justify-content-center"
+					class="overflow-y-auto d-flex flex-column align-items-center justify-content-start"
 				>
 					<div id="pageContainer" class="page-container zoom-container">
 						<div class="capture-container">
