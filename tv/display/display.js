@@ -645,7 +645,7 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
   const middleContent = renderMiddleDefault(data, displayData, customText);
 
   setDisplayContent(`
-    <div class="tv-layout-portrait">
+    <div class="tv-layout-portrait mx-auto">
       <div class="tv-skeleton">
         <div class="tv-region-carousel">
           ${carouselMarkup}
@@ -699,7 +699,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   const showBothPrices = isNew && hasDiscount;
 
   setDisplayContent(`
-    <div class="tv-layout-landscape">
+    <div class="tv-layout-landscape mx-auto">
       <div class="tv-landscape-skeleton">
         <!-- Top-left: Carousel -->
         <div class="tv-region-carousel">
