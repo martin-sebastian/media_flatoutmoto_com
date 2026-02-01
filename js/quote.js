@@ -1270,6 +1270,9 @@ function buildSaveUrl(format = "jpeg") {
   return `/api/generate-image?${params.toString()}`;
 }
 
+/** Default button HTML for save dropdown. */
+const SAVE_BUTTON_HTML = `<i class="bi bi-save2 h5 m-0"></i><span class="d-none d-sm-inline">Save As</span>`;
+
 /**
  * Trigger save with current state. Shows loading spinner during generation.
  * @param {string} format - Image format.
@@ -1277,7 +1280,6 @@ function buildSaveUrl(format = "jpeg") {
 async function saveQuoteImage(format = "jpeg") {
   const dropdown = document.getElementById("saveQuoteDropdown");
   const btn = dropdown?.querySelector(".dropdown-toggle");
-  const originalHtml = btn?.innerHTML;
   
   // Show loading state
   if (btn) {
@@ -1313,9 +1315,9 @@ async function saveQuoteImage(format = "jpeg") {
     console.error("Save error:", error);
     alert("Failed to generate image. Please try again.");
   } finally {
-    // Restore button
+    // Restore button to ready state
     if (btn) {
-      btn.innerHTML = originalHtml;
+      btn.innerHTML = SAVE_BUTTON_HTML;
       btn.disabled = false;
     }
   }
@@ -1337,18 +1339,17 @@ function createExportButton() {
   dropdownContainer.className = "dropdown mt-2 me-2";
   dropdownContainer.innerHTML = `
     <button class="btn btn-danger dropdown-toggle d-flex flex-row align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-      <i class="bi bi-save2 h5"></i>
-      <span class="d-none d-sm-inline">Save As ...</span> <span class="d-inline d-sm-none">Save</span>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('jpeg'); return false;">
-          <i class="bi bi-filetype-jpg me-2"></i> Save quote as .jpg
-        </a></li>
-        <li><hr class="dropdown-divider m-0"></li>
-        <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('png'); return false;">
-          <i class="bi bi-filetype-png me-2"></i> Save quote as .png
-        </a></li>
-      </ul>
+      ${SAVE_BUTTON_HTML}
     </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('jpeg'); return false;">
+        <i class="bi bi-filetype-jpg me-2"></i> Save quote as .jpg
+      </a></li>
+      <li><hr class="dropdown-divider m-0"></li>
+      <li><a class="dropdown-item fs-6 p-2" href="#" onclick="saveQuoteImage('png'); return false;">
+        <i class="bi bi-filetype-png me-2"></i> Save quote as .png
+      </a></li>
+    </ul>
   `;
 
   // Add it to the right buttons container
