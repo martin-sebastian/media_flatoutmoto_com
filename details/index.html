@@ -158,6 +158,7 @@
 								id="xmlThumbnails"
 								class="thumbnail-row mb-3"
 								style="display: none"></div>
+							<div id="xmlParsedDesc" style="display: none"></div>
 							<dl class="data-list" id="xmlData" style="display: none"></dl>
 							<div
 								id="xmlError"
@@ -189,6 +190,7 @@
 								id="apiThumbnails"
 								class="thumbnail-row mb-3"
 								style="display: none"></div>
+							<div id="apiParsedDesc" style="display: none"></div>
 							<dl class="data-list" id="apiData" style="display: none"></dl>
 							<div
 								id="apiError"
@@ -342,6 +344,108 @@
 			}
 
 			/**
+			 * Parse B50Desc field into Dealer Notes and Tech Specs.
+			 * Splits at first <b> tag - dealer notes before, tech specs after.
+			 * @param {string} desc - B50Desc field content (HTML).
+			 * @returns {{dealerNotes: string, techSpecs: Array<{label: string, value: string}>}}
+			 */
+			function parseB50Desc(desc) {
+				if (!desc) return { dealerNotes: "", techSpecs: [] };
+
+				// Find the first <b> tag - everything before is dealer notes
+				const firstBoldIndex = desc.search(/<b>/i);
+
+				let dealerNotes = "";
+				let techSpecsHtml = "";
+
+				if (firstBoldIndex > 0) {
+					// Split at first <b> tag
+					dealerNotes = desc.substring(0, firstBoldIndex);
+					techSpecsHtml = desc.substring(firstBoldIndex);
+				} else if (firstBoldIndex === 0) {
+					// Starts with tech specs, no dealer notes
+					techSpecsHtml = desc;
+				} else {
+					// No <b> tags, everything is dealer notes
+					dealerNotes = desc;
+				}
+
+				// Clean dealer notes - strip HTML tags
+				dealerNotes = dealerNotes
+					.replace(/<br\s*\/?>/gi, " ")
+					.replace(/<[^>]+>/g, "")
+					.replace(/\s+/g, " ")
+					.trim();
+
+				// Parse tech specs from <b>Label:</b> Value pattern
+				const techSpecs = [];
+				const specRegex =
+					/<b>([^<]+):<\/b>\s*([^<]+?)(?:<\/br>|<br\s*\/?>|<b>|$)/gi;
+				let match;
+
+				while ((match = specRegex.exec(techSpecsHtml)) !== null) {
+					const label = match[1].trim();
+					const value = match[2].trim();
+					if (label && value) {
+						techSpecs.push({ label, value });
+					}
+				}
+
+				return { dealerNotes, techSpecs };
+			}
+
+			/**
+			 * Render parsed B50Desc sections.
+			 * @param {string} desc - B50Desc field content.
+			 * @returns {string} HTML string with Dealer Notes and Tech Specs sections.
+			 */
+			function renderParsedDesc(desc) {
+				const { dealerNotes, techSpecs } = parseB50Desc(desc);
+				let html = "";
+
+				if (dealerNotes) {
+					html += `
+						<div class="card mb-3 border-warning">
+							<div class="card-header bg-warning bg-opacity-25">
+								<i class="bi bi-sticky me-2"></i>Dealer Notes
+							</div>
+							<div class="card-body small">
+								<p class="mb-0">${escapeHtml(dealerNotes)}</p>
+							</div>
+						</div>
+					`;
+				}
+
+				if (techSpecs.length > 0) {
+					const specsHtml = techSpecs
+						.map(
+							(s) => `
+						<tr>
+							<td class="fw-semibold text-nowrap">${escapeHtml(s.label)}</td>
+							<td>${escapeHtml(s.value)}</td>
+						</tr>
+					`
+						)
+						.join("");
+
+					html += `
+						<div class="card mb-3 border-info">
+							<div class="card-header bg-info bg-opacity-25">
+								<i class="bi bi-gear me-2"></i>Tech Specs
+							</div>
+							<div class="card-body p-0">
+								<table class="table table-sm table-striped mb-0 small">
+									<tbody>${specsHtml}</tbody>
+								</table>
+							</div>
+						</div>
+					`;
+				}
+
+				return html;
+			}
+
+			/**
 			 * Load XML cache data for stock number.
 			 * @param {string} stockNumber - Stock number to look up.
 			 */
@@ -349,12 +453,14 @@
 				const loading = document.getElementById("xmlLoading");
 				const dataEl = document.getElementById("xmlData");
 				const thumbsEl = document.getElementById("xmlThumbnails");
+				const parsedDescEl = document.getElementById("xmlParsedDesc");
 				const errorEl = document.getElementById("xmlError");
 				const statusEl = document.getElementById("xmlStatus");
 
 				loading.style.display = "block";
 				dataEl.style.display = "none";
 				thumbsEl.style.display = "none";
+				parsedDescEl.style.display = "none";
 				errorEl.style.display = "none";
 				statusEl.className = "badge bg-secondary";
 				statusEl.textContent = "Loading...";
@@ -372,6 +478,15 @@
 						if (images.length > 0) {
 							thumbsEl.innerHTML = renderThumbnails(images);
 							thumbsEl.style.display = "flex";
+						}
+
+						// Parse and display Description as Dealer Notes and Tech Specs
+						if (data.Description) {
+							const parsedHtml = renderParsedDesc(data.Description);
+							if (parsedHtml) {
+								parsedDescEl.innerHTML = parsedHtml;
+								parsedDescEl.style.display = "block";
+							}
 						}
 
 						dataEl.innerHTML = renderDataList(data);
@@ -404,12 +519,14 @@
 				const loading = document.getElementById("apiLoading");
 				const dataEl = document.getElementById("apiData");
 				const thumbsEl = document.getElementById("apiThumbnails");
+				const parsedDescEl = document.getElementById("apiParsedDesc");
 				const errorEl = document.getElementById("apiError");
 				const statusEl = document.getElementById("apiStatus");
 
 				loading.style.display = "block";
 				dataEl.style.display = "none";
 				thumbsEl.style.display = "none";
+				parsedDescEl.style.display = "none";
 				errorEl.style.display = "none";
 				statusEl.className = "badge bg-secondary";
 				statusEl.textContent = "Loading...";
@@ -431,6 +548,15 @@
 						if (images.length > 0) {
 							thumbsEl.innerHTML = renderThumbnails(images);
 							thumbsEl.style.display = "flex";
+						}
+
+						// Parse and display B50Desc as Dealer Notes and Tech Specs
+						if (data.B50Desc) {
+							const parsedHtml = renderParsedDesc(data.B50Desc);
+							if (parsedHtml) {
+								parsedDescEl.innerHTML = parsedHtml;
+								parsedDescEl.style.display = "block";
+							}
 						}
 
 						dataEl.innerHTML = renderDataList(data);
