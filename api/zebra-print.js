@@ -1,5 +1,5 @@
 /**
- * Sends ZPL to a Zebra label printer at a given IP (port 9100).
+ * Sends ZPL to a Zebra label printer via raw TCP (no HTTP) on port 9100.
  * Use when the server can reach the printer (e.g. local dev on same network).
  * For cloud deployment, run scripts/zebra-relay.js on a machine that can reach the printer.
  */

@@ -476,8 +476,8 @@
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               <button type="button" id="printKeyTagBtn" class="btn btn-danger"><i class="bi bi-printer me-2"></i>Print Key Tag</button>
               <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
-                <label class="form-label mb-0 small text-nowrap">Zebra IP:</label>
-                <input type="text" id="zebraPrinterIp" class="form-control form-control-sm" placeholder="192.168.1.74" style="width:11rem;" inputmode="decimal" title="Printer IP on your network" />
+                <label class="form-label mb-0 small text-nowrap">Zebra IP <span class="text-muted fw-normal">(raw, port 9100)</span>:</label>
+                <input type="text" id="zebraPrinterIp" class="form-control form-control-sm" placeholder="192.168.1.74" style="width:11rem;" inputmode="decimal" title="Printer IP; ZPL sent via raw TCP on port 9100" />
                 <input type="text" id="zebraEndpoint" class="form-control form-control-sm" placeholder="Relay URL (optional)" style="width:10rem;" title="Leave blank to use app API. Or set e.g. http://localhost:9101/print if using the relay." />
                 <button type="button" id="printZebraKeyTagBtn" class="btn btn-outline-danger btn-sm"><i class="bi bi-printer me-1"></i>Print to Zebra</button>
               </div>
