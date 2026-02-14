@@ -74,6 +74,18 @@ body.tv-body {
   box-sizing: border-box;
 }
 
+/* WYSIWYG standard features - scrollable, supports HTML */
+.tv-standard-features {
+  overflow-y: auto;
+  max-height: 100%;
+  line-height: 1.3;
+}
+.tv-standard-features p,
+.tv-standard-features ul,
+.tv-standard-features li {
+  margin-bottom: 0.25em;
+}
+
 .tv-carousel {
   overflow: hidden;
   width: 100%;
@@ -130,6 +142,9 @@ body.tv-body {
   height: 592px;
   overflow: hidden;
   border-radius: 16px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 /* Middle content grid: 2x2 with gaps (default) */
@@ -216,22 +231,35 @@ body.tv-body {
   border-radius: 16px;
 }
 
-/* Video styling */
+/* Video styling - fill entire card */
 .tv-layout-portrait .tv-region-video .tv-video-frame {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   width: 100%;
   height: 100%;
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
 }
 
-.tv-layout-portrait .tv-region-video .tv-video-frame img,
-.tv-layout-portrait .tv-region-video .tv-video-frame video,
-.tv-layout-portrait .tv-region-video .tv-video-frame iframe {
+.tv-layout-portrait .tv-region-video .tv-video-frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   border-radius: 16px;
+  display: block;
+}
+
+/* YouTube iframe: fill card, minimal crop (16:9) */
+.tv-layout-portrait .tv-region-video .tv-video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  border: 0;
 }
 
 /* Portrait typography - readable from distance */
@@ -325,6 +353,9 @@ body.tv-body {
   grid-area: 2 / 2 / 3 / 3;
   border-radius: 16px;
   overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 /* Stacked box styling - reuses portrait .tv-box */
@@ -347,20 +378,34 @@ body.tv-body {
   border-radius: 16px;
 }
 
-/* Video in landscape */
+/* Video in landscape - fill entire card */
 .tv-layout-landscape .tv-region-video .tv-video-frame {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   width: 100%;
   height: 100%;
   border-radius: 16px;
+  overflow: hidden;
+  position: relative;
 }
 
-.tv-layout-landscape .tv-region-video .tv-video-frame img,
-.tv-layout-landscape .tv-region-video .tv-video-frame video,
-.tv-layout-landscape .tv-region-video .tv-video-frame iframe {
+.tv-layout-landscape .tv-region-video .tv-video-frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   border-radius: 16px;
+  display: block;
+}
+
+.tv-layout-landscape .tv-region-video .tv-video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  border: 0;
 }
 
 /* Landscape typography - readable from distance */
@@ -634,62 +679,41 @@ body.tv-body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.tv-preview-stage {
-  width: 100%;
-  height: 100%;
-  border-radius: 14px;
-  background: none;
-  overflow: auto;
-  padding: 1rem;
+/* Zoomable preview box - like hang tags 8.5x11 */
+.tv-preview-zoomable-wrapper {
+  min-height: 100%;
 }
 
-.tv-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  align-items: start;
-}
-
-.tv-preview-card.is-hidden {
-  display: none;
-}
-
-.tv-preview-card {
-  display: flex;
-  flex-direction: column;
-}
-
-.tv-preview-frame {
-  width: 100%;
-  max-height: calc(100vh - 220px);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
+.tv-preview-zoomable {
+  width: 1920px;
+  height: 1080px;
+  flex-shrink: 0;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
   background: #0f1115;
+  transform-origin: top center;
+  transition: transform 150ms ease;
 }
 
-.tv-preview-frame.tv-preview-portrait {
-  height: calc(100vh - 220px);
-  aspect-ratio: 9 / 16;
-  width: auto;
-  margin: 0 auto;
+.tv-preview-zoomable.tv-preview-portrait {
+  width: 1080px;
+  height: 1920px;
+  transform-origin: top center;
 }
 
-.tv-preview-frame.tv-preview-landscape {
-  aspect-ratio: 16 / 9;
-  width: min(96vw, calc((100vh - 220px) * 16 / 9));
-  margin: 0 auto;
+.tv-preview-zoomable .tv-preview-frame {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: 0;
 }
 
-.tv-preview-frame iframe {
+.tv-preview-zoomable .tv-preview-frame iframe {
   width: 100%;
   height: 100%;
   border: 0;
   background: #000;
-  transform-origin: top center;
-  transition: transform 150ms ease;
 }
 
 .tv-preview-box {

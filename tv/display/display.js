@@ -525,7 +525,11 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
   
   // Contact info
   const phone = apiData?.Phone || "";
-  
+  const standardFeatures = apiData?.StandardFeatures || apiData?.B50StandardFeatures || apiData?.standardFeatures || "";
+  if (!standardFeatures && apiData) {
+    console.debug("TV: No StandardFeatures in API. Keys:", Object.keys(apiData).filter((k) => /standard|feature|desc|b50/i.test(k)));
+  }
+
   return {
     specialValue,
     msrpValue,
@@ -537,6 +541,7 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
     accent1,
     accent2,
     phone,
+    standardFeatures,
     featureMarkup: renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo),
     feesMarkup: renderLineItems(apiData?.OTDItems || []),
     rebatesMarkup: renderLineItems(apiData?.MfgRebatesFrontEnd || [], true),
@@ -549,7 +554,7 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
  * Render middle content for "default" template (4 boxes).
  */
 function renderMiddleDefault(data, displayData, customText) {
-  const { specialValue, msrpValue, hasDiscount, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, featureMarkup, feesMarkup, rebatesMarkup, discountMarkup, accessoryMarkup } = displayData;
+  const { specialValue, msrpValue, hasDiscount, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, standardFeatures, featureMarkup, feesMarkup, rebatesMarkup, discountMarkup, accessoryMarkup } = displayData;
   
   // Rule: show MSRP crossed out only if New AND MSRP > sale price
   const isNew = (data.usage || "").toLowerCase() === "new";
@@ -610,6 +615,10 @@ function renderMiddleDefault(data, displayData, customText) {
         ${totalValue ? `<div class="fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
       </div>
       <div class="tv-box p-3">
+        ${standardFeatures ? `<div class="tv-standard-features text-secondary mb-0">${standardFeatures}</div>` : ""}
+
+      </div>
+      <div class="tv-box d-none">
         ${customText ? `<div class="text-secondary mb-2">${customText}</div>` : ""}
         ${featureMarkup || ""}
       </div>
@@ -687,6 +696,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
     accent1,
     accent2,
     phone,
+    standardFeatures,
     featureMarkup,
     feesMarkup,
     rebatesMarkup,
@@ -760,6 +770,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
         <div class="tv-region-left-stack">
           <!-- Features Box -->
           <div class="tv-box p-3 d-flex flex-column">
+            ${standardFeatures ? `<div class="tv-standard-features text-secondary small mb-2">${standardFeatures}</div>` : ""}
             ${customText ? `<div class="mb-2">${customText}</div>` : ""}
             ${featureMarkup ? `<div class="flex-grow-1 overflow-hidden">${featureMarkup}</div>` : ""}
           </div>

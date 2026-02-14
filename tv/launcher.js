@@ -29,7 +29,7 @@ function getLauncherDom() {
     themeIcon: document.getElementById("theme-icon"),
     previewDisplayModal: document.getElementById("previewDisplayModal"),
     previewDisplayFrameLandscape: document.getElementById("previewDisplayFrameLandscape"),
-    previewLandscapeCard: document.getElementById("previewLandscapeCard"),
+    previewZoomable: document.getElementById("tvPreviewZoomable"),
     previewZoomOutBtn: document.getElementById("previewZoomOutBtn"),
     previewZoomResetBtn: document.getElementById("previewZoomResetBtn"),
     previewZoomInBtn: document.getElementById("previewZoomInBtn"),
@@ -469,14 +469,37 @@ function getPreviewModalInstance() {
 }
 
 /**
- * Clamp and apply zoom for the preview iframe.
- * @param {number} value Zoom scale value.
+ * Apply zoom to the preview zoomable container (like hang tags).
+ * @param {number} scale Zoom scale value.
  */
-function setPreviewZoom(value) {
-  previewZoomLevel = Math.min(1.4, Math.max(0.6, value));
-  if (DOM.previewDisplayFrameLandscape) {
-    DOM.previewDisplayFrameLandscape.style.transform = `scale(${previewZoomLevel})`;
+function applyPreviewZoom(scale) {
+  previewZoomLevel = Math.min(1.5, Math.max(0.15, scale));
+  const el = DOM.previewZoomable;
+  if (!el) return;
+  if (window.CSS?.supports?.("zoom: 1")) {
+    el.style.zoom = previewZoomLevel;
+    el.style.transform = "";
+  } else {
+    el.style.zoom = "";
+    el.style.transform = `scale(${previewZoomLevel})`;
   }
+}
+
+/**
+ * Calculate fit-to-screen zoom for the preview.
+ * @returns {number} Zoom scale.
+ */
+function getPreviewFitZoom() {
+  const el = DOM.previewZoomable;
+  if (!el) return 1;
+  const padding = 48;
+  const availableW = window.innerWidth - padding;
+  const availableH = window.innerHeight - 220;
+  const isPortrait = el.classList.contains("tv-preview-portrait");
+  const baseW = isPortrait ? 1080 : 1920;
+  const baseH = isPortrait ? 1920 : 1080;
+  const scale = Math.min(availableW / baseW, availableH / baseH);
+  return Math.max(0.15, Math.min(1.2, scale));
 }
 
 /**
@@ -484,7 +507,7 @@ function setPreviewZoom(value) {
  * @param {number} delta Zoom increment.
  */
 function updatePreviewZoom(delta) {
-  setPreviewZoom(previewZoomLevel + delta);
+  applyPreviewZoom(previewZoomLevel + delta);
 }
 
 /**
@@ -498,7 +521,10 @@ function openPreviewModal() {
   if (DOM.previewDisplayFrameLandscape) {
     DOM.previewDisplayFrameLandscape.src = previewUrl;
   }
-  setPreviewZoom(1);
+  if (DOM.previewZoomable) {
+    DOM.previewZoomable.classList.toggle("tv-preview-portrait", layout === "portrait");
+  }
+  applyPreviewZoom(getPreviewFitZoom());
   const modal = getPreviewModalInstance();
   if (modal) modal.show();
 }
@@ -523,7 +549,7 @@ function initializePreviewControls() {
     DOM.previewZoomOutBtn.addEventListener("click", () => updatePreviewZoom(-0.1));
   }
   if (DOM.previewZoomResetBtn) {
-    DOM.previewZoomResetBtn.addEventListener("click", () => setPreviewZoom(1));
+    DOM.previewZoomResetBtn.addEventListener("click", () => applyPreviewZoom(getPreviewFitZoom()));
   }
   if (DOM.previewOpenBtn) {
     DOM.previewOpenBtn.addEventListener("click", openPreviewInNewTab);

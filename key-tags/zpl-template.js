@@ -1,14 +1,15 @@
 /**
  * Key tag ZPL template config. Used by key-tag.js keyTagToZpl().
- * Edit this file to change label size, margins, font, or which fields print and in what order.
+ * Portrait: 1.5" wide × 2" tall (printable area); padding keeps content inside.
+ * Printer config (192.168.1.74): 8/MM (203 DPI), ZPL II.
  */
 window.ZplKeyTagTemplate = {
   dpi: 203,
-  widthIn: 1.625,
-  heightIn: 2.125,
-  marginX: 10,
-  marginY: 15,
-  lineH: 22,
+  widthIn: 1.5,
+  heightIn: 2,
+  marginX: 12,
+  marginY: 12,
+  lineH: 24,
   fontH: 18,
   fontW: 18,
   /** Data keys in display order (must match keys on the vehicle data object). */

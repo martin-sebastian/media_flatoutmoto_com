@@ -286,16 +286,14 @@
 							data-bs-dismiss="modal"
 							aria-label="Close"></button>
 					</div>
-					<div class="modal-body">
-						<div class="tv-preview-stage overflow-y-auto">
-							<div class="tv-preview-grid">
-								<div class="tv-preview-card" id="previewLandscapeCard">
-									<div class="tv-preview-frame tv-preview-landscape">
-										<iframe
-											id="previewDisplayFrameLandscape"
-											title="TV Display Preview Landscape"
-											loading="lazy"></iframe>
-									</div>
+					<div class="modal-body overflow-auto p-3">
+						<div class="tv-preview-zoomable-wrapper d-flex justify-content-center align-items-start min-vh-100">
+							<div id="tvPreviewZoomable" class="tv-preview-zoomable">
+								<div class="tv-preview-frame tv-preview-landscape">
+									<iframe
+										id="previewDisplayFrameLandscape"
+										title="TV Display Preview"
+										loading="lazy"></iframe>
 								</div>
 							</div>
 						</div>
@@ -305,20 +303,23 @@
 							<button
 								type="button"
 								class="btn btn-outline-light btn-sm"
-								id="previewZoomOutBtn">
-								<i class="bi bi-dash"></i>
+								id="previewZoomOutBtn"
+								title="Zoom out">
+								<i class="bi bi-zoom-out"></i>
 							</button>
 							<button
 								type="button"
 								class="btn btn-outline-light btn-sm"
-								id="previewZoomResetBtn">
-								Reset
+								id="previewZoomResetBtn"
+								title="Fit to screen">
+								Fit
 							</button>
 							<button
 								type="button"
 								class="btn btn-outline-light btn-sm"
-								id="previewZoomInBtn">
-								<i class="bi bi-plus"></i>
+								id="previewZoomInBtn"
+								title="Zoom in">
+								<i class="bi bi-zoom-in"></i>
 							</button>
 						</div>
 						<input

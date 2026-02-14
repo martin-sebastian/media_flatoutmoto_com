@@ -1643,8 +1643,8 @@ async function printKeyTagToZebra() {
 	}
 }
 
-/** Labelary API: 8 dpmm = 203 DPI; label 1.625" x 2.125" matches our ZPL template. */
-const LABELARY_API = "https://api.labelary.com/v1/printers/8dpmm/labels/1.625x2.125/0/";
+/** Labelary API: 8 dpmm = 203 DPI; label 1.5" x 2" (portrait) matches our ZPL template. */
+const LABELARY_API = "https://api.labelary.com/v1/printers/8dpmm/labels/1.5x2/0/";
 
 /**
  * Open current key tag ZPL rendered as PNG in Labelary (new tab). Use for testing Zebra labels.
