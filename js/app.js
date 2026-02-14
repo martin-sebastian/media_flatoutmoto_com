@@ -2161,9 +2161,9 @@ function updateTable() {
 				</button>
 
 			<div class="btn-group" role="group">
-				<button type="button" class="btn btn-danger dropdown-toggle no-caret" data-bs-toggle="dropdown" aria-expanded="false">
+				<button type="button" class="btn btn-danger dropdown-toggle no-caret" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
 				</button>
-				<ul class="dropdown-menu small text-capitalize text-start overflow-hidden">
+				<ul class="dropdown-menu small text-capitalize text-start overflow-hidden dropdown-menu-end">
 
 					<li class="small">
 						<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Print Key Tags" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
