@@ -186,7 +186,7 @@ function printKeyTag(horizontalContainer, verticalContainer = null, includeVerti
 }
 
 /**
- * Escape ZPL field data (^ and \ must be escaped).
+ * Escape ZPL field data (^ and \ must be escaped in ^FD...^FS).
  * @param {string} s - Raw string.
  * @returns {string} - Escaped string for ^FD...^FS.
  */
@@ -196,30 +196,30 @@ function escapeZplField(s) {
 }
 
 /**
- * Generate ZPL for a horizontal key tag (1.625" x 2.125" @ 203 DPI).
- * @param {object} data - Vehicle data (StockNumber, Usage, ModelYear, etc.).
- * @returns {string} - ZPL string to send to printer.
+ * Build ZPL from key-tags/zpl-template.js config. Structure: ^XA^PW...^LL...^LH0,0^MNN + ^FO...^FD...^FS per field + ^XZ.
+ * @param {object} data - Vehicle data (keys per template fields).
+ * @returns {string} - ZPL string.
  */
 function keyTagToZpl(data) {
-  const w = 330; // 1.625in * 203
-  const h = 431; // 2.125in * 203
-  const lineH = 22;
-  const left = 10;
-  const safe = (v) => escapeZplField(v || "N/A");
-  const lines = [
-    safe(data.Usage),
-    safe(data.StockNumber),
-    safe(data.ModelYear),
-    safe(data.Manufacturer),
-    safe(data.ModelName),
-    safe(data.ModelCode),
-    safe(data.Color),
-    safe(data.VIN),
-  ];
-  const fields = lines
-    .map((text, i) => `^FO${left},${15 + i * lineH}^A0N,18,18^FD${text}^FS`)
+  const t = window.ZplKeyTagTemplate || {
+    dpi: 203,
+    widthIn: 1.625,
+    heightIn: 2.125,
+    marginX: 10,
+    marginY: 15,
+    lineH: 22,
+    fontH: 18,
+    fontW: 18,
+    fields: ["Usage", "StockNumber", "ModelYear", "Manufacturer", "ModelName", "ModelCode", "Color", "VIN"],
+  };
+  const w = Math.round(t.widthIn * t.dpi);
+  const h = Math.round(t.heightIn * t.dpi);
+  const safe = (v) => escapeZplField(v != null && v !== "" ? v : "N/A");
+  const lines = t.fields.map((key) => safe(data[key]));
+  const fieldBlocks = lines
+    .map((text, i) => `^FO${t.marginX},${t.marginY + i * t.lineH}^A0N,${t.fontH},${t.fontW}^FD${text}^FS`)
     .join("");
-  return `^XA^PW${w}^LL${h}^LH0,0${fields}^XZ`;
+  return `^XA^PW${w}^LL${h}^LH0,0^MNN${fieldBlocks}^XZ`;
 }
 
 /**

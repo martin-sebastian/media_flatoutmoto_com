@@ -1461,6 +1461,11 @@ document.addEventListener("DOMContentLoaded", () => {
 			printKeyTagToZebra();
 		}
 
+		// Handle Preview in Labelary: open Labelary API render in new tab
+		if (event.target.closest("#previewZebraLabelaryBtn")) {
+			previewKeyTagInLabelary();
+		}
+
 		// Handle printTag button click (legacy)
 		if (event.target.closest("#printTag")) {
 			window.print();
@@ -1471,6 +1476,20 @@ document.addEventListener("DOMContentLoaded", () => {
 	const verticalToggle = document.getElementById("verticalKeyTagSwitch");
 	if (verticalToggle) {
 		verticalToggle.addEventListener("change", toggleVerticalKeyTag);
+	}
+
+	// Direct print collapse: flip chevron when Zebra section is shown/hidden
+	const zebraCollapse = document.getElementById("zebraPrintCollapse");
+	const zebraToggleIcon = document.getElementById("zebraToggleIcon");
+	if (zebraCollapse && zebraToggleIcon) {
+		zebraCollapse.addEventListener("show.bs.collapse", () => {
+			zebraToggleIcon.classList.remove("bi-chevron-down");
+			zebraToggleIcon.classList.add("bi-chevron-up");
+		});
+		zebraCollapse.addEventListener("hide.bs.collapse", () => {
+			zebraToggleIcon.classList.remove("bi-chevron-up");
+			zebraToggleIcon.classList.add("bi-chevron-down");
+		});
 	}
 });
 
@@ -1565,7 +1584,7 @@ const ZEBRA_ENDPOINT_KEY = "zebraEndpoint";
 
 /**
  * Send current key tag as ZPL to Zebra printer at configured IP (port 9100).
- * Uses /api/zebra-print or run scripts/zebra-relay.js and point app to it.
+ * Uses /api/zebra-print, or relay URL if zebraEndpoint is set (hidden input).
  */
 async function printKeyTagToZebra() {
 	const ipInput = document.getElementById("zebraPrinterIp");
@@ -1616,12 +1635,47 @@ async function printKeyTagToZebra() {
 		if (res.ok && result.ok) {
 			if (msgEl) msgEl.innerHTML = `<div class="text-success"><i class="bi bi-check-circle me-2"></i>Sent to Zebra.</div>`;
 		} else {
-			const errMsg = result.error || (res.status === 502 ? "Printer unreachable. Use the relay on a PC that can reach the printer: node scripts/zebra-relay.js" : res.statusText) || "Print failed";
+			const errMsg = result.error || (res.status === 502 ? "Printer unreachable. Check IP and that this computer is on the same network (192.168.1.x)." : res.statusText) || "Print failed";
 			if (msgEl) msgEl.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-2"></i>${errMsg}.</div>`;
 		}
 	} catch (err) {
 		if (msgEl) msgEl.innerHTML = `<div class="text-danger"><i class="bi bi-x-circle me-2"></i>${err.message || "Network error"}.</div>`;
 	}
+}
+
+/** Labelary API: 8 dpmm = 203 DPI; label 1.625" x 2.125" matches our ZPL template. */
+const LABELARY_API = "https://api.labelary.com/v1/printers/8dpmm/labels/1.625x2.125/0/";
+
+/**
+ * Open current key tag ZPL rendered as PNG in Labelary (new tab). Use for testing Zebra labels.
+ */
+function previewKeyTagInLabelary() {
+	const msgEl = document.getElementById("keytagMessage");
+	const labelEl = document.getElementById("keytagModalLabel");
+	const stockNumber = labelEl?.textContent?.trim();
+	if (!stockNumber || stockNumber === "Stock Number") {
+		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Load a key tag first (select a vehicle).</div>`;
+		return;
+	}
+	const vehicle = State.allItems.find(
+		(item) => (item.stockNumber || "").toUpperCase() === stockNumber.toUpperCase()
+	);
+	if (!vehicle || !window.KeyTagComponent) {
+		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Vehicle data not found.</div>`;
+		return;
+	}
+	const data = {
+		StockNumber: vehicle.stockNumber || "",
+		Usage: vehicle.usage || "",
+		ModelYear: vehicle.year || "",
+		Manufacturer: vehicle.manufacturer || "",
+		ModelName: vehicle.modelName || "",
+		ModelCode: vehicle.modelCode || "",
+		Color: vehicle.color || "",
+		VIN: vehicle.vin || "",
+	};
+	const zpl = KeyTagComponent.toZpl(data);
+	window.open(LABELARY_API + encodeURIComponent(zpl), "_blank", "noopener");
 }
 
 let keyTagsModalLastFocus = null;
