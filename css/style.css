@@ -602,8 +602,8 @@ th {
   font-size: large;
 }
 .rotated-label {
-  transform: rotate(90deg);
-  transform-origin: right;
+  transform: rotate(135deg);
+  transform-origin: middle;
 }
 .blank-line {
   background: #ccc;
@@ -993,17 +993,25 @@ th {
   background: var(--bs-body-bg);
 }
 
+/* TV Workspace: remove all borders from preview area (service worker may cache old CSS - hard refresh if changes don't appear) */
+#tvWorkspaceModal .tv-workspace-preview-panel,
+#tvWorkspaceModal .tv-workspace-preview-shell,
+#tvWorkspaceModal .tv-workspace-preview-zoomable {
+  border: none !important;
+  outline: none !important;
+}
+
 .tv-workspace-preview-panel {
   flex: 1;
   overflow: auto;
   padding: 1rem;
-  background: var(--bs-secondary-bg);
+  border: none !important;
 }
 
 .tv-workspace-preview-shell {
   width: 100%;
   min-height: calc(100vh - 180px);
-  border: 1px solid var(--bs-border-color);
+  border: none !important;
   border-radius: 0.75rem;
   overflow: auto;
   background: #0f1115;
@@ -1019,9 +1027,10 @@ th {
   height: 1080px;
   flex-shrink: 0;
   margin: auto;
+  border: none !important;
   border-radius: 0.5rem;
   overflow: hidden;
-  transform-origin: top center;
+  transform-origin: center center;
 }
 
 .tv-workspace-preview-zoomable.tv-workspace-preview-portrait {
@@ -1043,6 +1052,9 @@ th {
   z-index: 6;
   display: flex;
   gap: 0.25rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  overflow: hidden;
 }
 
 .tv-workspace-preview-loading {

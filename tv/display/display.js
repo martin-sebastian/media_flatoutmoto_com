@@ -132,6 +132,47 @@ function setDisplayContent(markup) {
   ROOT.innerHTML = markup;
 }
 
+/** Duration to scroll down slowly (ms). */
+const LINE_SCROLL_DOWN_MS = 8000;
+/** Duration to snap back to top (ms). */
+const LINE_SCROLL_UP_MS = 400;
+
+/**
+ * Start auto-scroll animation on line items lists: slow scroll down, quick return to top.
+ */
+function initLineItemsAutoScroll() {
+  const lists = document.querySelectorAll(".tv-line-items-scroll");
+  lists.forEach((el) => {
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    if (maxScroll <= 0) return;
+    let startTime = null;
+    let phase = "down";
+
+    function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+
+      if (phase === "down") {
+        const progress = Math.min(1, elapsed / LINE_SCROLL_DOWN_MS);
+        el.scrollTop = maxScroll * progress;
+        if (progress >= 1) {
+          phase = "up";
+          startTime = timestamp;
+        }
+      } else {
+        const progress = Math.min(1, elapsed / LINE_SCROLL_UP_MS);
+        el.scrollTop = maxScroll * (1 - progress);
+        if (progress >= 1) {
+          phase = "down";
+          startTime = timestamp;
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  });
+}
+
 /**
  * Fetch selected image overrides from JSON.
  * @returns {Promise<object>} Selected images map.
@@ -397,22 +438,21 @@ function renderFeatureCards(items, swatchColor, accentOne, accentTwo) {
 }
 
 /**
- * Build line items list for fees/taxes.
+ * Build line items as list-group-item elements for fees/taxes.
  * @param {object[]} items Items list.
  * @param {boolean} bold Whether to use semibold font weight.
- * @returns {string} List markup.
+ * @returns {string} List item markup (li elements).
  */
 function renderLineItems(items, bold = false) {
   const weightClass = bold ? "fw-semibold" : "";
   return (items || [])
     .filter((item) => safeText(item.Description))
     .map(
-      (item) => `
-        <div class="d-flex justify-content-between lh-sm ${weightClass}" style="font-size: 0.75rem;">
+      (item) =>
+        `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 lh-sm ${weightClass}" style="font-size: 0.95rem;">
           <span>${safeText(item.Description)}</span>
-          <span>${formatPrice(item.Amount)}</span>
-        </div>
-      `
+          <span class="ms-2">${formatPrice(item.Amount)}</span>
+        </li>`
     )
     .join("");
 }
@@ -467,25 +507,54 @@ function buildFromApiData(apiData) {
     usage: apiData.Usage || "",
     price: apiData.SalePrice || apiData.MSRPUnit || apiData.MSRP || 0,
     images: images,
-    webURL: apiData.WebURL || "",
+    webURL: apiData.WebURL || apiData.DetailUrl || "",
     vin: apiData.VIN || "",
   };
 }
 
 /**
  * Render a QR code for a target URL.
- * @param {string} url Target URL for QR code.
+ * @param {string} url Target URL for QR code (vehicle detail or display URL).
  */
 function renderQrCode(url) {
-  if (!window.QRCode || !url) return;
+  if (!window.QRCode) return;
   const qrContainer = document.getElementById("qrCode");
   if (!qrContainer) return;
+  const targetUrl = (url && url !== "N/A") ? url : window.location.href;
   qrContainer.innerHTML = "";
   new QRCode(qrContainer, {
-    text: url,
+    text: targetUrl,
     width: 120,
     height: 120,
     correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+/**
+ * Map Portal API data to PriceCalculator input and run calculation.
+ * @param {object} apiData Portal API response.
+ * @param {number} fallbackMsrp Fallback MSRP if API has none.
+ * @returns {object} PriceCalculator result or null if unavailable.
+ */
+function calculatePricesFromApi(apiData, fallbackMsrp = 0) {
+  if (!window.PriceCalculator || !apiData) return null;
+  const msrp = Number(apiData.MSRPUnit || apiData.MSRP || apiData.Price || fallbackMsrp) || 0;
+  const accessories = (apiData.AccessoryItems || apiData.MUItems || []).map((a) => ({
+    Description: a.Description,
+    Amount: Number(a.Amount) || 0,
+    Included: !!a.Included,
+  }));
+  const rebates = apiData.MfgRebatesFrontEnd || apiData.MatItems || [];
+  const discounts = apiData.DiscountItems || [];
+  const fees = apiData.OTDItems || [];
+  return PriceCalculator.calculate({
+    msrp,
+    accessories,
+    customAccessories: [],
+    discounts,
+    rebates,
+    fees,
+    tradeIn: 0,
   });
 }
 
@@ -499,22 +568,27 @@ function renderQrCode(url) {
  * @returns {object} Common display data.
  */
 function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
-  const specialValue = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
+  const prices = calculatePricesFromApi(apiData, data?.price);
+  const specialValue = prices
+    ? prices.salesPrice
+    : apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
+  const totalValue = prices ? prices.totalPrice : apiData?.OTDPrice;
   const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
-  const totalValue = apiData?.OTDPrice;
-  const accessoryTotal = apiData?.AccessoryItemsTotal || 0;
+  const accessoryTotal = apiData?.AccessoryItemsTotal || (prices?.allAccessoriesTotal ?? 0);
   const financeApr = 8.99;
   const downPaymentRate = 0.1;
   const financeTermMonths = 144;
   const totalAmount = Number(totalValue) || Number(specialValue) || 0;
   const downPayment = totalAmount * downPaymentRate;
   const financedAmount = totalAmount - downPayment;
-  const monthlyPayment = calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
-  
+  const monthlyPayment = window.PriceCalculator?.calculatePayment
+    ? PriceCalculator.calculatePayment(totalAmount, downPaymentRate * 100, financeApr, financeTermMonths)
+    : calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
+
   // Build accessory line if total exists
-  const accessoryLine = accessoryTotal > 0 
-    ? [{ Description: "Accessories", Amount: accessoryTotal }] 
+  const accessoryLine = accessoryTotal > 0
+    ? [{ Description: "Accessories", Amount: accessoryTotal }]
     : [];
   
   // Color info
@@ -567,56 +641,58 @@ function renderMiddleDefault(data, displayData, customText) {
        <div class="h2 mb-0 fw-bold">${formatPrice(specialValue)}</div>`
     : `<div class="h2 mb-0 fw-bold">${formatPrice(displayPrice)}</div>`;
   
-  // Right box: MSRP + Sale Price rows (if applicable) or just Price
-  const rightPriceMarkup = showMsrpCrossed
-    ? `<div class="d-flex justify-content-between text-secondary text-decoration-line-through"><span>MSRP</span><span>${formatPrice(msrpValue)}</span></div>
-       <div class="d-flex justify-content-between fw-semibold"><span>Sale Price</span><span>${formatPrice(specialValue)}</span></div>`
-    : `<div class="d-flex justify-content-between fw-semibold"><span>Price</span><span>${formatPrice(displayPrice)}</span></div>`;
-  
+  // Right box: price rows as list items
+  const priceListItems = showMsrpCrossed
+    ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 text-secondary text-decoration-line-through" style="font-size: 0.95rem;"><span>MSRP</span><span class="ms-2">${formatPrice(msrpValue)}</span></li>
+       <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-semibold" style="font-size: 0.95rem;"><span>Sale Price</span><span class="ms-2">${formatPrice(specialValue)}</span></li>`
+    : `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-semibold" style="font-size: 0.95rem;"><span>Price</span><span class="ms-2">${formatPrice(displayPrice)}</span></li>`;
+
+  const lineItemsList = `
+    <ul class="list-group list-group-flush tv-line-items-scroll">
+      ${priceListItems}
+      ${rebatesMarkup}
+      ${discountMarkup}
+      ${accessoryMarkup}
+      ${feesMarkup}
+      ${totalValue ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-semibold fs-5 text-danger border-top"><span>Total</span><span class="ms-2">${formatPrice(totalValue)}</span></li>` : ""}
+    </ul>`;
+
   return `
     <div class="tv-middle-grid">
+      <!-- Top-left: Show Special -->
       <div class="tv-box px-3 py-2 d-flex flex-column">
         <div>
-          <div class="text-uppercase text-danger h2 fw-bold">Show Special</div>
-          <h6 class="text-secondary text-uppercase fw-semibold">${data.title || ""}</h6>
+          <div class="text-uppercase text-danger h1 fw-bold">Show Special</div>
+          <h5 class="text-secondary text-uppercase fw-semibold">${data.title || ""}</h5>
           <span class="badge bg-danger d-none">${data.usage || "N/A"}</span>
           <div>${data.stockNumber || "N/A"}</div>
           ${colorName ? `
             <div class="d-flex align-items-center gap-2 mt-2">
-              <div class="d-flex align-items-center gap-2">
-                <span class="tv-color-dot" style="background-color: ${swatch};"></span>
-                <span class="tv-color-dot" style="background-color: ${accent1}; width: 16px; height: 16px;"></span>
-                <span class="tv-color-dot" style="background-color: ${accent2}; width: 16px; height: 16px;"></span>
-              </div>
               <span class="text-secondary small">${colorName}</span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${swatch};"></span>
+                <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${accent1};"></span>
+                <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${accent2};"></span>
+              </div>
             </div>
           ` : ""}
         </div>
         <div class="flex-grow-1"></div>
-        <div>
+        <div class="d-flex flex-column align-items-end">
           ${leftPriceMarkup}
-          <div class="d-flex justify-content-start mt-0 fw-semibold text-danger fs-6">
+          <div class="d-flex align-items-baseline mt-0 fw-semibold text-danger fs-6">
             <span class="me-2">Est. payment</span>
-            <span>${formatPrice(monthlyPayment)}/mo</span>
+            <span class="tv-payment-amount fs-3">${formatPrice(monthlyPayment)}/mo</span>
           </div>
         </div>
       </div>
-      <div class="tv-box p-3 d-flex flex-column">
-        <div>
-          ${rightPriceMarkup}
-        </div>
-        <hr class="my-2 opacity-25">
-        <div class="flex-grow-1">
-          ${rebatesMarkup}
-          ${discountMarkup}
-          ${accessoryMarkup}
-          ${feesMarkup}
-        </div>
-        ${totalValue ? `<div class="fw-semibold pt-1 border-top border-secondary fs-5 text-danger">Total <span class="float-end">${formatPrice(totalValue)}</span></div>` : ""}
-      </div>
+      <!-- Top-right: Standard features -->
       <div class="tv-box p-3">
-        ${standardFeatures ? `<div class="tv-standard-features text-secondary mb-0">${standardFeatures}</div>` : ""}
-
+        ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary mb-0">${standardFeatures}</div>` : ""}
+      </div>
+      <!-- Bottom-left: Price line items (taxes, fees) -->
+      <div class="tv-box p-3 d-flex flex-column overflow-hidden">
+        ${lineItemsList}
       </div>
       <div class="tv-box d-none">
         ${customText ? `<div class="text-secondary mb-2">${customText}</div>` : ""}
@@ -670,6 +746,7 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
   `);
   renderQrCode(data.webURL);
   initCarousels();
+  initLineItemsAutoScroll();
 }
 
 /**
@@ -708,6 +785,22 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   const isNew = (data.usage || "").toLowerCase() === "new";
   const showBothPrices = isNew && hasDiscount;
 
+  // Fees box: list-group with price rows and line items
+  const landscapePriceItems = showBothPrices
+    ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small text-secondary" style="font-size: 0.95rem;"><span>MSRP</span><span class="ms-2">${formatPrice(msrpValue)}</span></li>
+       <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 0.95rem;"><span class="text-secondary">Sale Price</span><span class="ms-2 fw-semibold">${formatPrice(specialValue)}</span></li>`
+    : `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 0.95rem;"><span class="text-secondary">Price</span><span class="ms-2 fw-semibold">${formatPrice(specialValue || msrpValue)}</span></li>`;
+
+  const landscapeLineItemsList = `
+    <ul class="list-group list-group-flush tv-line-items-scroll">
+      ${landscapePriceItems}
+      ${rebatesMarkup}
+      ${discountMarkup}
+      ${accessoryMarkup}
+      ${feesMarkup}
+      ${totalValue ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-bold border-top border-secondary border-opacity-25"><span>Total</span><span class="ms-2">${formatPrice(totalValue)}</span></li>` : ""}
+    </ul>`;
+
   setDisplayContent(`
     <div class="tv-layout-landscape mx-auto">
       <div class="tv-landscape-skeleton">
@@ -720,7 +813,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
         <div class="tv-region-right-stack">
           <!-- Pricing Box -->
           <div class="tv-box p-3 d-flex flex-column">
-            <div class="h2 text-danger fw-bold text-uppercase mb-2">Show Special</div>
+            <div class="h2 text-danger fw-bolder text-uppercase mb-2">Boat Show Price</div>
             <div class="d-flex align-items-center gap-2 mb-1"> 
               <span class="badge bg-danger">${data.usage || "N/A"}</span>
               <span class="text-secondary text-uppercase fw-semibold small">${data.title || ""}</span>
@@ -728,41 +821,31 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
             <div class="text-secondary small">${data.stockNumber || ""}</div>
             ${colorName ? `
               <div class="d-flex align-items-center gap-2 mt-1">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="tv-color-dot" style="background-color: ${swatch};"></span>
-                  <span class="tv-color-dot" style="background-color: ${accent1}; width: 14px; height: 14px;"></span>
-                  <span class="tv-color-dot" style="background-color: ${accent2}; width: 14px; height: 14px;"></span>
-                </div>
                 <span class="text-secondary small">${colorName}</span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${swatch};"></span>
+                  <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${accent1};"></span>
+                  <span class="tv-color-dot tv-color-dot-lg" style="background-color: ${accent2};"></span>
+                </div>
               </div>
             ` : ""}
             <div class="flex-grow-1"></div>
-            ${showBothPrices
-              ? `<div class="text-secondary small text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
-                 <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>`
-              : `<div class="text-secondary small">Price</div>
-                 <div class="display-6 fw-bold text-light">${formatPrice(specialValue || msrpValue)}</div>`
-            }
-            <div class="d-flex fw-semibold text-danger fs-5">
-              <span class="me-2">Est. payment</span><span>${formatPrice(monthlyPayment)}/mo</span>
+            <div class="d-flex flex-column align-items-end">
+              ${showBothPrices
+                ? `<div class="text-secondary small text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
+                   <div class="display-6 fw-bold text-light">${formatPrice(specialValue)}</div>`
+                : `<div class="text-secondary small">Price</div>
+                   <div class="display-6 fw-bold text-light">${formatPrice(specialValue || msrpValue)}</div>`
+              }
+              <div class="d-flex align-items-baseline fw-semibold text-danger fs-5">
+                <span class="me-2">Est. payment</span><span class="tv-payment-amount fs-3">${formatPrice(monthlyPayment)}/mo</span>
+              </div>
             </div>
           </div>
           
           <!-- Fees Box -->
-          <div class="tv-box p-3 d-flex flex-column">
-            ${showBothPrices
-              ? `<div class="d-flex justify-content-between small"><span class="text-secondary">MSRP</span><span>${formatPrice(msrpValue)}</span></div>
-                 <div class="d-flex justify-content-between small"><span class="text-secondary">Sale Price</span><span class="fw-semibold">${formatPrice(specialValue)}</span></div>`
-              : `<div class="d-flex justify-content-between small"><span class="text-secondary">Price</span><span class="fw-semibold">${formatPrice(specialValue || msrpValue)}</span></div>`
-            }
-            <hr class="my-2 opacity-25">
-            <div class="flex-grow-1 overflow-hidden">
-              ${rebatesMarkup}
-              ${discountMarkup}
-              ${accessoryMarkup}
-              ${feesMarkup}
-            </div>
-            ${totalValue ? `<div class="d-flex justify-content-between fw-bold mt-auto pt-2 border-top border-secondary border-opacity-25"><span>Total</span><span>${formatPrice(totalValue)}</span></div>` : ""}
+          <div class="tv-box p-3 d-flex flex-column overflow-hidden">
+            ${landscapeLineItemsList}
           </div>
         </div>
         
@@ -770,7 +853,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
         <div class="tv-region-left-stack">
           <!-- Features Box -->
           <div class="tv-box p-3 d-flex flex-column">
-            ${standardFeatures ? `<div class="tv-standard-features text-secondary small mb-2">${standardFeatures}</div>` : ""}
+            ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary small mb-2">${standardFeatures}</div>` : ""}
             ${customText ? `<div class="mb-2">${customText}</div>` : ""}
             ${featureMarkup ? `<div class="flex-grow-1 overflow-hidden">${featureMarkup}</div>` : ""}
           </div>
@@ -794,6 +877,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   `);
   renderQrCode(data.webURL);
   initCarousels();
+  initLineItemsAutoScroll();
 }
 
 /**
@@ -804,16 +888,17 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
  */
 function renderGridCard(data, apiData) {
   const heroImage = data.images[0] || "../../img/fallback.jpg";
-  const salePrice = apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
+  const prices = calculatePricesFromApi(apiData, data?.price);
+  const salePrice = prices
+    ? prices.salesPrice
+    : apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
   const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const hasDiscount = msrpValue && salePrice && Number(msrpValue) > Number(salePrice);
   const isNew = (data.usage || "").toLowerCase() === "new";
   const showBothPrices = isNew && hasDiscount;
-
-  // Calculate total rebates and discounts
-  const rebates = (apiData?.MfgRebatesFrontEnd || []).reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
-  const discounts = (apiData?.DiscountItems || []).reduce((sum, item) => sum + (Number(item.Amount) || 0), 0);
-  const totalSavings = rebates + discounts;
+  const rebatesSum = (apiData?.MfgRebatesFrontEnd || apiData?.MatItems || []).reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const discountsSum = (apiData?.DiscountItems || []).reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const totalSavings = prices ? prices.savings : Math.abs(rebatesSum + discountsSum);
 
   return `
     <div class="tv-grid-card">

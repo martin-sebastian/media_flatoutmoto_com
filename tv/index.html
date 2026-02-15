@@ -16,6 +16,7 @@
 				class="container-fluid d-flex align-items-center justify-content-between py-2">
 				<a href="../" class="">
 					<img
+						id="logo"
 						src="../img/fom-app-logo-01.svg"
 						alt="Flatout Motorsports"
 						width="180"
@@ -277,16 +278,43 @@
 							id="previewDisplayModalLabel">
 							TV Display Preview
 						</h5>
-						<button
-							type="button"
-							class="btn-close btn-close-secondary"
-							data-bs-dismiss="modal"
-							aria-label="Close"></button>
+						<div class="d-flex align-items-center gap-2 flex-shrink-0">
+							<div
+								class="btn-group btn-group-sm rounded-3 tv-preview-zoom-panel"
+								role="group">
+								<button
+									type="button"
+									class="btn btn-secondary"
+									id="previewZoomOutBtn"
+									title="Zoom out">
+									<i class="bi bi-zoom-out"></i>
+								</button>
+								<button
+									type="button"
+									class="btn btn-secondary"
+									id="previewZoomResetBtn"
+									title="Fit to screen">
+									Fit
+								</button>
+								<button
+									type="button"
+									class="btn btn-secondary"
+									id="previewZoomInBtn"
+									title="Zoom in">
+									<i class="bi bi-zoom-in"></i>
+								</button>
+							</div>
+							<button
+								type="button"
+								class="btn-close btn-close-secondary"
+								data-bs-dismiss="modal"
+								aria-label="Close"></button>
+						</div>
 					</div>
 					<div
-						class="modal-body overflow-auto p-3 text-secondary dots tv-preview-modal-body flex-grow-1 flex-shrink-1 min-h-0">
+						class="modal-body overflow-auto p-3 text-secondary dots-dark tv-preview-modal-body flex-grow-1 flex-shrink-1 min-h-0">
 						<div
-							class="tv-preview-zoomable-wrapper d-flex justify-content-center align-items-start">
+							class="tv-preview-zoomable-wrapper d-flex justify-content-center align-items-center">
 							<div id="tvPreviewZoomable" class="tv-preview-zoomable">
 								<div class="tv-preview-frame tv-preview-landscape">
 									<iframe
@@ -302,32 +330,6 @@
 						<button type="cancel" class="btn btn-secondary" type="button">
 							Cancel
 						</button>
-						<div
-							class="btn-group me-3 opacity-90"
-							role="group"
-							style="position: absolute; right: 0; top: 80px">
-							<button
-								type="button"
-								class="btn btn-secondary"
-								id="previewZoomOutBtn"
-								title="Zoom out">
-								<i class="bi bi-zoom-out"></i>
-							</button>
-							<button
-								type="button"
-								class="btn btn-secondary"
-								id="previewZoomResetBtn"
-								title="Fit to screen">
-								Fit
-							</button>
-							<button
-								type="button"
-								class="btn btn-secondary"
-								id="previewZoomInBtn"
-								title="Zoom in">
-								<i class="bi bi-zoom-in"></i>
-							</button>
-						</div>
 						<label>TV Display URL</label>
 						<input
 							type="text"

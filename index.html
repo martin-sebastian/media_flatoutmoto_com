@@ -32,7 +32,7 @@
     <title>FOM PRINT</title>
     <link rel="stylesheet" href="./css/bootstrap.css" />
     <link rel="stylesheet" href="./css/bootstrap-icons.css" />
-    <link rel="stylesheet" href="./css/style.css" />
+    <link rel="stylesheet" href="./css/style.css?v=3" />
     <link rel="stylesheet" href="./key-tags/key-tag.css" />
   </head>
 
@@ -113,7 +113,7 @@
               <option value="">All</option>
             </select>
             
-            <select id="modelFilterMobile" class="form-select w-100 my-1" data-filter="model">
+            <select id="modelFilterMobile" class="form-select w-100 my-1 d-none" data-filter="model">
               <option value="">Model</option>
               <option value="">All</option>
             </select>
@@ -172,6 +172,9 @@
             <input type="date" id="updatedFilterMobile" value="" class="form-control w-100 my-1" name="updated-date" data-filter="updated" title="Updated From">
             <label for="updatedEndFilterMobile" class="visually-hidden">Updated To:</label>
             <input type="date" id="updatedEndFilterMobile" value="" class="form-control w-100 my-1" name="updated-end-date" data-filter="updatedEnd" title="Updated To">
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100 my-1" id="clearFiltersBtnMobile" title="Clear all filters" aria-label="Clear all filters">
+              <i class="bi bi-x-circle me-1"></i>Clear filters
+            </button>
           </form>
      
            
@@ -254,7 +257,7 @@
                     <option value="">All</option>
                   </select>
                   
-                  <select id="modelFilter" class="form-select form-select-sm" style="max-width: 120px" data-filter="model">
+                  <select id="modelFilter" class="form-select form-select-sm d-none" style="max-width: 120px" data-filter="model">
                     <option value="">Model</option>
                     <option value="">All</option>
                   </select>
@@ -275,6 +278,9 @@
                     <label for="updatedEndFilter" class="visually-hidden">To:</label>
                     <input type="date" id="updatedEndFilter" value="" class="form-control form-control-sm" name="updated-end-date" data-filter="updatedEnd" title="Updated To" style="max-width: 130px">
                   </div>
+                  <button type="button" class="btn btn-outline-secondary btn-sm px-2" id="clearFiltersBtn" title="Clear all filters" aria-label="Clear all filters">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
                 </div>
 
                 <div class="w-25 text-end right-group d-flex align-items-center justify-content-end gap-2">
@@ -643,7 +649,15 @@
               <aside class="tv-workspace-sidebar border-end border-secondary-subtle">
                 <div class="d-flex flex-column gap-3">
                   <div>
-                    <label class="form-label small text-uppercase text-secondary mb-2">Layout</label>
+                    <div>
+                      <div class="d-flex align-items-center mt- justify-content-between">
+                        <label for="tvWorkspaceStockInput" class="form-label mb-1">Stock Number</label>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-1" id="tvUseSelectedBtn">Update</button>
+                      </div>
+                        <input type="text" id="tvWorkspaceStockInput" class="form-control" placeholder="enter stock numberlll">
+                      <div id="tvWorkspaceStockHelp" class="form-text">Use single stock number for portrait and landscapesing eunitr </div>
+                    </div>
+                    <label class="form-label small text-uppercase text-secondary mt-3 mb-2">Layout</label>
                     <div class="btn-group w-100" role="group" aria-label="TV layout selection">
                       <input type="radio" class="btn-check" name="tvLayoutOption" id="tvLayoutPortrait" value="portrait" autocomplete="off" checked>
                       <label class="btn btn-outline-danger" for="tvLayoutPortrait">Portrait</label>
@@ -654,17 +668,9 @@
                     </div>
                   </div>
 
-                  <div>
-                    <div class="d-flex align-items-center justify-content-between">
-                      <label for="tvWorkspaceStockInput" class="form-label mb-1">Stock Number(s)</label>
-                      <button type="button" class="btn btn-sm btn-outline-secondary" id="tvUseSelectedBtn">Use Selected</button>
-                    </div>
-                    <input type="text" id="tvWorkspaceStockInput" class="form-control" placeholder="SD21374">
-                    <div id="tvWorkspaceStockHelp" class="form-text">Single stock number for portrait/landscape.</div>
-                  </div>
 
                   <div>
-                    <label for="tvWorkspaceThemeSelect" class="form-label mb-1">Theme</label>
+                    <label for="tvWorkspaceThemeSelect" class="form-label small text-uppercase text-secondary mb-1">Theme</label>
                     <select id="tvWorkspaceThemeSelect" class="form-select">
                       <option value="dark">Dark</option>
                       <option value="light">Light</option>
@@ -673,64 +679,54 @@
 
                   <div id="tvWorkspaceSingleOptions" class="d-flex flex-column gap-3">
                     <div>
-                      <label for="tvWorkspaceNoteInput" class="form-label mb-1">Custom Message</label>
-                      <textarea id="tvWorkspaceNoteInput" class="form-control" rows="3" placeholder="Boat show special, etc."></textarea>
+                      <label for="tvWorkspaceNoteInput" class="form-label small text-uppercase text-secondary mb-1">Custom Message</label>
+                      <textarea id="tvWorkspaceNoteInput" class="form-control" rows="3" placeholder="enter custom message..."></textarea>
                     </div>
                     <div>
-                      <label class="form-label mb-1">Vehicle Colors</label>
+                      <label class="form-label small text-uppercase text-secondary mb-1">Vehicle Colors</label>
                       <div class="row g-2">
                         <div class="col-4">
-                          <input type="color" id="tvWorkspaceSwatchInput" class="form-control form-control-color w-100" title="Primary color" value="#4bd2b1">
+                          <input type="color" id="tvWorkspaceSwatchInput" class="form-control form-control-color w-100" title="Primary color" value="#DC3545">
                         </div>
                         <div class="col-4">
                           <input type="color" id="tvWorkspaceAccent1Input" class="form-control form-control-color w-100" title="Secondary color" value="#1f6feb">
                         </div>
                         <div class="col-4">
-                          <input type="color" id="tvWorkspaceAccent2Input" class="form-control form-control-color w-100" title="Accent color" value="#f97316">
+                          <input type="color" id="tvWorkspaceAccent2Input" class="form-control form-control-color w-100" title="Accent color" value="#ffffff">
                         </div>
                       </div>
                     </div>
                     <div class="row g-2">
+                      <label for="tvWorkspaceSlideStartTitle" class="form-label small text-uppercase text-secondary mb-1">Limit vehicle pictures for tv display slider</label>
                       <div class="col-6">
-                        <label for="tvWorkspaceSlideStartInput" class="form-label mb-1">Slide Start</label>
+                        <label for="tvWorkspaceSlideStartInput" class="form-label small text-secondary mb-1">First Photo:</label>
                         <input type="number" id="tvWorkspaceSlideStartInput" class="form-control" min="1" value="2">
                       </div>
                       <div class="col-6">
-                        <label for="tvWorkspaceSlideEndInput" class="form-label mb-1">Slide End</label>
+                        <label for="tvWorkspaceSlideEndInput" class="form-label small text-secondary mb-1">Last Photo:</label>
                         <input type="number" id="tvWorkspaceSlideEndInput" class="form-control" min="1" value="6">
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label for="tvWorkspaceUrlOutput" class="form-label mb-1">TV Display URL</label>
-                    <div class="input-group input-group-sm">
-                      <input type="text" id="tvWorkspaceUrlOutput" class="form-control" readonly>
-                      <button type="button" class="btn btn-outline-secondary" id="tvWorkspaceCopyUrlBtn" title="Copy URL">
-                        <i class="bi bi-clipboard"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-danger" id="tvWorkspacePreviewBtn">
-                      <i class="bi bi-eye me-2"></i>Refresh Preview
+                  <div class="d-grid gap-2 mt-5">
+                    <button type="button" class="btn btn-success btn-lg mt-5" id="tvWorkspacePreviewBtn">
+                      <i class="bi bi-tv me-2"></i>Generate TV Display
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" id="tvWorkspaceOpenLinkBtn">
-                      <i class="bi bi-box-arrow-up-right me-2"></i>Open Link
-                    </button>
+                    
                   </div>
                 </div>
               </aside>
 
               <section class="tv-workspace-preview-panel">
+                
                 <div class="tv-workspace-preview-shell" id="tvWorkspacePreviewShell">
                   <div class="tv-workspace-preview-toolbar" role="group" aria-label="Preview zoom controls">
-                    <button type="button" class="btn btn-sm btn-secondary" id="tvWorkspaceZoomOutBtn" title="Zoom out">
+                    <button type="button" class="btn btn-secondary rounded-pill m-2" id="tvWorkspaceZoomOutBtn" title="Zoom out">
                       <i class="bi bi-zoom-out"></i>
                     </button>
-                    <button type="button" class="btn btn-sm btn-secondary" id="tvWorkspaceZoomFitBtn" title="Fit preview">Fit</button>
-                    <button type="button" class="btn btn-sm btn-secondary" id="tvWorkspaceZoomInBtn" title="Zoom in">
+                    <button type="button" class="btn btn-secondary rounded-pill d-none m-2" id="tvWorkspaceZoomFitBtn" title="Fit preview">Fit</button>
+                    <button type="button" class="btn btn-secondary rounded-pill m-2" id="tvWorkspaceZoomInBtn" title="Zoom in">
                       <i class="bi bi-zoom-in"></i>
                     </button>
                   </div>
@@ -745,11 +741,31 @@
               </section>
             </div>
           </div>
-          <div class="modal-footer border-top border-secondary-subtle">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" id="tvWorkspaceCopyUrlFooterBtn">
-              <i class="bi bi-clipboard-check me-2"></i>Copy URL
-            </button>
+          <div class="modal-footer border-top border-secondary-subtle justify-content-start">
+                <div class="row g-3 align-items-center flex-nowrap w-100">
+                  
+                    <div class="col-auto">
+                      <label for="tvWorkspaceUrlOutput" class="col-form-label h4 fw-bold mb-0">Your TV Display URL </label>
+                    </div>
+                    <div class="col-auto flex-grow-1 text-end">
+                      <div class="input-group">
+                        <input type="text" id="tvWorkspaceUrlOutput" class="form-control" aria-describedby="passwordHelpInline" readonly>
+                        <button type="button" class="btn btn-danger me24" id="tvWorkspaceCopyUrlFooterBtn">
+                          <i class="bi bi-clipboard-check"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-auto">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="col-auto">
+                      <button type="button" class="btn btn-danger" id="tvWorkspaceOpenLinkBtn">
+                      <i class="bi bi-box-arrow-up-right me-2"></i>Open in Browser
+                    </button>
+                    </div>
+                </div>
+              </div>
+          </div>
           </div>
         </div>
       </div>
@@ -761,7 +777,7 @@
     <script src="./js/moment.js"></script>
     <script src="./key-tags/zpl-template.js"></script>
     <script src="./key-tags/key-tag.js"></script>
-    <script src="./js/app.js"></script>
+    <script type="module" src="./js/app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script>
       // Initialize SQLite

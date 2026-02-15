@@ -79,11 +79,34 @@ body.tv-body {
   box-sizing: border-box;
 }
 
+/* List group inside tv-box - dark theme */
+.tv-box .list-group-flush {
+  --bs-list-group-bg: transparent;
+  --bs-list-group-border-color: rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  max-height: 100%;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.tv-box .list-group-flush::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+.tv-box .list-group-item {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
 /* WYSIWYG standard features - scrollable, supports HTML */
 .tv-standard-features {
   overflow-y: auto;
   max-height: 100%;
   line-height: 1.3;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tv-standard-features::-webkit-scrollbar {
+  display: none;
 }
 .tv-standard-features p,
 .tv-standard-features ul,
@@ -653,8 +676,8 @@ body.tv-body {
 }
 
 .tv-color-swatch {
-  width: 24px;
-  height: 24px;
+  width: 36px;
+  height: 36px;
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25);
@@ -664,7 +687,7 @@ body.tv-body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 36px;
 }
 
 .tv-color-dot {
@@ -673,6 +696,10 @@ body.tv-body {
   border-radius: 999px;
   border: 2px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.tv-color-dot-lg {
+  width: 28px;
+  height: 28px;
 }
 
 .tv-thumb {
@@ -691,6 +718,14 @@ body.tv-body {
 .tv-preview-modal .modal-content {
   max-height: 90vh;
 }
+.tv-preview-modal .modal-header {
+  flex-shrink: 0;
+  min-height: 3.5rem;
+}
+.tv-preview-zoom-panel {
+  flex-shrink: 0;
+  overflow: hidden;
+}
 .tv-preview-modal-body {
   height: 65vh;
   min-height: 450px;
@@ -707,17 +742,15 @@ body.tv-body {
   height: 1080px;
   flex-shrink: 0;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
   background: #0f1115;
-  transform-origin: top center;
+  transform-origin: center center;
   transition: transform 150ms ease;
 }
 
 .tv-preview-zoomable.tv-preview-portrait {
   width: 1080px;
   height: 1920px;
-  transform-origin: top center;
 }
 
 .tv-preview-zoomable .tv-preview-frame {
@@ -892,6 +925,14 @@ body.tv-body {
   font-size: 0.95rem;
 }
 
+/* Payment amount: white in dark theme, dark in light theme */
+.tv-payment-amount {
+  color: #fff;
+}
+body.tv-body[data-bs-theme="light"] .tv-payment-amount {
+  color: #0f172a;
+}
+
 .text-decoration-none {
   text-decoration: none;
 }
@@ -942,5 +983,20 @@ body.tv-body[data-bs-theme="light"] .tv-showcase-info {
 body.tv-body[data-bs-theme="light"] .tv-preview-zoomable,
 body.tv-body[data-bs-theme="light"] .tv-preview-box {
   background: #e5e7eb;
-  border-color: rgba(15, 23, 42, 0.14);
+}
+
+
+
+/*     CUSTOM SYLES */
+.tv-workspace-preview-shell {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+.dots-dark {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.tv-workspace-preview-zoomable .tv-workspace-preview-portrait {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+  background-size: 20px 20px;
 }

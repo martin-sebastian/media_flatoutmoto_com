@@ -458,6 +458,10 @@ function toggleTheme() {
   document.body.setAttribute("data-bs-theme", newTheme);
   localStorage.setItem("theme", newTheme);
   updateThemeIcon(newTheme);
+  const logo = document.getElementById("logo");
+  if (logo) {
+    logo.src = newTheme === "dark" ? "../img/fom-app-logo-01.svg" : "../img/fom-app-logo-02.svg";
+  }
 }
 
 /**
@@ -491,14 +495,16 @@ function applyPreviewZoom(scale) {
 
 /**
  * Calculate fit-to-screen zoom for the preview.
+ * Uses modal body dimensions when modal is visible, else falls back to window.
  * @returns {number} Zoom scale.
  */
 function getPreviewFitZoom() {
   const el = DOM.previewZoomable;
   if (!el) return 1;
-  const padding = 48;
-  const availableW = window.innerWidth - padding;
-  const availableH = window.innerHeight - 220;
+  const padding = 24;
+  const modalBody = DOM.previewDisplayModal?.querySelector(".tv-preview-modal-body");
+  const availableW = modalBody ? modalBody.clientWidth - padding : window.innerWidth - 48;
+  const availableH = modalBody ? modalBody.clientHeight - padding : window.innerHeight - 220;
   const isPortrait = el.classList.contains("tv-preview-portrait");
   const baseW = isPortrait ? 1080 : 1920;
   const baseH = isPortrait ? 1920 : 1080;
@@ -530,7 +536,14 @@ function openPreviewModal() {
   }
   applyPreviewZoom(getPreviewFitZoom());
   const modal = getPreviewModalInstance();
-  if (modal) modal.show();
+  if (modal) {
+    modal.show();
+    DOM.previewDisplayModal?.addEventListener(
+      "shown.bs.modal",
+      () => applyPreviewZoom(getPreviewFitZoom()),
+      { once: true }
+    );
+  }
 }
 
 /**

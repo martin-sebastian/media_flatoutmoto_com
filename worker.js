@@ -1,4 +1,4 @@
-const CACHE_NAME = "fom-print-cache-v3";
+const CACHE_NAME = "fom-print-cache-v4";
 const SYNC_TAG = "sync-xml-data";
 const XML_CACHE_NAME = "xml-cache-v1";
 const XML_FEED_URL = "https://www.flatoutmotorcycles.com/unitinventory_univ.xml";
@@ -32,7 +32,7 @@ self.addEventListener("install", (event) => {
         return Promise.allSettled(
           urlsToCache.map(async (url) => {
             try {
-              await cache.add(url);
+              await cache.add(new Request(url, { cache: "reload" }));
               console.log(`Successfully cached: ${url}`);
             } catch (error) {
               console.error(`Failed to cache: ${url}`, error);

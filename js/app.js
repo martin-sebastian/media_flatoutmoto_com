@@ -1,4 +1,6 @@
 /* global moment */
+import { fetchVehiclesFromSupabase } from './vehicleData.js';
+
 // Near the top of the file, add a cache object
 const DOM = {
 	table: null,
@@ -44,6 +46,8 @@ const SEARCH_SUGGESTIONS_ENABLED = false;
 let memoryStorage = {
 	vehiclesCache: null,
 	vehiclesCacheTimestamp: null,
+	vehiclesCacheSupabase: null,
+	vehiclesCacheSupabaseTimestamp: null,
 	tablePagination: null,
 };
 
@@ -61,10 +65,17 @@ const State = {
 		column: null,
 		direction: "asc",
 	},
+	savedFilters: {},
 	saveState() {
+		const filters = {};
+		["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
+			const el = getActiveFilterElement(name);
+			if (el) filters[name] = el.value || "";
+		});
 		const stateToSave = {
 			currentPage: this.pagination.currentPage,
 			pageSize: this.pagination.pageSize,
+			filters,
 		};
 		try {
 			if (checkLocalStorageAvailability().available) {
@@ -90,12 +101,47 @@ const State = {
 			if (parsedState) {
 				this.pagination.currentPage = parsedState.currentPage || 1;
 				this.pagination.pageSize = parsedState.pageSize || 25;
+				this.savedFilters = parsedState.filters || {};
 			}
 		} catch (e) {
 			console.error("Error loading saved state:", e);
 		}
 	},
 };
+
+/** Apply saved filter values to all filter inputs (desktop + mobile). */
+function applySavedFiltersToDom() {
+	const f = State.savedFilters;
+	if (!f || Object.keys(f).length === 0) return;
+	// Set year and manufacturer first so model dropdown options update
+	["year", "manufacturer"].forEach((name) => {
+		const val = f[name];
+		if (val == null) return;
+		getFilterElementsByName(name).forEach((el) => {
+			if (Array.from(el.options).some((o) => o.value === val)) el.value = val;
+		});
+	});
+	updateModelDropdownOptions();
+	// Set remaining filters
+	["search", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
+		const val = f[name];
+		if (val == null) return;
+		getFilterElementsByName(name).forEach((el) => {
+			if (el.tagName === "SELECT" && !Array.from(el.options).some((o) => o.value === val)) return;
+			el.value = val;
+		});
+	});
+}
+
+/** Clear all filter inputs and re-apply (shows full list). */
+function clearAllFilters() {
+	["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
+		getFilterElementsByName(name).forEach((el) => { el.value = ""; });
+	});
+	updateModelDropdownOptions();
+	clearSearchSuggestions();
+	filterTable();
+}
 
 // Return the active filter group based on Bootstrap lg breakpoint.
 function getActiveFilterGroupName() {
@@ -335,19 +381,17 @@ function populateSearchSuggestions(itemsArray) {
 		types: [],
 	};
 
-	// Extract all searchable values from the data
+	// Extract all searchable values from the data (supports app item shape or XML nodes)
+	const getVal = (item, key, xmlTag) =>
+		item[key] ?? item.getElementsByTagName?.(xmlTag)?.[0]?.textContent ?? "";
+
 	itemsArray.forEach((item) => {
-		// Get key data fields that users might search for
-		const stockNumber =
-			item.getElementsByTagName("stocknumber")[0]?.textContent || "";
-		const vin = item.getElementsByTagName("vin")[0]?.textContent || "";
-		const manufacturer =
-			item.getElementsByTagName("manufacturer")[0]?.textContent || "";
-		const modelName =
-			item.getElementsByTagName("model_name")[0]?.textContent || "";
-		const modelType =
-			item.getElementsByTagName("model_type")[0]?.textContent || "";
-		const year = item.getElementsByTagName("year")[0]?.textContent || "";
+		const stockNumber = getVal(item, "stockNumber", "stocknumber");
+		const vin = getVal(item, "vin", "vin");
+		const manufacturer = getVal(item, "manufacturer", "manufacturer");
+		const modelName = getVal(item, "modelName", "model_name");
+		const modelType = getVal(item, "modelType", "model_type");
+		const year = getVal(item, "year", "year");
 
 		// Store in our global object
 		if (stockNumber) window.searchSuggestions.stockNumbers.push(stockNumber);
@@ -697,6 +741,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 		}
 	});
 
+	// Clear filters button (desktop + mobile)
+	document.getElementById("clearFiltersBtn")?.addEventListener("click", clearAllFilters);
+	document.getElementById("clearFiltersBtnMobile")?.addEventListener("click", clearAllFilters);
+
 	// Load user preferences before fetching data
 	State.loadState();
 
@@ -874,15 +922,19 @@ async function forceRefresh() {
 		btn.innerHTML = '<i class="bi bi-arrow-clockwise h6 my-1 spin"></i> <span class="mx-1 pe-2 fw-normal">Loading...</span>';
 	}
 	
-	// Clear cache from both localStorage and memory
+	// Clear cache from both localStorage and memory (XML + Supabase)
 	try {
 		localStorage.removeItem("vehiclesCache");
 		localStorage.removeItem("vehiclesCacheTimestamp");
+		localStorage.removeItem("vehiclesCacheSupabase");
+		localStorage.removeItem("vehiclesCacheSupabaseTimestamp");
 	} catch (e) {
 		console.log("Could not clear localStorage cache");
 	}
 	memoryStorage.vehiclesCache = null;
 	memoryStorage.vehiclesCacheTimestamp = null;
+	memoryStorage.vehiclesCacheSupabase = null;
+	memoryStorage.vehiclesCacheSupabaseTimestamp = null;
 	
 	// Fetch fresh data
 	await fetchData();
@@ -895,181 +947,123 @@ async function forceRefresh() {
 }
 
 async function fetchData() {
-	try {
-		// Add mobile debugging info
-		const isMobile =
-			/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-				navigator.userAgent,
-			);
-		console.log(
-			`Device info - Mobile: ${isMobile}, UserAgent: ${navigator.userAgent}`,
-		);
+	const isMobile =
+		/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+	console.log(`Device info - Mobile: ${isMobile}, UserAgent: ${navigator.userAgent}`);
 
-		// Check if we're using localStorage or memory fallback
-		const useMemoryFallback = !checkLocalStorageAvailability().available;
+	const storageStatus = checkLocalStorageAvailability();
+	const useMemoryFallback = !storageStatus.available || storageStatus.quotaExceeded;
+	const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
-		// Check cache first (either localStorage or memory)
-		let cache, cacheTimestamp;
+	// Try Supabase first (when configured)
+	const supabaseCache = useMemoryFallback
+		? memoryStorage.vehiclesCacheSupabase
+		: JSON.parse(localStorage.getItem("vehiclesCacheSupabase") || "null");
+	const supabaseCacheTs = useMemoryFallback
+		? memoryStorage.vehiclesCacheSupabaseTimestamp
+		: parseInt(localStorage.getItem("vehiclesCacheSupabaseTimestamp") || "0", 10);
 
-		if (useMemoryFallback) {
-			cache = memoryStorage.vehiclesCache;
-			cacheTimestamp = memoryStorage.vehiclesCacheTimestamp;
-			console.log("Using memory storage fallback");
-		} else {
-			cache = localStorage.getItem("vehiclesCache");
-			cacheTimestamp = localStorage.getItem("vehiclesCacheTimestamp");
-		}
+	if (supabaseCache && supabaseCacheTs && Date.now() - supabaseCacheTs < CACHE_DURATION) {
+		console.log("Using cached Supabase data...");
+		await processVehicleData(supabaseCache);
+		return;
+	}
 
-		const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
-
-		// Use cached data if it exists and is less than 5 minutes old
-		if (cache && cacheTimestamp) {
-			const age =
-				Date.now() -
-				(typeof cacheTimestamp === "string" ?
-					parseInt(cacheTimestamp)
-				:	cacheTimestamp);
-			if (age < CACHE_DURATION) {
-				console.log("Using cached XML data...");
-				try {
-					const parser = new DOMParser();
-					const xmlDoc = parser.parseFromString(cache, "text/xml");
-
-					// Check for parsing errors
-					const parseError = xmlDoc.querySelector("parsererror");
-					if (parseError) {
-						console.error("XML Parse Error:", parseError.textContent);
-						throw new Error("XML parsing failed");
-					}
-
-					await processXMLData(xmlDoc);
-					return;
-				} catch (parseError) {
-					console.error("Error parsing cached XML:", parseError);
-					// If parse error, continue to fetch fresh data
-				}
-			}
-		}
-
-		// Fetch fresh data if cache is missing or expired
-		console.log("Fetching fresh XML data...");
-		
-		// Show skeleton only when making API call
-		showPlaceholder();
-
+	showPlaceholder();
+	const items = await fetchVehiclesFromSupabase();
+	if (items && items.length > 0) {
+		console.log(`Loaded ${items.length} vehicles from Supabase`);
 		try {
-			// Set a longer timeout on mobile
-			const timeoutDuration = isMobile ? 60000 : 30000; // 60 seconds on mobile, 30 on desktop
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
-
-			const xmlUrl = buildXmlRequestUrl(
-				"https://www.flatoutmotorcycles.com/unitinventory_univ.xml",
-			);
-			const response = await fetch(xmlUrl, {
-				signal: controller.signal,
-				mode: "cors", // Explicitly request CORS
-				headers: {
-					Accept: "application/xml, text/xml",
-				},
-				cache: "no-store",
-			});
-
-			clearTimeout(timeoutId);
-
-			if (!response.ok) {
-				console.error(
-					`Network response error: ${response.status} ${response.statusText}`,
-				);
-				throw new Error(`Network response error: ${response.status}`);
+			const toStore = JSON.stringify(items);
+			if (useMemoryFallback || toStore.length > 2 * 1024 * 1024) {
+				memoryStorage.vehiclesCacheSupabase = items;
+				memoryStorage.vehiclesCacheSupabaseTimestamp = Date.now();
+			} else {
+				localStorage.setItem("vehiclesCacheSupabase", toStore);
+				localStorage.setItem("vehiclesCacheSupabaseTimestamp", String(Date.now()));
 			}
+		} catch (e) {
+			memoryStorage.vehiclesCacheSupabase = items;
+			memoryStorage.vehiclesCacheSupabaseTimestamp = Date.now();
+		}
+		await processVehicleData(items);
+		return;
+	}
 
-			const data = await response.text();
-			console.log(`Received data length: ${data.length} characters`);
+	// Fallback to XML
+	await fetchDataFromXml(useMemoryFallback, CACHE_DURATION, isMobile);
+}
 
-			if (data.length < 100) {
-				console.error("Response too short, likely not valid XML");
-				throw new Error("Response too short");
-			}
+/** XML fallback when Supabase is not configured or fails. */
+async function fetchDataFromXml(useMemoryFallback, CACHE_DURATION, isMobile) {
+	try {
+		let cache = useMemoryFallback ? memoryStorage.vehiclesCache : localStorage.getItem("vehiclesCache");
+		const cacheTimestamp = useMemoryFallback
+			? memoryStorage.vehiclesCacheTimestamp
+			: parseInt(localStorage.getItem("vehiclesCacheTimestamp") || "0", 10);
 
-			// Validate XML before caching
+		if (cache && cacheTimestamp && Date.now() - cacheTimestamp < CACHE_DURATION) {
+			console.log("Using cached XML data...");
 			const parser = new DOMParser();
-			const xmlDoc = parser.parseFromString(data, "text/xml");
-			const parseError = xmlDoc.querySelector("parsererror");
-
-			if (parseError) {
-				console.error("XML Parse Error in fresh data:", parseError.textContent);
-				throw new Error("XML parsing failed for fresh data");
+			const xmlDoc = parser.parseFromString(cache, "text/xml");
+			if (!xmlDoc.querySelector("parsererror")) {
+				await processXMLData(xmlDoc);
+				return;
 			}
+		}
 
-			// Update cache (either localStorage or memory)
-			try {
-				if (useMemoryFallback) {
-					memoryStorage.vehiclesCache = data;
-					memoryStorage.vehiclesCacheTimestamp = Date.now();
-				} else {
-					localStorage.setItem("vehiclesCache", data);
-					localStorage.setItem("vehiclesCacheTimestamp", Date.now().toString());
-				}
-				console.log("Cache updated successfully");
-			} catch (storageError) {
-				console.error("Storage error (possibly quota exceeded):", storageError);
-				// Fall back to memory if localStorage fails
+		console.log("Fetching fresh XML data...");
+		const timeoutDuration = isMobile ? 60000 : 30000;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+
+		const xmlUrl = buildXmlRequestUrl("https://www.flatoutmotorcycles.com/unitinventory_univ.xml");
+		const response = await fetch(xmlUrl, {
+			signal: controller.signal,
+			mode: "cors",
+			headers: { Accept: "application/xml, text/xml" },
+			cache: "no-store",
+		});
+		clearTimeout(timeoutId);
+
+		if (!response.ok) throw new Error(`Network response error: ${response.status}`);
+		const data = await response.text();
+		if (data.length < 100) throw new Error("Response too short");
+
+		const parser = new DOMParser();
+		const xmlDoc = parser.parseFromString(data, "text/xml");
+		if (xmlDoc.querySelector("parsererror")) throw new Error("XML parsing failed");
+
+		const useMemoryForLargeData = useMemoryFallback || data.length > 2 * 1024 * 1024;
+		try {
+			if (useMemoryForLargeData) {
 				memoryStorage.vehiclesCache = data;
 				memoryStorage.vehiclesCacheTimestamp = Date.now();
-				console.log("Fell back to memory storage");
+			} else {
+				localStorage.setItem("vehiclesCache", data);
+				localStorage.setItem("vehiclesCacheTimestamp", String(Date.now()));
 			}
-
-			await processXMLData(xmlDoc);
-		} catch (fetchError) {
-			console.error("Fetch error details:", fetchError);
-			throw fetchError; // Re-throw to be caught by outer try/catch
+		} catch (e) {
+			memoryStorage.vehiclesCache = data;
+			memoryStorage.vehiclesCacheTimestamp = Date.now();
 		}
+
+		await processXMLData(xmlDoc);
 	} catch (error) {
 		console.error("Error fetching XML:", error);
-
-		// Check if it's an abort error (timeout)
-		if (error.name === "AbortError") {
-			console.log("Request timed out - trying to use cached data as fallback");
-		}
-
-		// If there's an error fetching fresh data, try to use cached data as fallback
-		const useMemoryFallback = !checkLocalStorageAvailability().available;
-		const cache =
-			useMemoryFallback ?
-				memoryStorage.vehiclesCache
-			:	localStorage.getItem("vehiclesCache");
-
+		const cache = useMemoryFallback ? memoryStorage.vehiclesCache : localStorage.getItem("vehiclesCache");
 		if (cache) {
-			console.log("Using cached data as fallback...");
 			try {
-				const parser = new DOMParser();
-				const xmlDoc = parser.parseFromString(cache, "text/xml");
-
-				// Check for parsing errors in fallback
-				const parseError = xmlDoc.querySelector("parsererror");
-				if (parseError) {
-					console.error(
-						"XML Parse Error in fallback cache:",
-						parseError.textContent,
-					);
-					showDataLoadError(
-						"Could not load vehicle data. Please try again later.",
-					);
+				const xmlDoc = new DOMParser().parseFromString(cache, "text/xml");
+				if (!xmlDoc.querySelector("parsererror")) {
+					await processXMLData(xmlDoc);
 					return;
 				}
-
-				await processXMLData(xmlDoc);
-			} catch (fallbackError) {
-				console.error("Error using fallback cache:", fallbackError);
-				showDataLoadError(
-					"Could not load vehicle data. Please try again later.",
-				);
+			} catch (e) {
+				/* ignore */
 			}
-		} else {
-			console.error("No cache available and fetch failed");
-			showDataLoadError("Could not load vehicle data. Please try again later.");
 		}
+		showDataLoadError("Could not load vehicle data. Please try again later.");
 	}
 }
 
@@ -1099,33 +1093,56 @@ function showDataLoadError(message) {
 	DOM.tableBody.appendChild(row);
 }
 
-// Separate function to process the XML data
-async function processXMLData(xmlDoc) {
-	// Clear existing content including placeholders
+/** Applies items (app shape) to State, dropdowns, and table. Shared by XML and Supabase. */
+async function processVehicleData(items) {
+	if (!DOM.tableBody) return;
+
 	while (DOM.tableBody.firstChild) {
 		DOM.tableBody.removeChild(DOM.tableBody.firstChild);
 	}
 
+	State.allItems = items;
+	State.filteredItems = [...State.allItems];
+
+	const manufacturers = new Set();
+	const years = new Set();
+	const types = new Set();
+	items.forEach((item) => {
+		if (item.manufacturer && item.manufacturer !== "N/A") manufacturers.add(item.manufacturer);
+		if (item.year && item.year !== "N/A") years.add(item.year);
+		if (item.modelType && item.modelType !== "N/A") types.add(item.modelType);
+	});
+
+	populateManufacturerDropdown([...manufacturers]);
+	populateYearDropdown([...years]);
+	populateTypeDropdown([...types]);
+	updateModelDropdownOptions();
+	populateSearchSuggestions(items);
+
+	State.loadState();
+	applySavedFiltersToDom();
+	initializePagination();
+	filterTable();
+
+	document.querySelectorAll(".placeholder-wave").forEach((el) => {
+		el.classList.remove("placeholder-wave");
+	});
+}
+
+// Separate function to process the XML data
+async function processXMLData(xmlDoc) {
 	const items = xmlDoc.getElementsByTagName("item");
 	if (!DOM.tableBody) return;
 
-	// Convert NodeList to Array for sorting
 	const itemsArray = Array.from(items);
-
-	// Sort items by updated date (newest first)
 	itemsArray.sort((a, b) => {
 		const dateAStr = a.getElementsByTagName("updated")[0]?.textContent || "";
 		const dateBStr = b.getElementsByTagName("updated")[0]?.textContent || "";
-
-		// Use the normalizeDate function to handle potential timezone issues
 		const dateA = normalizeDate(dateAStr);
 		const dateB = normalizeDate(dateBStr);
-
-		// Compare the normalized dates
-		return dateB - dateA; // Most recent first
+		return dateB - dateA;
 	});
 
-	// Collect unique manufacturers for dropdown
 	const manufacturers = new Set();
 	const years = new Set();
 	const types = new Set();
@@ -1193,29 +1210,7 @@ async function processXMLData(xmlDoc) {
 		};
 	});
 
-	// Initialize with all items
-	State.filteredItems = [...State.allItems];
-
-	// Populate dropdowns
-	populateManufacturerDropdown([...manufacturers]);
-	populateYearDropdown([...years]);
-	populateTypeDropdown([...types]);
-	updateModelDropdownOptions();
-	populateSearchSuggestions(itemsArray);
-
-	// Load saved pagination state
-	State.loadState();
-
-	// Initialize pagination controls
-	initializePagination();
-
-	// Apply pagination and render the table
-	applyPagination();
-
-	// After data is loaded
-	document.querySelectorAll(".placeholder-wave").forEach((el) => {
-		el.classList.remove("placeholder-wave");
-	});
+	await processVehicleData(State.allItems);
 }
 
 // Helper function to initialize table features
@@ -1366,6 +1361,8 @@ function filterTable() {
 
 	// Apply pagination with the filtered items
 	applyPagination();
+
+	State.saveState();
 }
 
 function toggleTheme() {
@@ -2156,16 +2153,24 @@ function updateTable() {
       <td class="text-center nowrap action-cell p-1">
 		<div class="action-button-group btn-group btn-group-sm rounded-5" role="group" aria-label="Button group with nested dropdown">
 				<button type="button" id="keytagModalButton" class="btn btn-danger" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
-					<i class="bi bi-tag"></i>
-					<span class="action-button-label mx-1">KEY TAG</span>
+					<i class="bi bi-phone rotated-label mx-1"></i>
+					<span class="action-button-label px-2 visually-hidden">KEY TAG</span>
 				</button>
 				<button type="button" id="hangTagModalButton" class="btn btn-danger px-2" onclick="openHangTagsModal('${stockNumber}')">
-					<i class="bi bi-tags"></i>
-					<span class="action-button-label px-2">Hang TAG</span>
+					<i class="bi bi-tags mx-1"></i>
+					<span class="action-button-label px-2 visually-hidden">Hang TAG</span>
 				</button>
 				<button type="button" id="quotePageButtom" class="btn btn-danger" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
-					<i class="bi bi-card-image"></i>
-					<span class="action-button-label px-2">Quote</span>
+					<i class="bi bi-card-heading mx-1"></i>
+					<span class="action-button-label px-2 visually-hidden">Quote</span>
+				</button>
+				<button 
+					type="button"
+					class="btn btn-danger"
+					title="Goto TV Display Launcher"
+					onclick="openTvWorkspaceModal('${stockNumber}')">
+					<i class="bi bi-tv dropdown-icon mx-1"></i>
+					<span class="action-button-label px-2 visually-hidden">TV Display</span>
 				</button>
 
 			<div class="btn-group" role="group">

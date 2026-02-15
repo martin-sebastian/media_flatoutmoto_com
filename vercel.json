@@ -5,5 +5,11 @@
       "maxDuration": 60,
       "includeFiles": "node_modules/@sparticuz/chromium/**"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/sync-unit-inventory",
+      "schedule": "0 */4 * * *"
+    }
+  ]
 }
