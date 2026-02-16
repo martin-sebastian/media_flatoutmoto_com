@@ -66,6 +66,8 @@ const State = {
 		direction: "asc",
 	},
 	savedFilters: {},
+	/** Current key tag data for Print/Zebra/Labelary (set when rendering). */
+	currentKeyTagData: null,
 	saveState() {
 		const filters = {};
 		["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
@@ -108,6 +110,15 @@ const State = {
 		}
 	},
 };
+
+/** Populate key tag search datalist from inventory. */
+/** Populate key tag search datalist; limited to first 10 for performance. */
+function populateKeytagStockList(items) {
+	const list = document.getElementById("keytagStockList");
+	if (!list) return;
+	const stocks = [...new Set((items || []).map((i) => i.stockNumber).filter(Boolean))].sort().slice(0, 10);
+	list.innerHTML = stocks.map((s) => `<option value="${s}">`).join("");
+}
 
 /** Apply saved filter values to all filter inputs (desktop + mobile). */
 function applySavedFiltersToDom() {
@@ -279,14 +290,13 @@ function setFilterGroupState() {
 
 // Add this function near the top of your file, with other utility functions
 function normalizeDate(dateString) {
-	if (!dateString) return null;
+	if (!dateString || dateString === "N/A") return null;
 
-	// Parse the date
 	const parsedDate = moment(dateString);
+	if (!parsedDate.isValid()) return null;
 
 	// If the date is in the future (likely due to timezone issues), adjust it
 	if (parsedDate.isAfter(moment())) {
-		// Use the current date for display purposes
 		return moment();
 	}
 
@@ -1118,6 +1128,7 @@ async function processVehicleData(items) {
 	populateTypeDropdown([...types]);
 	updateModelDropdownOptions();
 	populateSearchSuggestions(items);
+	populateKeytagStockList(items);
 
 	State.loadState();
 	applySavedFiltersToDom();
@@ -1236,6 +1247,11 @@ function initializeTableFeatures() {
 
 	// Count rows after data is loaded
 	filterTable();
+
+	// Apply default sort by updated (most recent first)
+	State.sort = { column: "updated", direction: "desc" };
+	sortFilteredItems();
+	applyPagination();
 }
 
 function filterTable() {
@@ -1313,23 +1329,23 @@ function filterTable() {
 					return true;
 				}
 				case "updated": {
-					// Handle date range filtering
+					// Handle date range filtering; validate moments before comparing
 					const itemDate = moment(item.updated).startOf("day");
 					const startDate = value ? moment(value).startOf("day") : null;
 					const endDate = filters.updatedEnd ? moment(filters.updatedEnd).startOf("day") : null;
-					
-					// If both dates provided, check range (inclusive)
-					if (startDate && endDate) {
+					const startValid = startDate?.isValid();
+					const endValid = endDate?.isValid();
+					// Exclude items with invalid/missing dates when any date filter is active
+					if (!itemDate.isValid()) return !startValid && !endValid;
+					if (!startValid && !endValid) return true;
+					// Both dates provided, check range (inclusive)
+					if (startValid && endValid) {
 						return itemDate.isBetween(startDate, endDate, "day", "[]");
 					}
-					// If only start date, filter items on or after
-					if (startDate) {
-						return itemDate.isSameOrAfter(startDate, "day");
-					}
-					// If only end date, filter items on or before
-					if (endDate) {
-						return itemDate.isSameOrBefore(endDate, "day");
-					}
+					// Only start date: items on or after
+					if (startValid) return itemDate.isSameOrAfter(startDate, "day");
+					// Only end date: items on or before
+					if (endValid) return itemDate.isSameOrBefore(endDate, "day");
 					return true;
 				}
 				case "updatedEnd": {
@@ -1426,15 +1442,14 @@ function updateRowCount() {
 document.addEventListener("DOMContentLoaded", () => {
 	// Listen for clicks on elements that might trigger the modal
 	document.addEventListener("click", function (event) {
-		// Handle keytagModalButton click
+		// Handle keytagModalButton click - set label only; keyTag runs on shown.bs.modal
 		if (event.target.closest("#keytagModalButton")) {
 			const keytagButton = event.target.closest("#keytagModalButton");
 			const stockNumber = keytagButton.getAttribute("data-bs-stocknumber");
 
 			if (stockNumber) {
-				// Update the modal title with the stock number
 				const modalTitle = document.getElementById("keytagModalLabel");
-				if (modalTitle) modalTitle.innerHTML = stockNumber;
+				if (modalTitle) modalTitle.textContent = stockNumber;
 
 				// Load saved vertical toggle state
 				const verticalToggle = document.getElementById("verticalKeyTagSwitch");
@@ -1444,9 +1459,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					toggleVerticalKeyTag();
 				}
 
-				// Call the keyTag function and pass the stock number
-				keyTag(stockNumber);
-				// Restore saved Zebra printer IP and optional relay endpoint
+				// Restore saved Zebra printer IP
 				const zebraIpInput = document.getElementById("zebraPrinterIp");
 				if (zebraIpInput) zebraIpInput.value = localStorage.getItem(ZEBRA_IP_KEY) || "192.168.1.74";
 				const zebraEndpointInput = document.getElementById("zebraEndpoint");
@@ -1483,6 +1496,16 @@ document.addEventListener("DOMContentLoaded", () => {
 		verticalToggle.addEventListener("change", toggleVerticalKeyTag);
 	}
 
+	// Render key tag only after modal is fully shown (fixes zoom/layout when modal was hidden)
+	const keytagModalEl = document.getElementById("keytagModal");
+	if (keytagModalEl) {
+		keytagModalEl.addEventListener("shown.bs.modal", () => {
+			const stock = document.getElementById("keytagModalLabel")?.textContent?.trim();
+			// Skip placeholders; "Custom Tag" = user-created tag, don't overwrite with failed lookup
+			if (stock && stock !== "Stock Number" && stock !== "Custom Tag") keyTag(stock);
+		});
+	}
+
 	// Direct print collapse: flip chevron when Zebra section is shown/hidden
 	const zebraCollapse = document.getElementById("zebraPrintCollapse");
 	const zebraToggleIcon = document.getElementById("zebraToggleIcon");
@@ -1496,6 +1519,56 @@ document.addEventListener("DOMContentLoaded", () => {
 			zebraToggleIcon.classList.add("bi-chevron-down");
 		});
 	}
+
+	// Key tag search: Load from inventory
+	document.getElementById("keytagSearchBtn")?.addEventListener("click", () => {
+		const v = document.getElementById("keytagSearchInput")?.value?.trim();
+		if (v) keyTag(v);
+	});
+	document.getElementById("keytagSearchInput")?.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			const v = document.getElementById("keytagSearchInput")?.value?.trim();
+			if (v) keyTag(v);
+		}
+	});
+
+	// Key tag Create Custom: live update tag as user types
+	const customFormIds = ["keytagUsage", "keytagStock", "keytagYear", "keytagManufacturer", "keytagModel", "keytagCode", "keytagColor", "keytagVin"];
+	const getCustomFormData = () => ({
+		Usage: document.getElementById("keytagUsage")?.value || "",
+		StockNumber: document.getElementById("keytagStock")?.value?.trim() || "",
+		ModelYear: document.getElementById("keytagYear")?.value?.trim() || "",
+		Manufacturer: document.getElementById("keytagManufacturer")?.value?.trim() || "",
+		ModelName: document.getElementById("keytagModel")?.value?.trim() || "",
+		ModelCode: document.getElementById("keytagCode")?.value?.trim() || "",
+		Color: document.getElementById("keytagColor")?.value?.trim() || "",
+		VIN: document.getElementById("keytagVin")?.value?.trim() || "",
+	});
+	const updateTagFromCustomForm = () => keyTagFromData(getCustomFormData());
+	customFormIds.forEach((id) => {
+		const el = document.getElementById(id);
+		if (el) el.addEventListener("input", updateTagFromCustomForm);
+		if (el) el.addEventListener("change", updateTagFromCustomForm);
+	});
+
+	// Create Custom: when expanded, clear form and show empty template
+	document.getElementById("keytagCustomForm")?.addEventListener("show.bs.collapse", () => {
+		customFormIds.forEach((id) => {
+			const el = document.getElementById(id);
+			if (el) el.value = "";
+		});
+		keyTagFromData({});
+	});
+
+	// Clear custom form button
+	document.getElementById("keytagApplyCustomBtn")?.addEventListener("click", () => {
+		customFormIds.forEach((id) => {
+			const el = document.getElementById(id);
+			if (el) el.value = "";
+		});
+		keyTagFromData({});
+	});
 });
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1521,7 +1594,7 @@ function keyTag(stockNumber) {
 	);
 
 	if (!vehicle) {
-		// Show placeholder and error message
+		State.currentKeyTagData = null;
 		if (window.KeyTagComponent) {
 			window.KeyTagComponent.clear(horizontalContainer, "horizontal");
 			window.KeyTagComponent.clear(verticalContainer, "vertical");
@@ -1543,14 +1616,38 @@ function keyTag(stockNumber) {
 		Color: vehicle.color || "",
 		VIN: vehicle.vin || "",
 	};
+	keyTagFromData(data);
+}
 
-	// Render using component
+/** Render key tag from data object; stores for Print/Zebra/Labelary. Empty data shows placeholders. */
+function keyTagFromData(data) {
+	const normalized = {
+		StockNumber: data?.StockNumber || "",
+		Usage: data?.Usage || "",
+		ModelYear: data?.ModelYear || "",
+		Manufacturer: data?.Manufacturer || "",
+		ModelName: data?.ModelName || "",
+		ModelCode: data?.ModelCode || "",
+		Color: data?.Color || "",
+		VIN: data?.VIN || "",
+	};
+	const isEmpty = Object.values(normalized).every((v) => !v);
+	State.currentKeyTagData = isEmpty ? null : normalized;
+	const labelEl = document.getElementById("keytagModalLabel");
+	if (labelEl) labelEl.textContent = normalized.StockNumber || "Custom Tag";
+	const hEl = document.getElementById("keytagHorizontal");
+	const vEl = document.getElementById("keytagVertical");
 	if (window.KeyTagComponent) {
-		window.KeyTagComponent.render(data, horizontalContainer);
-		window.KeyTagComponent.renderVertical(data, verticalContainer);
+		if (isEmpty) {
+			window.KeyTagComponent.clear(hEl, "horizontal");
+			window.KeyTagComponent.clear(vEl, "vertical");
+		} else {
+			window.KeyTagComponent.render(normalized, hEl);
+			window.KeyTagComponent.renderVertical(normalized, vEl);
+		}
 	}
-
-	console.log("Key tag rendered from cached XML:", data);
+	const msgEl = document.getElementById("keytagMessage");
+	if (msgEl) msgEl.innerHTML = "";
 }
 
 /**
@@ -1601,28 +1698,11 @@ async function printKeyTagToZebra() {
 		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Enter Zebra printer IP address.</div>`;
 		return;
 	}
-	const stockNumber = labelEl.textContent?.trim();
-	if (!stockNumber || stockNumber === "Stock Number") {
-		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Load a key tag first (select a vehicle).</div>`;
+	const data = State.currentKeyTagData;
+	if (!data || !window.KeyTagComponent) {
+		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Load a key tag first (search or create custom).</div>`;
 		return;
 	}
-	const vehicle = State.allItems.find(
-		(item) => (item.stockNumber || "").toUpperCase() === stockNumber.toUpperCase()
-	);
-	if (!vehicle || !window.KeyTagComponent) {
-		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Vehicle data not found.</div>`;
-		return;
-	}
-	const data = {
-		StockNumber: vehicle.stockNumber || "",
-		Usage: vehicle.usage || "",
-		ModelYear: vehicle.year || "",
-		Manufacturer: vehicle.manufacturer || "",
-		ModelName: vehicle.modelName || "",
-		ModelCode: vehicle.modelCode || "",
-		Color: vehicle.color || "",
-		VIN: vehicle.vin || "",
-	};
 	const zpl = window.KeyTagComponent.toZpl(data);
 	const endpointInput = document.getElementById("zebraEndpoint");
 	const endpoint = endpointInput?.value?.trim() || "";
@@ -1656,29 +1736,11 @@ const LABELARY_API = "https://api.labelary.com/v1/printers/8dpmm/labels/1.5x2/0/
  */
 function previewKeyTagInLabelary() {
 	const msgEl = document.getElementById("keytagMessage");
-	const labelEl = document.getElementById("keytagModalLabel");
-	const stockNumber = labelEl?.textContent?.trim();
-	if (!stockNumber || stockNumber === "Stock Number") {
-		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Load a key tag first (select a vehicle).</div>`;
+	const data = State.currentKeyTagData;
+	if (!data || !window.KeyTagComponent) {
+		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Load a key tag first (search or create custom).</div>`;
 		return;
 	}
-	const vehicle = State.allItems.find(
-		(item) => (item.stockNumber || "").toUpperCase() === stockNumber.toUpperCase()
-	);
-	if (!vehicle || !window.KeyTagComponent) {
-		if (msgEl) msgEl.innerHTML = `<div class="text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Vehicle data not found.</div>`;
-		return;
-	}
-	const data = {
-		StockNumber: vehicle.stockNumber || "",
-		Usage: vehicle.usage || "",
-		ModelYear: vehicle.year || "",
-		Manufacturer: vehicle.manufacturer || "",
-		ModelName: vehicle.modelName || "",
-		ModelCode: vehicle.modelCode || "",
-		Color: vehicle.color || "",
-		VIN: vehicle.vin || "",
-	};
 	const zpl = window.KeyTagComponent.toZpl(data);
 	window.open(LABELARY_API + encodeURIComponent(zpl), "_blank", "noopener");
 }
@@ -1704,24 +1766,26 @@ function restoreKeyTagsModalFocus() {
 	}
 }
 
-function openKeyTagsByStockNumberModal(stockNumber) {
+/** Open key tag modal; uses first selected row stock if none passed. Search + Create Custom use inventory data. */
+function openKeyTagModal(stockNumber) {
 	storeKeyTagsModalFocus();
-	const modalIframe = document.getElementById("keyTagsByStockNumberModal");
-	modalIframe.src = `https://newportal.flatoutmotorcycles.com/apps/keytags/keytag.html?vehicle=`;
-	const keyTagsByStockNumberModal = new bootstrap.Modal(
-		document.getElementById("keyTagsByStockNumberModal"),
-	);
-	keyTagsByStockNumberModal.show();
+	const stock = (typeof stockNumber === "string" && stockNumber && !stockNumber.startsWith("${"))
+		? stockNumber
+		: (getSelectedTvGridItems()[0] || "");
+	const labelEl = document.getElementById("keytagModalLabel");
+	if (labelEl) labelEl.textContent = stock || "Stock Number";
+	const modalEl = document.getElementById("keytagModal");
+	if (modalEl) new bootstrap.Modal(modalEl).show();
 }
+window.openKeyTagModal = openKeyTagModal;
 
 function openHangTagsModal(stockNumber) {
-	const modalIframe = document.getElementById("hangTagsIframe");
-	modalIframe.src = `./hang-tags/?search=${stockNumber}`;
-	const hangTagsModal = new bootstrap.Modal(
-		document.getElementById("hangTagsModal"),
-	);
-	hangTagsModal.show();
+	const iframe = document.getElementById("hangTagsIframe");
+	if (iframe) iframe.src = `./hang-tags/?search=${encodeURIComponent(stockNumber || "")}`;
+	const modalEl = document.getElementById("hangTagsModal");
+	if (modalEl) new bootstrap.Modal(modalEl).show();
 }
+window.openHangTagsModal = openHangTagsModal;
 
 function openOverlayModal(stockNumber) {
 	const modalIframe = document.getElementById("overlayIframe");
@@ -1844,9 +1908,10 @@ function sortFilteredItems() {
 		if (isNumeric) {
 			sortKey = parseFloat(String(val).replace(/[^0-9.-]+/g, "")) || 0;
 		} else if (isDate) {
-			// Convert moment to unix timestamp for numeric sorting
+			// Convert to unix timestamp; use 0 for invalid to avoid NaN breaking sort
 			const momentDate = normalizeDate(val);
-			sortKey = momentDate ? momentDate.valueOf() : 0;
+			const ts = momentDate && momentDate.isValid() ? momentDate.valueOf() : 0;
+			sortKey = Number.isFinite(ts) ? ts : 0;
 		} else {
 			sortKey = String(val).toLowerCase();
 		}
@@ -2139,14 +2204,13 @@ function updateTable() {
 
 	  <td data-column="updated" class="text-center" nowrap>
         	<span class="badge text-secondary p-2 fw-semibold border updated-badge"
-              title="${normalizeDate(updated).format("MM-DD-YYYY")}"
+              title="${normalizeDate(updated)?.format("MM-DD-YYYY") ?? "N/A"}"
               data-bs-toggle="tooltip"
               data-bs-placement="top">
-            	${normalizeDate(updated).fromNow()}
+            	${normalizeDate(updated)?.fromNow() ?? "N/A"}
             </span>
-          <span class="small text-muted d-none">${normalizeDate(updated).format("MM-DD-YYYY")}</span>
-        </span>
-        <span class="visually-hidden">${normalizeDate(updated).format("YYYY-MM-DD")}</span>
+          <span class="small text-muted d-none">${normalizeDate(updated)?.format("MM-DD-YYYY") ?? "N/A"}</span>
+        <span class="visually-hidden">${normalizeDate(updated)?.format("YYYY-MM-DD") ?? "N/A"}</span>
       </td>
 
 
@@ -2224,7 +2288,7 @@ function updateTable() {
 						Generate PDF Brochure</a>
 					</li>
 					
-
+					<li><hr class="dropdown-divider m-0"></li>
 					<li class="small">
 						<a class="dropdown-item pe-5" href="javascript:void(0);" title="Vehicle Details" onclick="window.location.href = 'details/?s=${stockNumber}'">
 						<i class="bi bi-card-heading dropdown-icon small me-2"></i>
@@ -2263,7 +2327,7 @@ function updateTable() {
 					<span style="font-size:10px; text-transform:uppercase;">Key Tags</span>
 				</button>
 
-				<button type="button" class="btn btn-danger action-button mx-1" title="Print Hang Tags" data-bs-toggle="modal" data-bs-target="#HangTagModal" data-bs-stocknumber="${stockNumber}" onclick="openHangTagsModal('${stockNumber}')">
+				<button type="button" class="btn btn-danger action-button mx-1" title="Print Hang Tags" data-bs-toggle="modal" data-bs-target="#hangTagsModal" data-bs-stocknumber="${stockNumber}" onclick="openHangTagsModal('${stockNumber}')">
 					<i class="bi bi-tags"></i>
 					<span style="font-size:10px; margin-top:-10px; padding:0; text-transform:uppercase;">Hang Tags</span>
 				</button>
@@ -2626,7 +2690,7 @@ function updateTvWorkspaceLayoutUi() {
 	if (tvDom.stockInput) {
 		tvDom.stockInput.placeholder = isGrid
 			? "STOCK1, STOCK2, STOCK3 ..."
-			: "SD21374";
+			: "Enter stock number...";
 	}
 	syncTvWorkspacePreviewOrientation();
 }

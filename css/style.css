@@ -6,7 +6,9 @@ body {
   margin: 0;
   overflow: hidden;
 }
-
+.table-image-container {
+  border: 1px solid #212121;
+}
 /* 2. Turn Body into a Column */
 body {
   display: flex;
@@ -26,7 +28,6 @@ body {
 .line-clamp-2 {
   display: -webkit-box;
   padding-right: 10px;
-  -webkit-line-clamp: 2;
   /* Show 2 lines, then add "..." */
   -webkit-box-orient: vertical;
   overflow: hidden;

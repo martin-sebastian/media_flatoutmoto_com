@@ -2,6 +2,11 @@ body.tv-body {
   padding: 0 !important;
   margin: 0 !important;
   min-height: 100vh;
+  --tv-surface-base: #0f1115;
+  --tv-surface-gradient:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 42%),
+    radial-gradient(120% 90% at 0% 0%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 62%),
+    radial-gradient(120% 95% at 100% 100%, rgba(220, 53, 69, 0.12) 0%, rgba(220, 53, 69, 0) 65%);
 
 }
 
@@ -134,7 +139,10 @@ body.tv-body {
   height: 1920px;
   margin: 0 auto;
   overflow: hidden;
-  background: #0f1115;
+  background-color: var(--tv-surface-base);
+  background-image: var(--tv-surface-gradient);
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 /* Skeleton: fixed aspect ratios with equal spacing */
@@ -175,13 +183,11 @@ body.tv-body {
   justify-content: stretch;
 }
 
-/* Middle content grid: 2x2 with gaps (default) */
-/* 580px height - 12px gap = 568px / 2 rows = 284px per row */
-/* 1056px width (1080 - 24 padding) - 12px gap = 1044px / 2 cols = 522px per col */
+/* Middle content grid: 2 columns, single row (left + right) */
 .tv-layout-portrait .tv-middle-grid {
   display: grid;
   grid-template-columns: 522px 522px;
-  grid-template-rows: 284px 284px;
+  grid-template-rows: 580px;
   gap: 12px;
   height: 580px;
   box-sizing: border-box;
@@ -227,7 +233,7 @@ body.tv-body {
 
 /* Portrait box sizing */
 .tv-layout-portrait .tv-box {
-  max-height: 284px;
+  max-height: 580px;
 }
 
 /* Larger QR code for minimal template */
@@ -339,7 +345,10 @@ body.tv-body {
   height: 1080px;
   margin: 0 auto;
   overflow: hidden;
-  background: #0f1115;
+  background-color: var(--tv-surface-base);
+  background-image: var(--tv-surface-gradient);
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .tv-landscape-skeleton {
@@ -360,20 +369,14 @@ body.tv-body {
   overflow: hidden;
 }
 
-/* Top-right: 2 stacked boxes (Pricing, Fees) */
-.tv-landscape-skeleton .tv-region-right-stack {
+/* Top-right: Combined pricing/info card */
+.tv-landscape-skeleton .tv-region-right-info {
   grid-area: 1 / 2 / 2 / 3;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
-/* Bottom-left: 2 stacked boxes (Features, QR) */
-.tv-landscape-skeleton .tv-region-left-stack {
+/* Bottom-left: Combined features/contact card */
+.tv-landscape-skeleton .tv-region-left-info {
   grid-area: 2 / 1 / 3 / 2;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 /* Bottom-right: Video */
@@ -386,10 +389,10 @@ body.tv-body {
   justify-content: stretch;
 }
 
-/* Stacked box styling - reuses portrait .tv-box */
+/* Landscape content cards */
 .tv-layout-landscape .tv-box {
-  flex: 1;
-  max-height: 255px;
+  height: 522px;
+  max-height: 522px;
 }
 
 /* Carousel in landscape */
@@ -941,20 +944,43 @@ body.tv-body[data-bs-theme="light"] .tv-payment-amount {
 body.tv-body[data-bs-theme="light"] {
   background: #f2f4f7;
   color: #1f2937;
+  --tv-surface-base: #f2f4f7;
+  --tv-surface-gradient:
+    linear-gradient(160deg, rgba(15, 23, 42, 0.045) 0%, rgba(15, 23, 42, 0) 42%),
+    radial-gradient(120% 90% at 0% 0%, rgba(15, 23, 42, 0.11) 0%, rgba(15, 23, 42, 0) 62%),
+    radial-gradient(120% 95% at 100% 100%, rgba(220, 53, 69, 0.08) 0%, rgba(220, 53, 69, 0) 65%);
+}
+
+body.tv-body[data-bs-theme="light"] .tv-layout-grid,
+body.tv-body[data-bs-theme="light"] .tv-layout-showcase {
+  background-color: #f2f4f7;
+  background-image: none;
 }
 
 body.tv-body[data-bs-theme="light"] .tv-layout-portrait,
-body.tv-body[data-bs-theme="light"] .tv-layout-landscape,
-body.tv-body[data-bs-theme="light"] .tv-layout-grid,
-body.tv-body[data-bs-theme="light"] .tv-layout-showcase {
-  background: #f2f4f7;
+body.tv-body[data-bs-theme="light"] .tv-layout-landscape {
+  background-color: var(--tv-surface-base);
+  background-image: var(--tv-surface-gradient);
+}
+
+body.tv-body[data-bs-theme="dark"] .tv-layout-portrait,
+body.tv-body[data-bs-theme="dark"] .tv-layout-landscape {
+  background-color: var(--tv-surface-base);
+  background-image: var(--tv-surface-gradient);
 }
 
 body.tv-body[data-bs-theme="light"] .tv-box,
 body.tv-body[data-bs-theme="light"] .tv-grid-card {
-  background: #ffffff;
+  background-color: #ffffff;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 250, 252, 0.96) 55%,
+    rgba(241, 245, 249, 0.98) 100%
+  );
   border-color: rgba(15, 23, 42, 0.12);
   color: #111827;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 body.tv-body[data-bs-theme="light"] .tv-standard-features,

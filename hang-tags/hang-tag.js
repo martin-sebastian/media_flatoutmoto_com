@@ -114,7 +114,7 @@ const HangTagPartials = {
    * @param {string} stockNumber - Stock number.
    */
   titleBlock: (title, stockNumber) => `
-    <h1 class="ht-title">${title}</h1>
+    <h2 class="ht-title">${title}</h2>
     <div class="ht-stock-badge">${stockNumber}</div>
   `,
 
@@ -333,15 +333,15 @@ const HangTagTemplates = {
 
       // MSRP - only show if there's a discount (crossed out)
       const msrpHtml = hasDiscount 
-        ? `<p class="text-center text-muted mb-0" id="msrpLine">MSRP: <span class="text-decoration-line-through">${formatCurrency(data.msrpPlusAccessories)}</span></p>`
+        ? `<p class="text-center text-secondary fw-semibold mb-0" id="msrpLine">MSRP: <span class="text-decoration-line-through">${formatCurrency(data.msrpPlusAccessories)}</span></p>`
         : "";
 
       // Our Price - large font with yellow tag
       const priceHtml = `
-        <p class="text-center fs-1 fw-bold text-danger mb-1">
+        <h1 class="text-center h1 fw-bolder text-danger mb-1">
           ${HangTagPartials.yellowTag(data.yellowTag)}
           ${formatCurrency(data.ourPrice)}
-        </p>
+        </h1>
       `;
 
       // Savings badge - only show if there's savings

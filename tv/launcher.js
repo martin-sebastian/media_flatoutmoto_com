@@ -652,7 +652,7 @@ function updateLayoutUI() {
   if (DOM.stockInput) {
     DOM.stockInput.placeholder = isGrid 
       ? "STOCK1, STOCK2, STOCK3, ... (up to 10)" 
-      : "SD21374";
+      : "Enter stock #";
   }
   
   // Update help text

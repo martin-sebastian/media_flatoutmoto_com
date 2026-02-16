@@ -132,47 +132,6 @@ function setDisplayContent(markup) {
   ROOT.innerHTML = markup;
 }
 
-/** Duration to scroll down slowly (ms). */
-const LINE_SCROLL_DOWN_MS = 8000;
-/** Duration to snap back to top (ms). */
-const LINE_SCROLL_UP_MS = 400;
-
-/**
- * Start auto-scroll animation on line items lists: slow scroll down, quick return to top.
- */
-function initLineItemsAutoScroll() {
-  const lists = document.querySelectorAll(".tv-line-items-scroll");
-  lists.forEach((el) => {
-    const maxScroll = el.scrollHeight - el.clientHeight;
-    if (maxScroll <= 0) return;
-    let startTime = null;
-    let phase = "down";
-
-    function animate(timestamp) {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-
-      if (phase === "down") {
-        const progress = Math.min(1, elapsed / LINE_SCROLL_DOWN_MS);
-        el.scrollTop = maxScroll * progress;
-        if (progress >= 1) {
-          phase = "up";
-          startTime = timestamp;
-        }
-      } else {
-        const progress = Math.min(1, elapsed / LINE_SCROLL_UP_MS);
-        el.scrollTop = maxScroll * (1 - progress);
-        if (progress >= 1) {
-          phase = "down";
-          startTime = timestamp;
-        }
-      }
-      requestAnimationFrame(animate);
-    }
-    requestAnimationFrame(animate);
-  });
-}
-
 /**
  * Fetch selected image overrides from JSON.
  * @returns {Promise<object>} Selected images map.
@@ -241,6 +200,17 @@ function calculateMonthlyPayment(principal, apr, months) {
  */
 function safeText(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * Return logo path based on the active Bootstrap theme.
+ * @returns {string} Theme-aware logo path.
+ */
+function getThemeLogoPath() {
+  const theme = (document.body.getAttribute("data-bs-theme") || "dark").toLowerCase();
+  return theme === "light"
+    ? "../../img/fom-app-logo-02.svg"
+    : "../../img/fom-app-logo-01.svg";
 }
 
 /**
@@ -625,7 +595,7 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
 }
 
 /**
- * Render middle content for "default" template (4 boxes).
+ * Render middle content for portrait layout (2 columns: left + right).
  */
 function renderMiddleDefault(data, displayData, customText) {
   const { specialValue, msrpValue, hasDiscount, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, standardFeatures, featureMarkup, feesMarkup, rebatesMarkup, discountMarkup, accessoryMarkup } = displayData;
@@ -659,8 +629,8 @@ function renderMiddleDefault(data, displayData, customText) {
 
   return `
     <div class="tv-middle-grid">
-      <!-- Top-left: Show Special -->
-      <div class="tv-box px-3 py-2 d-flex flex-column">
+      <!-- Left: Show Special + pricing + line items -->
+      <div class="tv-box px-3 py-2 d-flex flex-column overflow-hidden">
         <div>
           <div class="text-uppercase text-danger h1 fw-bold">Show Special</div>
           <h5 class="text-secondary text-uppercase fw-semibold">${data.title || ""}</h5>
@@ -685,24 +655,24 @@ function renderMiddleDefault(data, displayData, customText) {
             <span class="tv-payment-amount fs-3">${formatPrice(monthlyPayment)}/mo</span>
           </div>
         </div>
-      </div>
-      <!-- Top-right: Standard features -->
-      <div class="tv-box p-3">
-        ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary mb-0">${standardFeatures}</div>` : ""}
-      </div>
-      <!-- Bottom-left: Price line items (taxes, fees) -->
-      <div class="tv-box p-3 d-flex flex-column overflow-hidden">
+        <hr class="my-2 opacity-25" />
         ${lineItemsList}
       </div>
-      <div class="tv-box d-none">
-        ${customText ? `<div class="text-secondary mb-2">${customText}</div>` : ""}
-        ${featureMarkup || ""}
-      </div>
-      <div class="tv-box p-3 d-flex align-items-center justify-content-around">
-        <div id="qrCode" class="tv-qr"></div>
-        <div class="d-flex flex-column justify-content-center align-items-center">
-          <img src="../../img/fom-app-logo-01.svg" alt="Logo" width="260" height="60" />
-          ${phone ? `<div class="mt-3 h4 fw-semibold text-secondary text-center">${phone}</div>` : ""}
+
+      <!-- Right: Features + contact/QR -->
+      <div class="tv-box p-3 d-flex flex-column">
+        <div class="flex-grow-1 overflow-hidden">
+          ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary mb-0">${standardFeatures}</div>` : ""}
+          ${customText ? `<div class="text-secondary mt-2 mb-2">${customText}</div>` : ""}
+          ${featureMarkup ? `<div class="mt-2">${featureMarkup}</div>` : ""}
+        </div>
+        <hr class="my-2 opacity-25" />
+        <div class="d-flex align-items-center justify-content-around">
+          <div id="qrCode" class="tv-qr"></div>
+          <div class="d-flex flex-column justify-content-center align-items-center">
+            <img src="${getThemeLogoPath()}" alt="Logo" width="260" height="60" />
+            ${phone ? `<div class="mt-3 h4 fw-semibold text-secondary text-center">${phone}</div>` : ""}
+          </div>
         </div>
       </div>
     </div>
@@ -746,7 +716,6 @@ function renderPortrait(data, imageUrl, customText, apiData, preferredImages, sl
   `);
   renderQrCode(data.webURL);
   initCarousels();
-  initLineItemsAutoScroll();
 }
 
 /**
@@ -809,10 +778,9 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
           ${carouselMarkup}
         </div>
         
-        <!-- Top-right: Pricing + Fees -->
-        <div class="tv-region-right-stack">
-          <!-- Pricing Box -->
-          <div class="tv-box p-3 d-flex flex-column">
+        <!-- Top-right: Combined pricing + line items -->
+        <div class="tv-region-right-info">
+          <div class="tv-box p-3 d-flex flex-column overflow-hidden">
             <div class="h2 text-danger fw-bolder text-uppercase mb-2">Boat Show Price</div>
             <div class="d-flex align-items-center gap-2 mb-1"> 
               <span class="badge bg-danger">${data.usage || "N/A"}</span>
@@ -841,29 +809,25 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
                 <span class="me-2">Est. payment</span><span class="tv-payment-amount fs-3">${formatPrice(monthlyPayment)}/mo</span>
               </div>
             </div>
-          </div>
-          
-          <!-- Fees Box -->
-          <div class="tv-box p-3 d-flex flex-column overflow-hidden">
+            <hr class="my-2 opacity-25" />
             ${landscapeLineItemsList}
           </div>
         </div>
         
-        <!-- Bottom-left: Features + QR -->
-        <div class="tv-region-left-stack">
-          <!-- Features Box -->
+        <!-- Bottom-left: Combined features + contact -->
+        <div class="tv-region-left-info">
           <div class="tv-box p-3 d-flex flex-column">
             ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary small mb-2">${standardFeatures}</div>` : ""}
             ${customText ? `<div class="mb-2">${customText}</div>` : ""}
             ${featureMarkup ? `<div class="flex-grow-1 overflow-hidden">${featureMarkup}</div>` : ""}
-          </div>
-          
-          <!-- QR Box -->
-          <div class="tv-box p-3 d-flex align-items-center justify-content-around">
-            <div id="qrCode" class="tv-qr"></div>
-            <div class="d-flex flex-column justify-content-center align-items-center">
-              <img src="../../img/fom-app-logo-01.svg" alt="Logo" width="180" height="27" />
-              ${phone ? `<div class="mt-2 text-secondary small">${phone}</div>` : ""}
+            <div class="flex-grow-1"></div>
+            <hr class="my-2 opacity-25" />
+            <div class="d-flex align-items-center justify-content-around">
+              <div id="qrCode" class="tv-qr"></div>
+              <div class="d-flex flex-column justify-content-center align-items-center">
+                <img src="${getThemeLogoPath()}" alt="Logo" width="180" height="27" />
+                ${phone ? `<div class="mt-2 text-secondary small">${phone}</div>` : ""}
+              </div>
             </div>
           </div>
         </div>
@@ -877,7 +841,6 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   `);
   renderQrCode(data.webURL);
   initCarousels();
-  initLineItemsAutoScroll();
 }
 
 /**
@@ -932,7 +895,7 @@ function renderGrid(vehicles) {
   setDisplayContent(`
     <div class="tv-layout-grid">
       <div class="tv-grid-header">
-        <img src="../../img/fom-app-logo-01.svg" alt="Flatout Motorsports" class="tv-grid-logo" />
+        <img src="${getThemeLogoPath()}" alt="Flatout Motorsports" class="tv-grid-logo" />
       </div>
       <div class="tv-grid-container">
         ${cards}

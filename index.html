@@ -181,7 +181,7 @@
           <form class="d-flex flex-column mt-1" role="search">
             <div class="card p-1 w-100">
               <div class="d-flex flex-column ">
-                <button type="button" class="btn btn-dark text-start" title="Create custom key tag" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                <button type="button" class="btn btn-dark text-start" title="Create custom key tag" onclick="openKeyTagModal()">
                   <i class="bi bi-tag me-3"></i> Create Custom Label
                 </button>
                 <button type="button" class="btn btn-dark text-start" title="TV Display" onclick="openTvWorkspaceModal()">
@@ -193,7 +193,7 @@
                 <button type="button" class="btn btn-dark text-start" title="Service Calendar" onclick="openServiceCalendarModal()">
                   <i class="bi bi-calendar-date me-3"></i> Service Calendar Demo
                 </button>
-                <button type="button" class="btn btn-dark text-start disabled" title="Create custom hang tags" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                <button type="button" class="btn btn-dark text-start disabled" title="Create custom hang tags" onclick="openKeyTagModal()">
                   <i class="bi bi-tags me-3"></i> Create Custom Hang Tags
                 </button>
                 <button type="button" class="btn btn-dark text-start disabled" title="Settings" onclick="window.open('/admin')">
@@ -216,7 +216,7 @@
                 <span class="text-secondary small">Showing:</span> <span class="mx-1 small" id="rowCountDisplay"></span>
               </div>
               <div id="button-group-right" class="mb-1 d-flex flex-row justify-content-between align-items-center gap-2">
-                <button type="button" class="btn btn-danger btn-sm rounded-3 my-2 px-3" title="Create custom label" onclick="openKeyTagsByStockNumberModal('${stockNumber}')">
+                <button type="button" class="btn btn-danger btn-sm rounded-3 my-2 px-3" title="Create custom label" onclick="openKeyTagModal()">
                   <i class="bi bi-plus-lg h6 my-1 ms-1"></i> <span class="mx-1 pe-2 fw-normal d-none d-lg-inline-block">Custom Label</span>
                 </button>
                 <button type="button" id="forceRefreshBtn" class="btn btn-outline-secondary btn-sm rounded-3 my-2 px-3" title="Refresh inventory data">
@@ -271,6 +271,11 @@
                     <option value="INHOUSE">In-House</option>
                     <option value="STOCK">Stock</option>
                   </select>
+                  <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-1 py-0 ms-0" id="clearFiltersBtn" title="Clear all filters" aria-label="Clear all filters">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="w-25 text-center middle-group d-flex align-items-center justify-content-between gap-2">
                   <div class="d-flex flex-row align-items-center justify-content-center ms-4" style="max-width: 260px">
                     <label for="updatedFilter" class="visually-hidden">From:</label>
                     <input type="date" id="updatedFilter" value="" class="form-control form-control-sm" name="updated-date" data-filter="updated" title="Updated From" style="max-width: 130px">
@@ -278,9 +283,6 @@
                     <label for="updatedEndFilter" class="visually-hidden">To:</label>
                     <input type="date" id="updatedEndFilter" value="" class="form-control form-control-sm" name="updated-end-date" data-filter="updatedEnd" title="Updated To" style="max-width: 130px">
                   </div>
-                  <button type="button" class="btn btn-outline-secondary btn-sm px-2" id="clearFiltersBtn" title="Clear all filters" aria-label="Clear all filters">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
                 </div>
 
                 <div class="w-25 text-end right-group d-flex align-items-center justify-content-end gap-2">
@@ -379,7 +381,7 @@
                   <option value="10">10</option>
                   <option value="25">25</option>
                   <option value="50">50</option>
-                  <option value="100">100</option>
+                  <option value="100" selected>100</option>
                   <option value="all">All</option>
                 </select>
               </div>
@@ -470,7 +472,34 @@
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body bg-light dots">
+            <div class="modal-body bg-light text-dark dots" data-bs-theme="light">
+              <!-- Search / Create Custom -->
+              <div class="d-print-none mb-3">
+                <div class="d-flex gap-2 flex-wrap align-items-end">
+                  <div class="flex-grow-1" style="min-width: 100px">
+                    <label for="keytagSearchInput" class="form-label small mb-0 d-none">Search inventory</label>
+                    <input type="text" id="keytagSearchInput" class="form-control form-control-sm" placeholder="Enter stock number..." list="keytagStockList" autocomplete="off" />
+                    <datalist id="keytagStockList"></datalist>
+                  </div>
+                  <button type="button" class="btn btn-danger btn-sm me-5" id="keytagSearchBtn"><i class="bi bi-search"></i></button>
+                  <button type="button" class="btn btn-secondary btn-sm ms-5" data-bs-toggle="collapse" data-bs-target="#keytagCustomForm" aria-expanded="false">+ Create Custom</button>
+                </div>
+                <div class="collapse mt-2" id="keytagCustomForm">
+                  <div class="card card-body bg-white small">
+                    <div class="row g-2">
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Usage</label><select id="keytagUsage" class="form-select form-select-sm"><option value="">—</option><option value="New">New</option><option value="Used">Used</option></select></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Stock #</label><input type="text" id="keytagStock" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Year</label><input type="text" id="keytagYear" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Manufacturer</label><input type="text" id="keytagManufacturer" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Model</label><input type="text" id="keytagModel" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Code</label><input type="text" id="keytagCode" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">Color</label><input type="text" id="keytagColor" class="form-control form-control-sm" /></div>
+                      <div class="col-6 col-md-3"><label class="form-label mb-0">VIN</label><input type="text" id="keytagVin" class="form-control form-control-sm" /></div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm mt-2 align-self-start" id="keytagApplyCustomBtn">Clear</button>
+                  </div>
+                </div>
+              </div>
               <!-- Key Tag Component Containers -->
               <div class="kt-container-row kt-container-preview py-4">
                 <div id="keytagHorizontal"></div>
@@ -496,26 +525,6 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="keyTagsByStockNumberModal" tabindex="-1" aria-labelledby="keyTagsByStockNumberModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title text-capitalize" id="keyTagsByStockNumberModalLabel"><i class="bi bi-tag me-2 icon-circle fw-bold text-light"></i>Create Custom Label </h5>
-            
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body m-0 p-0 overflow-hidden">
-            <iframe id="keyTagsByStockNumberiFrame" src="./key-tags/index.html" frameborder="0" style="width: 100%; min-height: 78vh; height: 100%; border: 0; margin-bottom: -10px; margin-top: 0px; padding: 0">
-            </iframe>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <!-- Print Button -->
           </div>
         </div>
       </div>
@@ -654,7 +663,7 @@
                         <label for="tvWorkspaceStockInput" class="form-label mb-1">Stock Number</label>
                         <button type="button" class="btn btn-sm btn-outline-secondary mb-1" id="tvUseSelectedBtn">Update</button>
                       </div>
-                        <input type="text" id="tvWorkspaceStockInput" class="form-control" placeholder="enter stock numberlll">
+                        <input type="text" id="tvWorkspaceStockInput" class="form-control" placeholder="enter stock number">
                       <div id="tvWorkspaceStockHelp" class="form-text">Use single stock number for portrait and landscapesing eunitr </div>
                     </div>
                     <label class="form-label small text-uppercase text-secondary mt-3 mb-2">Layout</label>

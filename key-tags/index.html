@@ -330,6 +330,16 @@
         }
       });
 
+      // Pre-fill from URL ?search= param (e.g. when opened from inventory modal)
+      const urlSearch = new URLSearchParams(window.location.search).get('search');
+      if (urlSearch) {
+        const searchEl = document.getElementById('search');
+        if (searchEl) {
+          searchEl.value = urlSearch;
+          keyTag(urlSearch);
+        }
+      }
+
       function printKeyTags() {
         // Create a temporary container for printing
         const printContainer = document.createElement('div');
