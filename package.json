@@ -3,7 +3,8 @@
     "start": "npx vercel dev",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:vite\"",
     "dev:api": "npx vercel dev --listen 3001",
-    "dev:vite": "npx vite"
+    "dev:vite": "npx vite",
+    "build": "vite build"
   },
   "dependencies": {
     "@adobe/pdfservices-node-sdk": "^4.1.0",

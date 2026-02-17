@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Vehicle Print</title>
+		<script type="module" crossorigin src="/assets/bootstrap.esm-CgEsG6e6.js"></script>
+		<script type="module" crossorigin src="/assets/bootstrap-init-CxX6viQq.js"></script>
+		<link rel="stylesheet" crossorigin href="/assets/bootstrap-BcD6Ynyg.css">
+		<link rel="stylesheet" crossorigin href="/assets/print_index-C1sJUdPb.css">
+		<link rel="stylesheet" crossorigin href="/assets/style-BrfNwjrm.css">
+	</head>
+	<body class="print-body">
+		<div class="print-toolbar screen-only d-flex justify-content-between">
+			<button
+				class="btn btn-dark"
+				type="button"
+				onclick="window.location.href = '../'">
+				<i class="bi bi-arrow-left me-2"></i>Back
+			</button>
+			<div class="d-flex justify-content-end">
+				<button
+					class="btn btn-outline-secondary me-2"
+					type="button"
+					onclick="window.print()">
+					<i class="bi bi-printer me-2"></i>Print
+				</button>
+				<button
+					class="btn btn-danger"
+					type="button"
+					id="downloadPdfBtn"
+					disabled>
+					<i class="bi bi-download me-2"></i>Download PDF
+				</button>
+			</div>
+		</div>
+
+		<main class="print-page" id="printRoot">
+			<div class="text-center text-secondary py-5">Loading print layout…</div>
+		</main>
+
+		<script src="../js/qrcode.min.js"></script>
+		<script src="../js/xml-cache.js"></script>
+		<script src="./print.js"></script>
+	</body>
+</html>

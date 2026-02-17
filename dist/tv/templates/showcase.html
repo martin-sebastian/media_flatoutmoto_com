@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" class="tv-html">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Showcase Template Reference (1920×1080)</title>
+		<style>
+			.tv-showcase-ref {
+				display: grid;
+				grid-template-rows: 174px 60px 90px;
+				background: var(--bs-body-bg);
+				border-radius: 4px;
+				overflow: hidden;
+			}
+			.tv-showcase-ref .hero {
+				background: rgba(220,53,69,0.15);
+				position: relative;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				color: var(--bs-secondary);
+				font-size: 12px;
+			}
+			.tv-showcase-ref .logo {
+				position: absolute;
+				bottom: 6px;
+				right: 8px;
+				font-size: 8px;
+				color: var(--bs-secondary);
+				background: rgba(0,0,0,0.3);
+				padding: 2px 4px;
+				border-radius: 2px;
+			}
+			.tv-showcase-ref .thumbs {
+				background: rgba(0,0,0,0.3);
+				padding: 4px 8px;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 3px;
+				align-content: flex-start;
+			}
+			.tv-showcase-ref .thumb {
+				width: 27px;
+				height: 17px;
+				background: rgba(255,255,255,0.08);
+				border-radius: 2px;
+				border: 1px dashed rgba(255,255,255,0.15);
+			}
+			.tv-showcase-ref .info {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 8px;
+				padding: 8px;
+				background: rgba(33, 37, 41, 0.95);
+				border-top: 1px solid rgba(255,255,255,0.08);
+			}
+			.tv-showcase-ref .info-left,
+			.tv-showcase-ref .info-right {
+				color: var(--bs-secondary);
+				font-size: 8px;
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+			}
+			.tv-showcase-ref .info-left .title { font-size: 10px; color: #999; margin-bottom: 2px; }
+			.tv-showcase-ref .info-left .price { font-size: 14px; color: #ccc; font-weight: bold; }
+			.tv-showcase-ref .info-right .line {
+				display: flex;
+				justify-content: space-between;
+				padding: 1px 0;
+				border-bottom: 1px solid rgba(255,255,255,0.05);
+			}
+		</style>
+		<script type="module" crossorigin src="/assets/bootstrap.esm-CgEsG6e6.js"></script>
+		<script type="module" crossorigin src="/assets/bootstrap-init-CxX6viQq.js"></script>
+		<link rel="stylesheet" crossorigin href="/assets/bootstrap-BcD6Ynyg.css">
+		<link rel="stylesheet" crossorigin href="/assets/style-BrfNwjrm.css">
+		<link rel="stylesheet" crossorigin href="/assets/tv-n07r3yc_.css">
+	</head>
+	<body class="tv-body" data-bs-theme="dark">
+		<header class="fixed-top sticky bg-body-tertiary border-bottom border-secondary-subtle">
+			<div class="container-fluid d-flex align-items-center justify-content-between py-2">
+				<a href="../" class="d-flex align-items-center gap-2">
+					<i class="bi bi-arrow-left"></i>
+					<img src="/assets/fom-app-logo-01-BJtslbT3.svg" alt="Flatout Motorsports" width="140" height="21" />
+				</a>
+				<span class="badge text-bg-danger">Template Reference</span>
+			</div>
+		</header>
+		<main class="container-fluid pt-5 pb-4">
+			<div class="row justify-content-center">
+				<div class="col-12 col-md-8 col-lg-6">
+					<h1 class="h4 text-secondary mb-3">Showcase: 1920×1080px (100" TV)</h1>
+					<div class="rounded overflow-hidden border border-secondary-subtle">
+						<div class="tv-showcase-ref" style="width: 576px; margin: 0 auto;">
+							<div class="hero">
+								Hero Image (1920×580)
+								<div class="logo">[LOGO]</div>
+							</div>
+							<div class="thumbs">
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+								<div class="thumb"></div>
+							</div>
+							<div class="info">
+								<div class="info-left">
+									<div>[New] [Pontoon]</div>
+									<div class="title">2026 SOUTH BAY 225 DELUXE</div>
+									<div>Stock: SDB-XXXX</div>
+									<div class="price">$52,599.00</div>
+									<div>Est. payment $600/mo</div>
+								</div>
+								<div class="info-right">
+									<div class="line"><span>MSRP</span><span>$54,399</span></div>
+									<div class="line"><span>Sale Price</span><span>$52,599</span></div>
+									<div class="line"><span>Freight</span><span>$1,800</span></div>
+									<div class="line"><span>Doc Fee</span><span>$398</span></div>
+									<div class="line"><span>Sales Tax</span><span>$3,807</span></div>
+									<div class="line" style="font-weight:bold;border:none;"><span>Total</span><span>$58,679</span></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<pre class="bg-dark text-secondary small p-3 rounded overflow-auto mt-3" style="font-size: 0.65rem; line-height: 1.4;">┌─────────────────────────────────────────────────────────────────┐
+│                     LARGE HERO IMAGE (~55%)                     │
+│                                                      [LOGO]     │
+├─────────────────────────────────────────────────────────────────┤
+│  [thumb] [thumb] [thumb] ... 3 rows of thumbnails (~20%)        │
+├──────────────────────────────────┬──────────────────────────────┤
+│   Title / Price (~25%)           │   Line Items                 │
+└──────────────────────────────────┴──────────────────────────────┘
+
+URL: /tv/display/?layout=showcase&s=STOCK-NUMBER</pre>
+				</div>
+			</div>
+		</main>
+	</body>
+</html>
