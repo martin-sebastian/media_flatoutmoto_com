@@ -1,5 +1,39 @@
 const PORTAL_API_BASE = "https://newportal.flatoutmotorcycles.com/portal/public/api/majorunit/stocknumber/";
 
+/** TV display finance & tax config — loaded from Supabase, falls back to defaults */
+let TV_FINANCE = {
+  apr: 4.99,
+  down_payment_percent: 0,
+  term_months: 240,
+  sales_tax_rate: 0.07,
+};
+
+/** Fetch TV finance settings from Supabase tv_display_settings table */
+async function fetchTvSettings() {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/tv_display_settings?select=setting_key,setting_value`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const cfg = {};
+    for (const r of rows) cfg[r.setting_key] = Number(r.setting_value);
+    TV_FINANCE = { ...TV_FINANCE, ...cfg };
+    // Convert percentage fields to decimals for calculation
+    TV_FINANCE.salesTaxRate = (cfg.sales_tax_rate ?? 7) / 100;
+    TV_FINANCE.apr = cfg.apr ?? TV_FINANCE.apr;
+    TV_FINANCE.termMonths = cfg.term_months ?? TV_FINANCE.term_months;
+    TV_FINANCE.downPaymentPercent = cfg.down_payment_percent ?? TV_FINANCE.down_payment_percent;
+    console.log("[TV Settings] Loaded from Supabase:", TV_FINANCE);
+  } catch (e) {
+    console.warn("[TV Settings] Using defaults — fetch failed:", e.message);
+  }
+}
+
 const ROOT = document.getElementById("displayRoot");
 let previewZoomScale = 1;
 
@@ -501,54 +535,71 @@ function renderQrCode(url) {
 }
 
 /**
- * Map Portal API data to PriceCalculator input and run calculation.
+ * Calculate all TV display prices from raw API data.
+ * Ignores API pre-calculated totals — derives everything from line items.
  * @param {object} apiData Portal API response.
  * @param {number} fallbackMsrp Fallback MSRP if API has none.
- * @returns {object} PriceCalculator result or null if unavailable.
+ * @returns {object|null} Price breakdown or null if no data.
  */
 function calculatePricesFromApi(apiData, fallbackMsrp = 0) {
-  console.log('🔍 DEBUG calculatePricesFromApi:', {
-    hasPriceCalculator: !!window.PriceCalculator,
-    hasApiData: !!apiData,
-    apiDataKeys: apiData ? Object.keys(apiData).slice(0, 10) : []
-  });
-  
-  if (!window.PriceCalculator || !apiData) return null;
-  const msrp = Number(apiData.MSRPUnit || apiData.MSRP || apiData.Price || fallbackMsrp) || 0;
-  const accessories = (apiData.AccessoryItems || apiData.MUItems || []).map((a) => ({
-    Description: a.Description,
-    Amount: Number(a.Amount) || 0,
-    Included: !!a.Included,
-  }));
-  const rebates = apiData.MfgRebatesFrontEnd || apiData.MatItems || [];
+  if (!apiData) return null;
+
+  const msrp = Number(apiData.MSRPUnit || apiData.MSRP || fallbackMsrp) || 0;
   const discounts = apiData.DiscountItems || [];
-  const fees = apiData.OTDItems || [];
-  
-  console.log('🔍 DEBUG PriceCalculator inputs:', {
+  const rebates = apiData.MfgRebatesFrontEnd || apiData.MatItems || [];
+  const otdItems = apiData.OTDItems || [];
+
+  const discountsTotal = discounts.reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const rebatesTotal = rebates.reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const savings = Math.abs(discountsTotal + rebatesTotal);
+
+  // Sale price = MSRP minus discounts & rebates
+  const salePrice = msrp + discountsTotal + rebatesTotal;
+
+  // Separate OTD items: taxable fees vs tax (Flag 16) vs non-taxable (title)
+  const TAX_FLAG = 16;
+  const taxableFees = [];
+  const nonTaxableFees = [];
+  for (const item of otdItems) {
+    if (item.Flag === TAX_FLAG) continue; // skip API tax — we calculate our own
+    if (/title/i.test(item.Description)) {
+      nonTaxableFees.push(item);
+    } else {
+      taxableFees.push(item);
+    }
+  }
+
+  const taxableFeesTotal = taxableFees.reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const nonTaxableFeesTotal = nonTaxableFees.reduce((s, i) => s + (Number(i.Amount) || 0), 0);
+  const beforeTax = salePrice + taxableFeesTotal;
+  const salesTax = Math.round(beforeTax * TV_FINANCE.salesTaxRate * 100) / 100;
+  const totalPrice = beforeTax + salesTax + nonTaxableFeesTotal;
+
+  // Monthly payment on total price
+  const monthlyPayment = calculateMonthlyPayment(totalPrice, TV_FINANCE.apr, TV_FINANCE.termMonths);
+
+  return {
     msrp,
-    accessoriesCount: accessories.length,
-    rebatesCount: rebates.length,
-    discountsCount: discounts.length,
-    feesCount: fees.length
-  });
-  
-  const result = PriceCalculator.calculate({
-    msrp,
-    accessories,
-    customAccessories: [],
+    discountsTotal,
+    rebatesTotal,
+    savings,
+    salePrice,
+    taxableFees,
+    taxableFeesTotal,
+    nonTaxableFees,
+    nonTaxableFeesTotal,
+    beforeTax,
+    salesTax,
+    totalPrice,
+    monthlyPayment,
     discounts,
     rebates,
-    fees,
-    tradeIn: 0,
-  });
-  
-  console.log('🔍 DEBUG PriceCalculator result:', result);
-  
-  return result;
+  };
 }
 
 /**
  * Build common display data from API and XML sources.
+ * Uses calculatePricesFromApi for all pricing (self-calculated tax).
  * @param {object} data Vehicle data.
  * @param {object} apiData API data.
  * @param {string} swatchColor Swatch color.
@@ -557,64 +608,35 @@ function calculatePricesFromApi(apiData, fallbackMsrp = 0) {
  * @returns {object} Common display data.
  */
 function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
-  const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
   const prices = calculatePricesFromApi(apiData, data?.price);
-  
-  console.log('🔍 DEBUG buildDisplayData:', {
-    msrpValue,
-    prices,
-    dataPrice: data?.price
-  });
-  
-  const specialValue = prices
-    ? prices.salesPrice
-    : apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
-  const subtotalValue = prices ? prices.subtotal : specialValue;
-  const totalValue = prices ? prices.totalPrice : apiData?.OTDPrice;
-  
-  console.log('🔍 DEBUG calculated values:', {
-    specialValue,
-    subtotalValue,
-    totalValue
-  });
-  
-  const hasDiscount = Number.isFinite(Number(specialValue)) && Number.isFinite(Number(msrpValue)) && Number(specialValue) < Number(msrpValue);
-  const accessoryTotal = apiData?.AccessoryItemsTotal || (prices?.allAccessoriesTotal ?? 0);
-  const financeApr = 4.99;
-  const downPaymentRate = 0.1;
-  const financeTermMonths = 144;
-  const totalAmount = Number(totalValue) || Number(subtotalValue) || Number(specialValue) || 0;
-  const downPayment = totalAmount * downPaymentRate;
-  const financedAmount = totalAmount - downPayment;
-  const monthlyPayment = window.PriceCalculator?.calculatePayment
-    ? PriceCalculator.calculatePayment(totalAmount, downPaymentRate * 100, financeApr, financeTermMonths)
-    : calculateMonthlyPayment(financedAmount, financeApr, financeTermMonths);
+  const msrpValue = prices?.msrp || Number(apiData?.MSRPUnit || apiData?.MSRP) || 0;
+  const salePrice = prices?.salePrice || msrpValue;
+  const hasDiscount = salePrice < msrpValue;
+  const totalValue = prices?.totalPrice || 0;
+  const monthlyPayment = prices?.monthlyPayment || 0;
+  const savings = prices?.savings || 0;
 
-  // Build accessory line if total exists
-  const accessoryLine = accessoryTotal > 0
-    ? [{ Description: "Accessories", Amount: accessoryTotal }]
-    : [];
-  
   // Color info
   const colorName = apiData?.Color || "";
   const swatch = swatchColor || "#4bd2b1";
   const accent1 = accentOne || "#1f6feb";
   const accent2 = accentTwo || "#f97316";
-  
+
   // Contact info
   const phone = apiData?.Phone || "";
   const standardFeatures = apiData?.StandardFeatures || apiData?.B50StandardFeatures || apiData?.standardFeatures || "";
-  if (!standardFeatures && apiData) {
-    console.debug("TV: No StandardFeatures in API. Keys:", Object.keys(apiData).filter((k) => /standard|feature|desc|b50/i.test(k)));
-  }
+
+  // Build line-item markup from calculated breakdown
+  const taxLine = prices ? [{ Description: `Sales Tax (${(TV_FINANCE.salesTaxRate * 100).toFixed(0)}%)`, Amount: prices.salesTax }] : [];
 
   return {
-    specialValue,
     msrpValue,
+    salePrice,
     hasDiscount,
-    subtotalValue,
+    savings,
     totalValue,
     monthlyPayment,
+    beforeTax: prices?.beforeTax || 0,
     colorName,
     swatch,
     accent1,
@@ -622,10 +644,11 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
     phone,
     standardFeatures,
     featureMarkup: renderFeatureCards(apiData?.AccessoryItems || apiData?.MUItems, swatchColor, accentOne, accentTwo),
-    feesMarkup: renderLineItems(apiData?.OTDItems || []),
-    rebatesMarkup: renderLineItems(apiData?.MfgRebatesFrontEnd || [], true),
-    discountMarkup: renderLineItems(apiData?.DiscountItems || [], true),
-    accessoryMarkup: renderLineItems(accessoryLine),
+    taxableFeesMarkup: renderLineItems(prices?.taxableFees || []),
+    nonTaxableFeesMarkup: renderLineItems(prices?.nonTaxableFees || []),
+    taxMarkup: renderLineItems(taxLine),
+    rebatesMarkup: renderLineItems(prices?.rebates || [], true),
+    discountMarkup: renderLineItems(prices?.discounts || [], true),
   };
 }
 
@@ -633,40 +656,40 @@ function buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo) {
  * Render middle content for portrait layout (2 columns: left + right).
  */
 function renderMiddleDefault(data, displayData, customText) {
-  const { specialValue, msrpValue, hasDiscount, subtotalValue, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, standardFeatures, featureMarkup, feesMarkup, rebatesMarkup, discountMarkup, accessoryMarkup } = displayData;
-  
+  const { msrpValue, salePrice, hasDiscount, totalValue, monthlyPayment, colorName, swatch, accent1, accent2, phone, standardFeatures, featureMarkup, taxableFeesMarkup, nonTaxableFeesMarkup, taxMarkup, rebatesMarkup, discountMarkup } = displayData;
+
   // Rule: show MSRP crossed out only if New AND MSRP > sale price
   const isNew = (data.usage || "").toLowerCase() === "new";
   const showMsrpCrossed = isNew && hasDiscount && msrpValue;
-  const displayPrice = totalValue || subtotalValue || specialValue || msrpValue;
-  
-  // Left box: MSRP line (if applicable) + main price (using subtotal)
+
+  // Hero price = sale price (MSRP - discounts - rebates)
   const leftPriceMarkup = showMsrpCrossed
-    ? `<div class="text-secondary h6 small mb-0 text-decoration-line-through">MSRP ${formatPrice(msrpValue) || "Price"}</div>
-       <div class="h1 mb-0 fw-black">${formatPrice(displayPrice) || "N/A"}</div>`
-    : `<div class="h1 mb-0 fw-black">${formatPrice(displayPrice) || "N/A"}</div>`;
-  
-  // Line items: Start with MSRP, show breakdown, then subtotal, then fees, then total
+    ? `<div class="text-secondary h6 small mb-0 text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
+       <div class="h1 mb-0 fw-black">${formatPrice(salePrice)}</div>`
+    : `<div class="h1 mb-0 fw-black">${formatPrice(salePrice)}</div>`;
+
+  // Line items: MSRP → rebates → discounts → subtotal → taxable fees → tax → non-taxable → total
   const msrpLine = msrpValue
     ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2" style="font-size: 0.95rem;"><span>MSRP</span><span class="ms-2">${formatPrice(msrpValue)}</span></li>`
     : "";
-  
-  const subtotalLine = `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-semibold border-top" style="font-size: 0.95rem;"><span>Subtotal</span><span class="ms-2">${formatPrice(displayPrice) || "N/A"}</span></li>`;
+
+  const subtotalLine = `<li class="list-group-item d-flex justify-content-between align-items-center py-0 px-2 fw-semibold border-top" style="font-size: 0.95rem;"><span>Sub Total</span><span class="ms-2">${formatPrice(salePrice)}</span></li>`;
 
   const lineItemsList = `
     <ul class="list-group list-group-flush tv-line-items-scroll">
       ${msrpLine}
       ${rebatesMarkup}
       ${discountMarkup}
-      ${accessoryMarkup}
       ${subtotalLine}
-      ${feesMarkup}
-      ${totalValue ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-semibold fs-5 text-danger border-top"><span>Total</span><span class="ms-2">${formatPrice(totalValue)}</span></li>` : ""}
+      ${taxableFeesMarkup}
+      ${taxMarkup}
+      ${nonTaxableFeesMarkup}
+      ${totalValue ? `<li class="list-group-item d-flex justify-content-between align-items-center py-0 px-2 fw-semibold fs-5 text-danger border-top"><span>Total</span><span class="ms-2">${formatPrice(totalValue)}</span></li>` : ""}
     </ul>`;
 
   return `
-  <div class="badge h5 bg-danger rounded-pill" style="position: absolute; top: 20px; left: 100px; z-index: 1;">${data.stockNumber || "N/A"}</div>
-  <div class="badge h5 bg-primary rounded-pill" style="position: absolute; top: 20px; left: 25px; z-index: 1;">${data.usage || "N/A"}</div>
+  <div class="badge fs-5 bg-dark rounded-pill" style="position: absolute; top: 20px; left: 25px; z-index: 1;">${data.usage || "N/A"}</div>
+  <div class="badge fs-5 bg-danger rounded-pill" style="position: absolute; top: 20px; left: 120px; z-index: 1;">${data.stockNumber || "N/A"}</div>
   <div class="badge fs-1 fw-black bg-warning text-dark rounded-pill" style="position: absolute; top: 20px; right: 20px; z-index: 1;">${customText ? `<div class="text-black text-end">${customText}</div>` : ""}</div>
   <div id="qrCode" class="position-absolute" style="top: 580px; left: 25px; z-index: 1;"></div>
     <div class="tv-middle-grid">
@@ -702,7 +725,7 @@ function renderMiddleDefault(data, displayData, customText) {
       <!-- Right: Features + contact/QR -->
       <div class="card tv-box p-3 d-flex flex-column">
         <div class="flex-grow-1 overflow-hidden">
-          ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary mb-0">${standardFeatures}</div>` : ""}
+          ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-default mb-0">${standardFeatures}</div>` : ""}
           
           ${featureMarkup ? `<div class="mt-2">${featureMarkup}</div>` : ""}
         </div>
@@ -772,10 +795,9 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
   // Use buildDisplayData for consistent data handling
   const displayData = buildDisplayData(data, apiData, swatchColor, accentOne, accentTwo);
   const {
-    specialValue,
     msrpValue,
+    salePrice,
     hasDiscount,
-    subtotalValue,
     totalValue,
     monthlyPayment,
     colorName,
@@ -785,30 +807,31 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
     phone,
     standardFeatures,
     featureMarkup,
-    feesMarkup,
+    taxableFeesMarkup,
+    nonTaxableFeesMarkup,
+    taxMarkup,
     rebatesMarkup,
     discountMarkup,
-    accessoryMarkup,
   } = displayData;
 
   // Determine if new and has discount for pricing display
   const isNew = (data.usage || "").toLowerCase() === "new";
   const showBothPrices = isNew && hasDiscount;
 
-  // Fees box: list-group with price rows and line items (using total)
-  const displayPrice = totalValue || subtotalValue || specialValue || msrpValue;
+  // Line items: MSRP → rebates → discounts → subtotal → taxable fees → tax → non-taxable → total
   const landscapePriceItems = showBothPrices
     ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small text-secondary" style="font-size: 1rem;"><span>MSRP</span><span class="ms-2">${formatPrice(msrpValue)}</span></li>
-       <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 1rem;"><span class="text-secondary">Subtotal</span><span class="ms-2 fw-semibold">${formatPrice(displayPrice)}</span></li>`
-    : `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 1rem;"><span class="text-secondary">Subtotal</span><span class="ms-2 fw-semibold">${formatPrice(displayPrice)}</span></li>`;
+       <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 1rem;"><span class="text-secondary">Sub Total</span><span class="ms-2 fw-semibold">${formatPrice(salePrice)}</span></li>`
+    : `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 small" style="font-size: 1rem;"><span class="text-secondary">Sub Total</span><span class="ms-2 fw-semibold">${formatPrice(salePrice)}</span></li>`;
 
   const landscapeLineItemsList = `
     <ul class="list-group list-group-flush tv-line-items-scroll">
       ${landscapePriceItems}
       ${rebatesMarkup}
       ${discountMarkup}
-      ${accessoryMarkup}
-      ${feesMarkup}
+      ${taxableFeesMarkup}
+      ${taxMarkup}
+      ${nonTaxableFeesMarkup}
       ${totalValue ? `<li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2 fw-bold border-top border-secondary border-opacity-25"><span>Total</span><span class="ms-2">${formatPrice(totalValue)}</span></li>` : ""}
     </ul>`;
 
@@ -843,9 +866,9 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
             <div class="d-flex flex-column align-items-end">
               ${showBothPrices
                 ? `<div class="text-secondary small text-decoration-line-through">MSRP ${formatPrice(msrpValue)}</div>
-                   <div class="display-6 fw-bold text-light">${formatPrice(displayPrice)}</div>`
-                : `<div class="text-secondary small">Subtotal</div>
-                   <div class="display-6 fw-bold text-light">${formatPrice(displayPrice)}</div>`
+                   <div class="display-6 fw-bold text-light">${formatPrice(salePrice)}</div>`
+                : `<div class="text-secondary small">Price</div>
+                   <div class="display-6 fw-bold text-light">${formatPrice(salePrice)}</div>`
               }
               <div class="d-flex align-items-baseline fw-semibold text-danger fs-5">
                 <span class="me-2">Est. payment</span><span class="tv-payment-amount fs-3">${formatPrice(monthlyPayment)}/mo</span>
@@ -859,7 +882,7 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
         <!-- Bottom-left: Combined features + contact -->
         <div class="tv-region-left-info">
           <div class="tv-box p-3 d-flex flex-column">
-            ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll text-secondary small mb-2">${standardFeatures}</div>` : ""}
+            ${standardFeatures ? `<div class="tv-standard-features tv-line-items-scroll mb-2">${standardFeatures}</div>` : ""}
             ${customText ? `<div class="mb-2">${customText}</div>` : ""}
             ${featureMarkup ? `<div class="flex-grow-1 overflow-hidden">${featureMarkup}</div>` : ""}
             <div class="flex-grow-1"></div>
@@ -894,16 +917,12 @@ function renderLandscapeSingle(data, imageUrl, customText, apiData, preferredIma
 function renderGridCard(data, apiData) {
   const heroImage = data.images[0] || "../../img/fallback.jpg";
   const prices = calculatePricesFromApi(apiData, data?.price);
-  const salePrice = prices
-    ? prices.salesPrice
-    : apiData?.QuotePrice || apiData?.SalePrice || apiData?.MSRPUnit || apiData?.MSRP || data.price;
-  const msrpValue = apiData?.Price || apiData?.MSRPUnit || apiData?.MSRP;
-  const hasDiscount = msrpValue && salePrice && Number(msrpValue) > Number(salePrice);
+  const msrpValue = prices?.msrp || Number(apiData?.MSRPUnit || apiData?.MSRP) || 0;
+  const salePrice = prices?.salePrice || msrpValue;
+  const hasDiscount = salePrice < msrpValue;
   const isNew = (data.usage || "").toLowerCase() === "new";
   const showBothPrices = isNew && hasDiscount;
-  const rebatesSum = (apiData?.MfgRebatesFrontEnd || apiData?.MatItems || []).reduce((s, i) => s + (Number(i.Amount) || 0), 0);
-  const discountsSum = (apiData?.DiscountItems || []).reduce((s, i) => s + (Number(i.Amount) || 0), 0);
-  const totalSavings = prices ? prices.savings : Math.abs(rebatesSum + discountsSum);
+  const totalSavings = prices?.savings || 0;
 
   return `
     <div class="tv-grid-card">
@@ -958,6 +977,9 @@ function renderMessage(message) {
  * Initialize the display with Portal API data.
  */
 async function initDisplay() {
+  // Load finance settings from Supabase before rendering
+  await fetchTvSettings();
+
   const {
     layout,
     stockNumber,

@@ -7,9 +7,9 @@
     <link rel="icon" type="image/x-icon" href="../img/favicon.png" />
     <!-- Latest compiled and minified CSS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/print-js/1.6.0/print.min.js"></script>
-    <link rel="stylesheet" href="../css/bootstrap.css" />
-    <link rel="stylesheet" href="../css/bootstrap-icons.css">
+    <link rel="stylesheet" href="../scss/styles.scss" />
     <link rel="stylesheet" href="../css/custom-key-tags.css" />
+    <script type="module" src="../js/bootstrap-init.js"></script>
   </head>
   <body class="dots">
     <main>
@@ -461,7 +461,7 @@
         printJS({
           printable: printContainer,
           type: 'html',
-          css: ['../css/bootstrap.css', '../css/custom-key-tags.css'],
+          css: ['../node_modules/bootstrap/dist/css/bootstrap.css', '../css/custom-key-tags.css'],
           style: printStyles,
           documentTitle: 'Key Tags',
           onLoadingEnd: function() {

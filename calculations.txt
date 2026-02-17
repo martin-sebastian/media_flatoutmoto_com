@@ -1,0 +1,69 @@
+"MSRPUnit": 28299.00,
+"AccessoryItemsTotal": 0.0,
+"DiscountItemsTotal": -2800.00,
+"DiscretionItemsTotal": 0.0,
+"MatItemsTotal": -5500.00,
+"TradeInItemsTotal": 0.0,
+OTDItems
+"Description": "Sea-Doo Bimini Option (Installed)","Amount": 3000.00,
+"Description": "Sea-Doo Freight (Includes Prep)","Amount": 2500.00,
+"Description": "Documentation Fee","Amount": 398.00,
+Subtotal here + calculate sales tax 
+"Description": "Indiana Sales Tax ($25,499.00 @ 7 %)","Amount": 1784.93,
+
+add this afer taxes (none taxable item.
+"Description": "State Title Application Fee","Amount": 75.00,
+
+
+   
+{
+            "Number": 0,
+            "Description": "Sea-Doo Bimini Option (Installed)",
+            "ImageDescription": null,
+            "ImgURL": null,
+            "Amount": 3000.00,
+            "Flag": 128,
+            "Included": false,
+            "ItemFlagAsEnum": 128
+        },
+        {
+            "Number": 0,
+            "Description": "Sea-Doo Freight (Includes Prep)",
+            "ImageDescription": null,
+            "ImgURL": null,
+            "Amount": 2500.00,
+            "Flag": 129,
+            "Included": false,
+            "ItemFlagAsEnum": 129
+        },
+        {
+            "Number": 0,
+            "Description": "Documentation Fee",
+            "ImageDescription": null,
+            "ImgURL": null,
+            "Amount": 398.00,
+            "Flag": 32,
+            "Included": false,
+            "ItemFlagAsEnum": 32
+        },
+        {
+            "Number": 0,
+            "Description": "State Title Application Fee",
+            "ImageDescription": null,
+            "ImgURL": null,
+            "Amount": 75.00,
+            "Flag": 32,
+            "Included": false,
+            "ItemFlagAsEnum": 32
+        },
+        {
+            "Number": 0,
+            
+            "ImageDescription": null,
+            "ImgURL": null,
+            "Amount": 1784.93,
+            "Flag": 16,
+            "Included": false,
+            "ItemFlagAsEnum": 16
+        }
+    ],

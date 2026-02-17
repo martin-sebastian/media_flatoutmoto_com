@@ -4,9 +4,9 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>TV Display Launcher</title>
-		<link rel="stylesheet" href="../css/bootstrap.css" />
-		<link rel="stylesheet" href="../css/bootstrap-icons.css" />
+		<link rel="stylesheet" href="../scss/styles.scss" />
 		<link rel="stylesheet" href="../css/style.css" />
+		<script type="module" src="../js/bootstrap-init.js"></script>
 		<link rel="stylesheet" href="./tv.css" />
 	</head>
 	<body class="tv-body">
@@ -23,6 +23,11 @@
 						height="27" />
 				</a>
 				<div class="d-flex align-items-center gap-3">
+					<a
+						href="./settings/"
+						class="badge text-bg-warning text-dark text-decoration-none py-2 px-3"
+						><i class="bi bi-gear me-1"></i>Settings</a
+					>
 					<a
 						href="./templates/"
 						class="badge text-bg-secondary text-decoration-none py-2 px-3"
@@ -356,7 +361,6 @@
 			</div>
 		</div>
 
-		<script src="../js/bootstrap.bundle.js"></script>
 		<script src="./launcher.js"></script>
 	</body>
 </html>

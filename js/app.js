@@ -1,4 +1,6 @@
 /* global moment */
+import * as bootstrap from 'bootstrap';
+window.bootstrap = bootstrap;
 import { fetchVehiclesFromSupabase } from './vehicleData.js';
 
 // Near the top of the file, add a cache object
