@@ -1,0 +1,25 @@
+/* Force the table to respect the widths you defined */
+#vehiclesTable {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: separate;
+}
+
+/* Prevent vertical jumping by locking row height */
+#vehiclesTable th,
+#vehiclesTable td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    height: 45px;
+}
+
+/* Constrain thumbnail images to their column */
+#vehiclesTable td[data-column="image"] img {
+    width: 100%;
+    max-width: 70px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 4px;
+}

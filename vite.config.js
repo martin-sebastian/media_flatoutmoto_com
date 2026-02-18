@@ -20,7 +20,7 @@ function findHtmlEntries(dir, base = '') {
 
 /** Vite plugin: copy non-module static assets to dist after build */
 function copyStaticAssets() {
-  const dirs = ['js', 'css', 'img', 'fonts'];
+  const dirs = ['js', 'css', 'img', 'fonts', 'icons'];
   const files = [
     'worker.js', 'apple-touch-icon.png', 'favicon.ico',
     'hang-tags/hang-tag.js',

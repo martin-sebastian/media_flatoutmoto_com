@@ -290,7 +290,22 @@ function setFilterGroupState() {
 		});
 }
 
-// Add this function near the top of your file, with other utility functions
+/** Map manufacturer name to its icon filename in /icons/ */
+const MAKE_ICONS = {
+	'bmw': 'bmw', 'can-am': 'can-am', 'harley-davidson®': 'harley-davidson',
+	'honda': 'honda', 'indian motorcycle': 'indian', 'kawasaki': 'kawasaki',
+	'ktm': 'ktm', 'polaris': 'polaris', 'qjmotor': 'qjmotor', 'sea-doo': 'sea-doo',
+	'slingshot': 'slingshot', 'south bay': 'southbay', 'ssr motorsports': 'ssr',
+	'suzuki': 'suzuki', 'suzuki marine': 'suzuki', 'triumph': 'triumph',
+	'vanderhall': 'vanderhall', 'yacht club': 'yacht-club', 'yamaha': 'yamaha',
+	'ski-doo': 'can-am', 'benelli': 'benelli',
+};
+function getMakeIcon(make) {
+	const key = (make || '').toLowerCase();
+	const file = MAKE_ICONS[key];
+	return file ? `<img src="./icons/${file}.png" alt="${make}" width="22px" height="18px" style="opacity:.85" onerror="this.style.display='none'">` : '';
+}
+
 function normalizeDate(dateString) {
 	if (!dateString || dateString === "N/A") return null;
 
@@ -2149,23 +2164,22 @@ function updateTable() {
 		const color = item.color;
 		const usage = item.usage;
 		const updated = item.updated;
+		const updatedDate = normalizeDate(updated);
 		const imageElements = item.imageElements;
 
 		const row = document.createElement("tr");
 		row.innerHTML = `
-      <td data-column="select" class="text-center" style="max-width: 25px !important;" nowrap>
-        <input type="checkbox" class="form-check-input p-2 m-0 tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
+      <td data-column="select" class="text-center" nowrap>
+        <input type="checkbox" class="form-check-input fs-6 tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
       </td>
-      <td data-cell="image" data-column="image" class="text-center" nowrap>
+      <td data-column="image" class="text-center" nowrap>
         <a href="${webURL}" target="_blank">
-          <div class="table-image-container">
-          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 100, 66)}" alt="${title}" width="100" height="66" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" width="100" height="66" />`}
-          </div>
-          </a>
+          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 100, 67)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" />`}
+        </a>
       </td>
 	  <td nowrap>
-		<div class="input-group input-group-sm flex-nowrap" style="width: 235px;">
-		  <input type="text" class="form-control d-block" style="font-size: 13px !important;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
+		<div class="input-group input-group-sm flex-nowrap">
+		  <input type="text" class="form-control mx-2" style="width: 50px;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
 		  <div class="input-group-text" id="btnGroupAddon">
 			<button type="button" 
 			  class="btn-icon" 
@@ -2182,17 +2196,26 @@ function updateTable() {
       <td class="text-center" nowrap>
         <span class="badge text-bg-dark border">${year}</span>
       </td>
-      <td class="text-truncate" style="max-width: 150px;" nowrap>${manufacturer}</td>
+      <td class="logo">
+		<div id="${manufacturer}" class="manufacturer-icon-container text-center w-100 d-flex flex-column align-items-center justify-content-center" style="width: 100%; height: 100%">
+			<img 
+				src="./icons/${manufacturer}.png" 
+				onerror="this.onerror=null; this.src='./icons/fallback.png';" 
+				style="width: 28px; height: 24px; object-fit: contain;"
+				alt="${manufacturer}"
+				>
+		</div>
+	</td>
       <td class="model-cell" nowrap>
-        <span class="model-text text-tooltip" title="${modelName}" data-bs-toggle="tooltip" data-bs-placement="top">${modelName}</span>
+        <span class="model-text fs-6 text-tooltip" title="${title}" data-bs-toggle="tooltip" data-bs-placement="top">${title}</span>
         <span class="visually-hidden">
-        ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${moment(updated).format("YYYY-MM-DD")}
+        ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${updatedDate?.format("YYYY-MM-DD") ?? ""}
         </span>
       </td>
       <td data-column="type"><span class="column-type text-tooltip" title="${modelType}" data-bs-toggle="tooltip" data-bs-placement="top">${modelType}</span></td>
       <td class="color-cell" data-column="color"><span class="column-color text-tooltip" title="${color}" data-bs-toggle="tooltip" data-bs-placement="top">${color}</span></td>
       <td data-column="price" class="text-center" nowrap>
-        <span class="badge text-bg-success h5 fw-bold price-badge">${webPrice}</span>
+        <span class="badge text-bg-success fs-6 fw-bold price-badge">${webPrice}</span>
       </td>
       
 
@@ -2206,13 +2229,12 @@ function updateTable() {
 
 	  <td data-column="updated" class="text-center" nowrap>
         	<span class="badge text-secondary p-2 fw-semibold border updated-badge"
-              title="${normalizeDate(updated)?.format("MM-DD-YYYY") ?? "N/A"}"
+              title="${updatedDate?.format("MM-DD-YYYY") ?? "N/A"}"
               data-bs-toggle="tooltip"
               data-bs-placement="top">
-            	${normalizeDate(updated)?.fromNow() ?? "N/A"}
+            	${updatedDate?.fromNow() ?? "N/A"}
             </span>
-          <span class="small text-muted d-none">${normalizeDate(updated)?.format("MM-DD-YYYY") ?? "N/A"}</span>
-        <span class="visually-hidden">${normalizeDate(updated)?.format("YYYY-MM-DD") ?? "N/A"}</span>
+        <span class="visually-hidden">${updatedDate?.format("YYYY-MM-DD") ?? "N/A"}</span>
       </td>
 
 
