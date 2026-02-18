@@ -2395,8 +2395,8 @@ function updateTable() {
         <span class="visually-hidden">${updatedDate?.format("YYYY-MM-DD") ?? "N/A"}</span>
       </td>
 
-      <td data-column="tags" class="text-center tag-cell" nowrap>
-        <div class="d-flex flex-wrap gap-1 justify-content-center align-items-center tag-badges" data-stock="${stockNumber}">
+      <td data-column="tags" class="text-start tag-cell p-2" nowrap>
+        <div class="d-flex flex-wrap gap-1 justify-content-start align-items-center tag-badges" data-stock="${stockNumber}">
           ${(item.tags || []).map(t => {
             const preset = State.tagPresets.find(p => p.name === t);
             const color = preset ? preset.color : 'secondary';
