@@ -713,7 +713,7 @@ function renderMiddleDefault(data, displayData, customText) {
         <div class="card px-4 py-2 d-flex flex-column align-items-center">
           ${leftPriceMarkup}
           <div class="d-flex align-items-baseline mt-0 mb-0 p-0 fw-semibold text-danger fs-6">
-            <span class="me-2 text-secondary">Est. payment</span>
+            <span class="me-2 text-secondary">Est. payment as low as</span>
             <span class="tv-payment-amount fs-5">${formatPrice(monthlyPayment)}</span>
             <span class="me-2 text-secondary">/mo</span>
           </div>
