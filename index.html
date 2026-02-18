@@ -132,10 +132,13 @@
               <option value="INHOUSE">In-House</option>
               <option value="STOCK">Stock</option>
             </select>
-            <select id="tagsFilterMobile" class="form-select w-100 my-1" data-filter="tags">
-              <option value="">Tags</option>
-              <option value="">All</option>
-            </select>
+            <div class="dropdown w-100 my-1" data-filter-group="mobile">
+              <button class="form-select w-100 text-start" type="button" id="tagsFilterBtnMobile" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                Tags
+              </button>
+              <div class="dropdown-menu w-100 p-2" id="tagsFilterDropdownMobile" style="min-width: 150px">
+              </div>
+            </div>
             <div class="dropdown w-100 my-1">
               <button class="form-select w-100 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 Columns
@@ -278,10 +281,13 @@
                     <option value="INHOUSE">In-House</option>
                     <option value="STOCK">Stock</option>
                   </select>
-                  <select id="tagsFilter" class="form-select form-select-sm" style="max-width: 120px" data-filter="tags">
-                    <option value="">Tags</option>
-                    <option value="">All</option>
-                  </select>
+                  <div class="dropdown" data-filter-group="desktop">
+                    <button class="form-select form-select-sm text-start" type="button" id="tagsFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="max-width: 120px">
+                      Tags
+                    </button>
+                    <div class="dropdown-menu p-2" id="tagsFilterDropdown" style="min-width: 150px">
+                    </div>
+                  </div>
                   <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-1 py-0 ms-0" id="clearFiltersBtn" title="Clear all filters" aria-label="Clear all filters">
                       <i class="bi bi-x-lg"></i>
                     </button>
@@ -347,18 +353,18 @@
                   <colgroup class="my-auto">
                     <col style="width: 35px" data-column="select">
                     <col style="width: 75px" data-column="image">
-                    <col style="width: 150px">
-                    <col style="width: 50px" data-column="usage">
-                    <col style="width: 50px">
+                    <col style="width: 175px; min-width: 150px; max-width: 200px;">
+                    <col style="width: 70px" data-column="usage">
+                    <col style="width: 70px">
                     <col style="width: 60px">
-                    <col style="width: 350px">
+                    <col style="width: auto; min-width: 200px; max-width: 270px !important;">
                     <col class="hidden" style="width: 5px" data-column="type">
                     <col class="hidden" style="width: 5px" data-column="color">
                     <col style="width: 115px" data-column="price">
                     <col style="width: 70px" data-column="photos">
                     <col style="width: 90px" data-column="updated">
-                    <col style="width: 200px" data-column="tags">
-                    <col style="width: 230px">
+                    <col style="width: 125px" data-column="tags">
+                    <col style="width: 250px">
                   </colgroup>
                   <thead class="py-2">
                     <tr class="border-bottom">
@@ -803,170 +809,11 @@
     <script src="./key-tags/zpl-template.js"></script>
     <script src="./key-tags/key-tag.js"></script>
     <script type="module" src="./js/app.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script>
-      // Initialize SQLite
-      let db;
-      let lastSyncTime = 0;
-      const SYNC_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
-
-      async function initDatabase() {
-        try {
-          const SQL = await initSqlJs({
-            locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-          });
-          
-          // Create a new database
-          db = new SQL.Database();
-          
-          // Create vehicles table
-          db.run(`
-            CREATE TABLE IF NOT EXISTS vehicles (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              stock_number TEXT UNIQUE,
-              year TEXT,
-              make TEXT,
-              model TEXT,
-              type TEXT,
-              color TEXT,
-              vin TEXT,
-              price REAL,
-              updated TEXT,
-              image_url TEXT,
-              xml_data TEXT,
-              last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-          `);
-          
-          // Register for background sync
-          await registerBackgroundSync();
-          
-          // Start periodic sync
-          startPeriodicSync();
-          
-          console.log('Database initialized successfully');
-        } catch (error) {
-          console.error('Error initializing database:', error);
-        }
-      }
-
-      // Register for background sync
-      async function registerBackgroundSync() {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          await registration.sync.register('sync-xml-data');
-          console.log('Background sync registered');
-        } catch (error) {
-          // Silent fail - background sync not supported or permission denied
-        }
-      }
-
-      // Register for periodic sync
-      async function startPeriodicSync() {
-        try {
-          const registration = await navigator.serviceWorker.ready;
-          // Check if periodic sync is supported
-          if (!('periodicSync' in registration)) {
-            return;
-          }
-
-          // Check if we have permission
-          const status = await navigator.permissions.query({
-            name: 'periodic-background-sync',
-          });
-
-          if (status.state === 'granted') {
-            const registration = await navigator.serviceWorker.ready;
-            await registration.periodicSync.register('periodic-xml-sync', {
-              minInterval: SYNC_INTERVAL
-            });
-            console.log('Periodic sync registered successfully');
-          } else {
-            // Fall back to regular sync
-            await registerBackgroundSync();
-          }
-        } catch (error) {
-          // Silent fail - fallback to regular sync
-          try {
-            await registerBackgroundSync();
-          } catch (e) {
-            // Silent fail - background sync not available
-          }
-        }
-      }
-
-      // Function to import XML data into SQLite
-      async function importXmlToDatabase(xmlData) {
-        try {
-          // Parse XML data
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlData, "text/xml");
-          
-          // Get all vehicle nodes
-          const vehicles = xmlDoc.getElementsByTagName('vehicle');
-          
-          // Begin transaction
-          db.run('BEGIN TRANSACTION');
-          
-          // Insert each vehicle
-          for (let vehicle of vehicles) {
-            const stockNumber = vehicle.getAttribute('stock_number');
-            const year = vehicle.getAttribute('year');
-            const make = vehicle.getAttribute('make');
-            const model = vehicle.getAttribute('model');
-            const type = vehicle.getAttribute('type');
-            const color = vehicle.getAttribute('color');
-            const vin = vehicle.getAttribute('vin');
-            const price = vehicle.getAttribute('price');
-            const updated = vehicle.getAttribute('updated');
-            const imageUrl = vehicle.getAttribute('image_url');
-            
-            db.run(`
-              INSERT OR REPLACE INTO vehicles 
-              (stock_number, year, make, model, type, color, vin, price, updated, image_url, xml_data, last_updated)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            `, [stockNumber, year, make, model, type, color, vin, price, updated, imageUrl, xmlData]);
-          }
-          
-          // Commit transaction
-          db.run('COMMIT');
-          
-          // Update last sync time
-          lastSyncTime = Date.now();
-          
-          console.log('XML data imported successfully');
-        } catch (error) {
-          console.error('Error importing XML data:', error);
-          db.run('ROLLBACK');
-        }
-      }
-
-      // Function to check if sync is needed
-      function shouldSync() {
-        const timeSinceLastSync = Date.now() - lastSyncTime;
-        return timeSinceLastSync >= SYNC_INTERVAL;
-      }
-
-      // Listen for service worker messages
-      navigator.serviceWorker.addEventListener('message', event => {
-        if (event.data.type === 'UPDATE_XML_DATA') {
-          importXmlToDatabase(event.data.data);
-        }
-      });
-
-      // Initialize database when the page loads
-      document.addEventListener('DOMContentLoaded', initDatabase);
-
-      // Register service worker
+      // Unregister any old service workers to prevent stale cache issues
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./worker.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
         });
       }
     </script>

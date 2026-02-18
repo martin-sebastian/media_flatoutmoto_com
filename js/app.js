@@ -26,7 +26,7 @@ const DOM = {
 			updated: getActiveFilterElement("updated"),
 			updatedEnd: getActiveFilterElement("updatedEnd"),
 			photos: getActiveFilterElement("photos"),
-			tags: getActiveFilterElement("tags"),
+			// tags handled via checkbox dropdowns, not a data-filter element
 		};
 	},
 	init() {
@@ -74,10 +74,11 @@ const State = {
 	currentKeyTagData: null,
 	saveState() {
 		const filters = {};
-		["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd", "tags"].forEach((name) => {
+		["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
 			const el = getActiveFilterElement(name);
 			if (el) filters[name] = el.value || "";
 		});
+		filters.tags = getSelectedTagFilters();
 		const stateToSave = {
 			currentPage: this.pagination.currentPage,
 			pageSize: this.pagination.pageSize,
@@ -146,6 +147,14 @@ function applySavedFiltersToDom() {
 			el.value = val;
 		});
 	});
+	// Restore tag checkboxes
+	const savedTags = f.tags;
+	if (Array.isArray(savedTags) && savedTags.length) {
+		document.querySelectorAll('.tags-filter-check').forEach(c => {
+			c.checked = savedTags.includes(c.value);
+		});
+		updateTagsFilterLabel();
+	}
 }
 
 /** Clear all filter inputs and re-apply (shows full list). */
@@ -153,6 +162,8 @@ function clearAllFilters() {
 	["search", "year", "manufacturer", "model", "type", "usage", "photos", "updated", "updatedEnd"].forEach((name) => {
 		getFilterElementsByName(name).forEach((el) => { el.value = ""; });
 	});
+	document.querySelectorAll('.tags-filter-check').forEach(c => { c.checked = false; });
+	updateTagsFilterLabel();
 	updateModelDropdownOptions();
 	clearSearchSuggestions();
 	filterTable();
@@ -362,7 +373,7 @@ function refreshRowTags(stockNumber) {
 	cell.innerHTML = (item.tags || []).map(t => {
 		const preset = State.tagPresets.find(p => p.name === t);
 		const color = preset ? preset.color : 'secondary';
-		return `<span class="badge text-bg-${color} tag-badge" style="font-size:.65rem">${t}</span>`;
+		return `<span class="badge text-bg-${color} tag-badge" style="font-size:.65rem;cursor:pointer" title="Edit tags">${t}</span>`;
 	}).join('') + `<button type="button" class="btn btn-outline-secondary btn-sm tag-edit-btn border-0 p-0 px-1" title="Edit tags" data-stock="${stockNumber}">
 		<i class="bi bi-plus-circle" style="font-size:.75rem"></i>
 	</button>`;
@@ -418,10 +429,15 @@ function initTagEditor() {
 	addBtn?.addEventListener('click', addCustom);
 	input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } });
 
-	// Delegate click on table tag edit buttons
+	// Delegate click on table tag edit buttons and existing tag badges
 	document.getElementById('vehiclesTable')?.addEventListener('click', (e) => {
 		const btn = e.target.closest('.tag-edit-btn');
-		if (btn) openTagEditor(btn.dataset.stock);
+		if (btn) { openTagEditor(btn.dataset.stock); return; }
+		const badge = e.target.closest('.tag-badge');
+		if (badge) {
+			const stock = badge.closest('.tag-badges')?.dataset.stock;
+			if (stock) openTagEditor(stock);
+		}
 	});
 }
 
@@ -511,10 +527,8 @@ function populateTypeDropdown(types) {
 	});
 }
 
-/** Populates the Tags filter dropdown from presets + any custom tags in use. */
+/** Populates the Tags filter checkbox dropdowns from presets + custom tags. */
 function populateTagsDropdown() {
-	const tagFilters = getFilterElementsByName("tags");
-	if (!tagFilters.length) return;
 	const presetNames = (State.tagPresets || []).map(p => p.name);
 	const customTags = new Set();
 	for (const item of State.allItems) {
@@ -523,15 +537,33 @@ function populateTagsDropdown() {
 		}
 	}
 	const allTags = [...presetNames, ...[...customTags].sort()];
-	tagFilters.forEach(sel => {
-		while (sel.options.length > 2) sel.remove(2);
-		for (const tag of allTags) {
-			const opt = document.createElement("option");
-			opt.value = tag;
-			opt.textContent = tag;
-			sel.appendChild(opt);
-		}
+	const containers = [
+		document.getElementById('tagsFilterDropdown'),
+		document.getElementById('tagsFilterDropdownMobile'),
+	].filter(Boolean);
+	containers.forEach(container => {
+		container.innerHTML = allTags.map((tag, i) => {
+			const id = `tagCheck_${container.id}_${i}`;
+			return `<div class="form-check">
+				<input class="form-check-input tags-filter-check" type="checkbox" value="${tag}" id="${id}">
+				<label class="form-check-label small" for="${id}">${tag}</label>
+			</div>`;
+		}).join('');
 	});
+}
+
+/** Returns array of currently checked tag filter values. */
+function getSelectedTagFilters() {
+	const checks = document.querySelectorAll('.tags-filter-check:checked');
+	return Array.from(checks).map(c => c.value);
+}
+
+/** Updates the Tags dropdown button label to reflect selection count. */
+function updateTagsFilterLabel() {
+	const selected = getSelectedTagFilters();
+	const label = selected.length ? `Tags (${selected.length})` : 'Tags';
+	document.getElementById('tagsFilterBtn')?.textContent && (document.getElementById('tagsFilterBtn').textContent = label);
+	document.getElementById('tagsFilterBtnMobile')?.textContent && (document.getElementById('tagsFilterBtnMobile').textContent = label);
 }
 
 // Add near the other dropdown population functions
@@ -911,6 +943,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 		}
 	});
 
+	// Tag filter checkbox listeners (delegated)
+	document.getElementById('tagsFilterDropdown')?.addEventListener('change', () => { updateTagsFilterLabel(); filterTable(); });
+	document.getElementById('tagsFilterDropdownMobile')?.addEventListener('change', () => { updateTagsFilterLabel(); filterTable(); });
+
 	// Clear filters button (desktop + mobile)
 	document.getElementById("clearFiltersBtn")?.addEventListener("click", clearAllFilters);
 	document.getElementById("clearFiltersBtnMobile")?.addEventListener("click", clearAllFilters);
@@ -1123,7 +1159,7 @@ async function fetchData() {
 
 	const storageStatus = checkLocalStorageAvailability();
 	const useMemoryFallback = !storageStatus.available || storageStatus.quotaExceeded;
-	const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+	const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (matches cron sync interval)
 
 	// Try Supabase first (when configured)
 	const supabaseCache = useMemoryFallback
@@ -1436,7 +1472,7 @@ function filterTable() {
 		getActiveFilterElement("usage")?.value.toUpperCase() || "";
 	const photosFilter =
 		getActiveFilterElement("photos")?.value.toUpperCase() || "";
-	const tagsFilter = getActiveFilterElement("tags")?.value || "";
+	const tagsFilterValues = getSelectedTagFilters();
 	const updatedFilter = getActiveFilterElement("updated")?.value || "";
 	const updatedEndFilter = getActiveFilterElement("updatedEnd")?.value || "";
 
@@ -1453,7 +1489,7 @@ function filterTable() {
 		usage: usageFilter,
 		year: yearFilter,
 		photos: photosFilter,
-		tags: tagsFilter,
+		tags: tagsFilterValues,
 		updated: updatedFilter,
 		updatedEnd: updatedEndFilter,
 	};
@@ -1499,8 +1535,9 @@ function filterTable() {
 					return true;
 				}
 				case "tags": {
-					if (!value) return true;
-					return (item.tags || []).includes(value);
+					if (!value || !value.length) return true;
+					const itemTags = item.tags || [];
+					return value.every(t => itemTags.includes(t));
 				}
 				case "updated": {
 					// Handle date range filtering; validate moments before comparing
@@ -2400,7 +2437,7 @@ function updateTable() {
           ${(item.tags || []).map(t => {
             const preset = State.tagPresets.find(p => p.name === t);
             const color = preset ? preset.color : 'secondary';
-            return `<span class="badge text-bg-${color} tag-badge" style="font-size:.65rem">${t}</span>`;
+            return `<span class="badge text-bg-${color} tag-badge" style="font-size:.65rem;cursor:pointer" title="Edit tags">${t}</span>`;
           }).join('')}
           <button type="button" class="btn btn-outline-secondary btn-sm tag-edit-btn border-0 p-0 px-1" title="Edit tags" data-stock="${stockNumber}">
             <i class="bi bi-plus-circle" style="font-size:.75rem"></i>

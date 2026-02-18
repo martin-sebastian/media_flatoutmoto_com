@@ -601,6 +601,12 @@ th {
   right: 0;
   padding: 10px 0;
 }
+/* Major Unit Keywords-Tags */
+.tag-badge {
+  border-radius: 3px !important;
+  padding: 5px 6px 4px 5px;
+}
+
 
 /* Key Tags */
 .modal {

@@ -22,7 +22,7 @@ function findHtmlEntries(dir, base = '') {
 function copyStaticAssets() {
   const dirs = ['js', 'css', 'img', 'fonts', 'icons'];
   const files = [
-    'worker.js', 'apple-touch-icon.png', 'favicon.ico',
+    'apple-touch-icon.png', 'favicon.ico',
     'hang-tags/hang-tag.js',
     'key-tags/key-tag.js', 'key-tags/zpl-template.js',
     'print/print.js',
