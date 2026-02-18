@@ -11,7 +11,7 @@
   "crons": [
     {
       "path": "/api/sync-unit-inventory",
-      "schedule": "0 */4 * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }
