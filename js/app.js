@@ -2352,7 +2352,7 @@ function updateTable() {
       </td>
 	  <td nowrap>
 		<div class="flex-nowrap d-inline-flex flex-row align-items-center justify-contend-between">
-		  <input type="text" class="form-control" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number"disabled aria-describedby="btnGroupAddon" disabled>
+		  <input type="text" class="form-control form-control-sm" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number"disabled aria-describedby="btnGroupAddon" disabled>
 		  <div class="" id="btnCopyToClipboard">
 			<button type="button" 
 			  class="btn-icon" 

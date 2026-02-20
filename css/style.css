@@ -481,13 +481,16 @@ th.sort-desc::after {
 td {
   vertical-align: middle;
   font-weight: 700;
-  text-transform: uppercase;
 }
-th {
-  font-size: 14px;
+table, tr, td
+ {
+  font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
-  min-width: 100px;
+  min-width: 40 00px;
+}
+tabel input {
+  font-size: 11px;
 }
 .stock-number-header {
   min-width: 140px;
