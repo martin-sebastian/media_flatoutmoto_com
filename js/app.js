@@ -2345,14 +2345,14 @@ function updateTable() {
       <td data-column="select" class="text-center" nowrap>
         <input type="checkbox" class="form-check-input fs-6 tv-grid-select" data-stock="${stockNumber}" title="Select for TV Grid">
       </td>
-      <td data-column="image" class="text-center" nowrap>
+      <td data-column="image" class="" nowrap>
         <a href="${webURL}" target="_blank">
-          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 60, 40)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" />`}
+          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 60, 40)}" width="60px" height="40px" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" />`}
         </a>
       </td>
 	  <td nowrap>
 		<div class="flex-nowrap d-inline-flex flex-row align-items-center justify-contend-between">
-		  <input type="text" class="form-control form-control-sm" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number"disabled aria-describedby="btnGroupAddon" disabled>
+		  <input type="text" class="form-control" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number"disabled aria-describedby="btnGroupAddon" disabled>
 		  <div class="" id="btnCopyToClipboard">
 			<button type="button" 
 			  class="btn-icon" 
@@ -2379,7 +2379,7 @@ function updateTable() {
 		>
 	</td>
       <td class="align-middle" nowrap>
-        <span class="model-text text-tooltip" title="${title}">${title}</span>
+        <span class="model-text fw-semibold" title="${title}">${title}</span>
         <p class="small text-muted fw-normal text-truncate overflow-hidden">
          ${modelType} • ${color}
         </p>
