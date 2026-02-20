@@ -348,44 +348,39 @@
 
           <!-- TABLE START -->
           <div class="table-scroll-container rounded-3 border border-1 border-secondary-50">
-              <div class="table-responsive">
-                <table id="vehiclesTable" class="table table-hover">
-                  <colgroup class="my-auto">
-                    <col style="width: 35px" data-column="select">
-                    <col style="width: 75px" data-column="image">
-                    <col style="width: 175px; min-width: 150px; max-width: 200px;">
-                    <col style="width: 70px" data-column="usage">
-                    <col style="width: 70px">
-                    <col style="width: 60px">
-                    <col style="width: auto; min-width: 200px; max-width: 270px !important;">
-                    <col class="hidden" style="width: 5px" data-column="type">
-                    <col class="hidden" style="width: 5px" data-column="color">
-                    <col style="width: 115px" data-column="price">
-                    <col style="width: 70px" data-column="photos">
-                    <col style="width: 90px" data-column="updated">
-                    <col style="width: 125px" data-column="tags">
+              <div class="table-responsive w-100">
+                <table id="vehiclesTable" class="table table-hover w-100">
+                  <colgroup>
+                    <col style="width: 50px" data-column="select">
+                    <col style="width: 85px" data-column="image">
+                    <col style="width: 175px">
+                    <col style="width: 88px" data-column="usage">
+                    <col style="width: 80px">
+                    <col style="width: 80px">
+                    <col data-column="title">
+                    <col style="width: 125px" data-column="price">
+                    <col style="width: 100px" data-column="photos">
+                    <col style="width: 120px" data-column="updated">
+                    <col style="width: 160px" data-column="tags">
                     <col style="width: 250px">
                   </colgroup>
-                  <thead class="py-2">
+                  <thead>
                     <tr class="border-bottom">
-                      <th class="no-wrap align-center text-center" style="cursor: default;" data-column="select" data-no-sort>
-                        <div class="p-1">
+                      <th class="no-wrap p-1 align-middle text-center" style="cursor: default;" data-column="select" data-no-sort>
                           <input type="checkbox" class="form-check-input fs-6" id="selectAllCheckbox" title="Select all">
-                        </div>
                       </th>
-                      <th class="no-wrap text-center" style="cursor: default;" data-column="image" data-no-sort>Image</th>
-                      <th class="no-wrap p-2 text-start stock-number-header">Stock #</th>
-                      <th class="no-wrap p-2 text-center" data-column="usage">Usage</th>
-                      <th class="no-wrap p-2 text-center">Year</th>
-                      <th class="no-wrap p-2 text-center">Manuf.</th>
-                      <th class="no-wrap p-2">Model</th>
-                      <th class="no-wrap p-2 hidden" data-column="type">Type</th>
-                      <th class="no-wrap p-2 hidden" data-column="color">Color</th>
-                      <th class="no-wrap p-2 text-center" data-column="price">Web Price</th>
-                      <th class="no-wrap p-2 text-center" data-column="photos">Photos</th>
-                      <th class="no-wrap p-2 text-center" data-column="updated">Updated</th>
-                      <th class="no-wrap p-2 text-start" data-column="tags" data-no-sort>Tags</th>
-                      <th class="no-wrap p-2 text-center" style="cursor: default;" data-no-sort>Create Tags & Quotes</th>
+                      <th class="no-wrap p-1 text-center" style="cursor: default;" data-column="image" data-no-sort>Image</th>
+                      <th class="no-wrap p-1 text-start" data-column="stock-number">Stock #</th>
+                      <th class="no-wrap p-1 text-center" data-column="usage">Usage</th>
+                      <th class="no-wrap p-1 text-center">Year</th>
+                      <th class="no-wrap p-1 text-center">Brand.</th>
+                      <th class="no-wrap p-1 text-start" data-column="title">Title</th>
+            
+                      <th class="no-wrap p-1 text-center" data-column="price">Web Price</th>
+                      <th class="no-wrap p-1 text-center" data-column="photos">Photos</th>
+                      <th class="no-wrap p-1 text-center" data-column="updated">Updated</th>
+                      <th class="no-wrap p-1 text-start" data-column="tags" data-no-sort>Tags</th>
+                      <th class="no-wrap p-1 text-center" style="cursor: default;" data-no-sort>Create Tags & Quotes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -456,27 +451,6 @@
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               <button type="button" class="btn btn-danger" onclick="printOverlayIframe()">
                 Print <i class="bi bi-printer"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal fade" id="newOverlayModal" tabindex="-1" aria-labelledby="newOverlayModal" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-          <div class="modal-content">
-            <div class="modal-header d-print-none" style="display: none;">
-              <h5 class="modal-title" id="pricingModalTitle">OVERLAY PREVIEW</h5>
-              <button type="button" class="btn-close btn-primary bg-light text-dark me-2" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0 m-0 overflow-hidden d-print-none">
-              <button type="button" class="btn btn-outline-secondary position-absolute top-0 end-0 mt-2 me-4" title="Esc" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i></button>
-              <iframe id="newOverlayIframe" src="" frameborder="0" class="m-0 p-0 border-0 w-100 h-100 shadow-lg" style="border: 0; margin: 0; padding: 0; height:100%;"></iframe>
-            </div>
-            <div class="modal-footer d-print-none" style="display: none;">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-danger" onclick="printNewOverlayIframe()">
-                <i class="bi bi-printer me-2"></i> Print
               </button>
             </div>
           </div>

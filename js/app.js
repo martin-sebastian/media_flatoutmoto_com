@@ -2007,14 +2007,6 @@ function openOverlayModal(stockNumber) {
 	overlayModal.show();
 }
 
-function openNewOverlayModal(stockNumber) {
-	const modalIframe = document.getElementById("newOverlayIframe");
-	modalIframe.src = `./overlay/?search=${stockNumber}`;
-	const overlayModal = new bootstrap.Modal(
-		document.getElementById("newOverlayModal"),
-	);
-	overlayModal.show();
-}
 
 function openServiceCalendarModal() {
 	const modalIframe = document.getElementById("serviceCalendarIframe");
@@ -2033,18 +2025,6 @@ function printIframeContent() {
 	}
 }
 
-function printNewOverlayIframe() {
-	const iframe = document.getElementById("newOverlayIframe");
-	const printFrame = document.getElementById("printFrame");
-
-	// Copy content from overlay iframe to print frame
-	printFrame.srcdoc = iframe.contentDocument.documentElement.outerHTML;
-
-	// Wait for content to load then print
-	printFrame.onload = function () {
-		printFrame.contentWindow.print();
-	};
-}
 
 /**
  * Sort the table by clicking a column header.
@@ -2197,7 +2177,6 @@ function initializeModalFocusGuards() {
 		"keytagModal",
 		"hangTagsModal",
 		"overlayModal",
-		"newOverlayModal",
 		"serviceCalendarModal",
 		"roTagModal",
 		"textMessageModal",
@@ -2368,12 +2347,12 @@ function updateTable() {
       </td>
       <td data-column="image" class="text-center" nowrap>
         <a href="${webURL}" target="_blank">
-          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 100, 67)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" />`}
+          ${imageUrl !== "N/A" ? `<img src="${getThumbUrl(imageUrl, 60, 40)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='./img/noimage.png';" />` : `<img src="./img/noimage.png" alt="No image" />`}
         </a>
       </td>
 	  <td nowrap>
 		<div class="input-group input-group-sm flex-nowrap">
-		  <input type="text" class="form-control mx-2 " style="width: 50px;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
+		  <input type="text" class="form-control mx-0 " style="width: 50px;" name="stockNumber" value="${stockNumber}" placeholder="Stock Number" title="${stockNumber}" aria-label="stock number" aria-describedby="btnGroupAddon">
 		  <div class="input-group-text" id="btnGroupAddon">
 			<button type="button" 
 			  class="btn-icon" 
@@ -2399,7 +2378,7 @@ function updateTable() {
 		>
 	</td>
       <td class="align-middle" nowrap>
-        <h6 class="w-100 model-text h6 mb-0 mt-3 text-tooltip" title="${title}" data-bs-toggle="tooltip" data-bs-placement="top">${title}</h6>
+        <span class="w-100 model-text h6 mb-0 mt-3 text-tooltip" title="${title}" data-bs-toggle="tooltip" data-bs-placement="top">${title}</span>
         <p class="fs-6 small text-muted text-capitalize text-truncate overflow-hidden">
          ${modelType} ${color}
         </p>
@@ -2407,14 +2386,12 @@ function updateTable() {
         ${stockNumber} ${vin} ${usage} ${year} ${manufacturer} ${modelName} ${modelType} ${color} ${updatedDate?.format("YYYY-MM-DD") ?? ""}
         </span>
       </td>
-      <td data-column="type" class="hidden"><span class="column-type text-tooltip" title="${modelType}" data-bs-toggle="tooltip" data-bs-placement="top">${modelType}</span></td>
-      <td class="color-cell hidden" data-column="color"><span class="column-color text-tooltip" title="${color}" data-bs-toggle="tooltip" data-bs-placement="top">${color}</span></td>
+
       <td data-column="price" class="text-center" nowrap>
-        <span class="badge text-bg-success fs-6 fw-bold price-badge">${webPrice}</span>
+        <span class="badge text-bg-success fs-6 small fw-bold price-badge"><small>${webPrice}<small></span>
       </td>
       
-
-      <td class="text-center" data-column="photos" nowrap>
+      <td class="text-center p-4" data-column="photos" nowrap>
 		${
 			parseInt(imageElements) > 10 ?
 				`<span class="photos-status text-tooltip" title="In-House Photos Done" data-bs-toggle="tooltip" data-bs-placement="top"><i class="bi bi-camera2 text-warning"></i><span class="visually-hidden" style="font-size: 10px;">FOM PHOTOS</span></span>`
@@ -2422,8 +2399,8 @@ function updateTable() {
 		}
       </td>
 
-	  <td data-column="updated" class="text-center" nowrap>
-        	<span class="badge text-secondary p-2 fw-semibold border updated-badge"
+	  <td data-column="updated" class="text-start p-4" nowrap>
+        	<span class="badge text-secondary fw-semibold border updated-badge"
               title="${updatedDate?.format("MM-DD-YYYY") ?? "N/A"}"
               data-bs-toggle="tooltip"
               data-bs-placement="top">
@@ -2445,163 +2422,76 @@ function updateTable() {
         </div>
       </td>
 
-      <td class="text-center nowrap action-cell p-1">
+      <td class="text-center action-cell p-2" nowrap>
 		<div class="action-button-group btn-group btn-group-sm rounded-5" role="group" aria-label="Button group with nested dropdown">
-				<button type="button" id="keytagModalButton" class="btn btn-danger" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
-					<i class="bi bi-phone rotated-label mx-1"></i>
-					<span class="action-button-label px-2 visually-hidden">KEY TAG</span>
-				</button>
-				<button type="button" id="hangTagModalButton" class="btn btn-danger px-2" onclick="openHangTagsModal('${stockNumber}')">
-					<i class="bi bi-tags mx-1"></i>
-					<span class="action-button-label px-2 visually-hidden">Hang TAG</span>
-				</button>
-				<button type="button" id="quotePageButtom" class="btn btn-danger" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
-					<i class="bi bi-card-heading mx-1"></i>
-					<span class="action-button-label px-2 visually-hidden">Quote</span>
-				</button>
-				<button 
-					type="button"
-					class="btn btn-danger"
-					title="Goto TV Display Launcher"
-					onclick="openTvWorkspaceModal('${stockNumber}')">
-					<i class="bi bi-tv dropdown-icon mx-1"></i>
-					<span class="action-button-label px-2 visually-hidden">TV Display</span>
-				</button>
+			<button type="button" id="keytagModalButton" class="btn btn-danger" title="Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
+				<i class="bi bi-phone rotated-label mx-1"></i>
+				<span class="action-button-label px-2 visually-hidden">KEY TAG</span>
+			</button>
+			<button type="button" id="hangTagModalButton" class="btn btn-danger px-2" onclick="openHangTagsModal('${stockNumber}')">
+				<i class="bi bi-tags mx-1"></i>
+				<span class="action-button-label px-2 visually-hidden">Hang TAG</span>
+			</button>
+			<button type="button" id="quotePageButtom" class="btn btn-danger" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
+				<i class="bi bi-card-heading mx-1"></i>
+				<span class="action-button-label px-2 visually-hidden">Quote</span>
+			</button>
+			<button 
+				type="button"
+				class="btn btn-danger"
+				title="Goto TV Display Launcher"
+				onclick="openTvWorkspaceModal('${stockNumber}')">
+				<i class="bi bi-tv dropdown-icon mx-1"></i>
+				<span class="action-button-label px-2 visually-hidden">TV Display</span>
+			</button>
 
 			<div class="btn-group rounded-start" role="group">
 				<button type="button" class="btn btn-danger rounded-end" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
 					<i class="bi bi-chevron-expand"></i>
 				</button>
 				<ul class="dropdown-menu small text-capitalize text-start overflow-hidden dropdown-menu-end">
-
 					<li class="small">
 						<a href="javascript:void(0);" type="button" id="keytagModalButton" class="dropdown-item pe-5" title="Print Key Tags" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
 							<i class="bi bi-tag dropdown-icon small me-2"></i>
 							Print Key Tags
 						</a>
 					</li>
-
-
 					<li class="small">
 						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Print Hang Tags" onclick="openHangTagsModal('${stockNumber}')">
 							<i class="bi bi-tags dropdown-icon small me-2"></i>
 							Print Hang Tags
 						</a>
 					</li>
-
-					<li><hr class="dropdown-divider m-0"></li>
-
+					<li><hr class="dropdown-divider m-1"></li>
 					<li class="small">
 						<a href="javascript:void(0);" class="dropdown-item pe-5" title="Create Quote Image for texting" onclick="window.location.href = 'quote/?search=${stockNumber}'">
 							<i class="bi bi-card-image dropdown-icon small me-2"></i>
 							Create Quote for SMS
 						</a>
 					</li>
-
-
-					<li class="small d-none">
-						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openOverlayModal('${stockNumber}')">
-							<i class="bi bi-card-image dropdown-icon small me-2"></i>
-							Build a Quote
-						</a>
-					</li>
-					
-					
-
-					<li class="d-none">
-						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="openQuoteModal('${stockNumber}')">
-						<i class="bi bi-card-heading dropdown-icon small me-1"></i>
-						Print Quote</a>
-					</li>
-
 					<li class="small">
 						<a class="dropdown-item pe-5" href="javascript:void(0);" onclick="window.location.href = 'print/?s=${stockNumber}'">
 						<i class="bi bi-card-heading dropdown-icon small me-2"></i>
 						Generate PDF Brochure</a>
 					</li>
-					
-					<li><hr class="dropdown-divider m-0"></li>
+					<li><hr class="dropdown-divider m-1"></li>
 					<li class="small">
 						<a class="dropdown-item pe-5" href="javascript:void(0);" title="Vehicle Details" onclick="window.location.href = 'details/?s=${stockNumber}'">
 						<i class="bi bi-card-heading dropdown-icon small me-2"></i>
 						Vehicle Details</a>
 					</li>
-					
-					<li><hr class="dropdown-divider m-0"></li>
-
-						<li class="small">
-							<a 
-							href="javascript:void(0);" 
-							type="button"
-							class="dropdown-item pe-5"
-							title="Goto TV Display Launcher"
-							onclick="openTvWorkspaceModal('${stockNumber}')">
-							<i class="bi bi-tv dropdown-icon small me-2"></i>TV Display</a>
-						</li>
+					<li><hr class="dropdown-divider m-1"></li>
+					<li class="small">
+						<a 
+						href="javascript:void(0);" 
+						type="button"
+						class="dropdown-item pe-5"
+						title="Goto TV Display Launcher"
+						onclick="openTvWorkspaceModal('${stockNumber}')">
+						<i class="bi bi-tv dropdown-icon small me-2"></i>TV Display</a>
+					</li>
 				</ul>
-			</div>
-		</div>
-	
-
-        <div class="button-group d-none" role="group" aria-label="Vehicles">
-        	<!-- Dropdown for creating keytags, hang tags, quotes, tv displays -->
-			<div class="dropdown d-inline-block">
-				<button class="btn btn-dark btn-sm rounded-pill px-3 d-flex align-items-center dropdown-toggle mx-1 no-caret" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
-					<i class="bi bi-card-image ms-1 me-2"></i> <i class="bi bi-card-heading mx-1"></i> <i class="bi bi-tv mx-1"></i> 
-				</button>
-			</div>
-		
-
-				<!-- hidden buttons for now -->          
-				<div class="d-none">
-				<button type="button" id="keytagModalButton" class="btn btn-danger action-button mx-1" title="Print Key Tag" data-bs-toggle="modal" data-bs-target="#keytagModal" data-bs-stocknumber="${stockNumber}">
-					<i class="bi bi-tag"></i>
-					<span style="font-size:10px; text-transform:uppercase;">Key Tags</span>
-				</button>
-
-				<button type="button" class="btn btn-danger action-button mx-1" title="Print Hang Tags" data-bs-toggle="modal" data-bs-target="#hangTagsModal" data-bs-stocknumber="${stockNumber}" onclick="openHangTagsModal('${stockNumber}')">
-					<i class="bi bi-tags"></i>
-					<span style="font-size:10px; margin-top:-10px; padding:0; text-transform:uppercase;">Hang Tags</span>
-				</button>
-				
-				<btn
-					href="javascript:void(0);" 
-					type="button" 
-					class="btn btn-danger action-button mx-1"
-					title="Quote this vehicle"
-					onclick="window.location.href = 'quote/?search=${stockNumber}'"
-				>
-					<i class="bi bi-card-heading"></i>
-					<span style="font-size:10px; text-transform:uppercase;">Quote</span>
-				</btn>
-
-				<btn
-					href="javascript:void(0);" 
-					type="button"
-					class="d-none btn btn-danger action-button mx-1"
-					title="Goto TV Display Launcher"
-					onclick="window.location.href = 'tv/?stockInput=${stockNumber}'"
-				>
-					<i class="bi bi-tv"></i>
-					<span style="font-size:10px; text-transform:uppercase;">TV DISPLAY</span>
-				</btn>
-
-				<btn
-					href="javascript:void(0);" 
-					type="button" 
-					class="btn btn-danger action-button mx-1"
-					style="display: none;"
-					title="Pricing"
-					data-bs-toggle="modal"
-					data-bs-target="#pricingModal"
-					onclick="openNewOverlayModal('${stockNumber}')"
-				>
-					<i class="bi bi-card-heading"></i>
-					<span style="font-size:10px; text-transform:uppercase;">Overlay</span>
-				</btn>
-			</div>
-
-        </div>  
+			</div>    
       </td>`;
 
 		fragment.appendChild(row);

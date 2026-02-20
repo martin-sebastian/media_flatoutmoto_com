@@ -1,11 +1,12 @@
-/* Force the table to respect the widths you defined */
+/* Fixed layout for predictable columns; min-width triggers scroll on small screens */
 #vehiclesTable {
     table-layout: fixed;
     width: 100%;
+    min-width: 1300px;
     border-collapse: separate;
 }
 
-/* Prevent vertical jumping by locking row height */
+/* Lock row height and clip overflow in non-flexible columns */
 #vehiclesTable th,
 #vehiclesTable td {
     white-space: nowrap;
@@ -13,6 +14,14 @@
     text-overflow: ellipsis;
     vertical-align: middle;
     height: 45px;
+}
+
+/* Hide toggled-off columns (removes from layout) */
+#vehiclesTable .column-hidden,
+#vehiclesTable col.visually-hidden,
+#vehiclesTable th.visually-hidden,
+#vehiclesTable td.visually-hidden {
+    display: none !important;
 }
 
 /* Constrain thumbnail images to their column */

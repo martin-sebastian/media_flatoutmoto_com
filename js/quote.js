@@ -5,11 +5,42 @@
  * Main application configuration settings
  */
 const CONFIG = {
-  API_URL: "https://newportal.flatoutmotorcycles.com/portal/public/api", // Base API endpoint for vehicle data
-  MAIN_LOTS: ["SUZ", "KAW", "POL", "PREOWNED", "PRE OWNED"], // Vehicle lot categories for inventory status
-  DEFAULT_INTEREST_RATE: 6.99, // Default APR for payment calculations
-  CUSTOM_ACCESSORY_ROWS: 4, // Number of blank accessory input rows
+  API_URL: "https://newportal.flatoutmotorcycles.com/portal/public/api",
+  MAIN_LOTS: ["SUZ", "KAW", "POL", "PREOWNED", "PRE OWNED"],
+  MIN_ACCESSORY_ROWS: 2,
 };
+
+/** Finance defaults — overridden by Supabase tv_display_settings when available */
+const QUOTE_FINANCE = {
+  apr: 6.99,
+  downPaymentPercent: 10,
+  termMonths: 60,
+  salesTaxRate: 0.07,
+};
+
+/** Fetch finance settings from Supabase tv_display_settings table */
+async function fetchQuoteSettings() {
+  const url = import.meta.env?.VITE_SUPABASE_URL;
+  const key = import.meta.env?.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/tv_display_settings?select=setting_key,setting_value`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const cfg = {};
+    for (const r of rows) cfg[r.setting_key] = Number(r.setting_value);
+    if (cfg.apr != null) QUOTE_FINANCE.apr = cfg.apr;
+    if (cfg.down_payment_percent != null) QUOTE_FINANCE.downPaymentPercent = cfg.down_payment_percent;
+    if (cfg.term_months != null) QUOTE_FINANCE.termMonths = cfg.term_months;
+    if (cfg.sales_tax_rate != null) QUOTE_FINANCE.salesTaxRate = cfg.sales_tax_rate / 100;
+    console.log("[Quote Settings] Loaded from Supabase:", QUOTE_FINANCE);
+  } catch (e) {
+    console.warn("[Quote Settings] Using defaults — fetch failed:", e.message);
+  }
+}
 
 /**
  * CUSTOM ACCESSORIES STORAGE
@@ -276,8 +307,11 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
   console.log("DOM Content Loaded");
+
+  // Load finance defaults from Supabase before building the quote
+  await fetchQuoteSettings();
 
   // Initialize Alpine.js data at the body level
   document.body.setAttribute(
@@ -474,7 +508,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Remove accessoryImageMap since we don't need it anymore
       var carouselImages = "";
 
-      i = 0;
+      let i = 0;
       while (i < data.Images.length) {
         // Create carousel slide with simplified caption
         carouselImages += `
@@ -596,14 +630,14 @@ document.addEventListener("DOMContentLoaded", function () {
       // Freebie items - 3 items allowed
       var freebieItemsTemplate = ``;
 
-      i = 0;
-      while (i < 3) {
-        if (data.FreeItems[i]) {
-          freebieItemsTemplate += `<li class="list-group-item"><em>${data.FreeItems[i].Description} (value: ${numeral(data.FreeItems[i].Amount).format(
+      let j = 0;
+      while (j < 3) {
+        if (data.FreeItems[j]) {
+          freebieItemsTemplate += `<li class="list-group-item"><em>${data.FreeItems[j].Description} (value: ${numeral(data.FreeItems[j].Amount).format(
             "$0,0.00"
           )})</em> <span class="float-end">Free</span></li>`;
         }
-        i++;
+        j++;
       }
 
       
@@ -654,56 +688,56 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Feature Highlights Card
-      i = 0;
+      let k = 0;
       var muImageCardTemplate = ``;
       if (data.AccessoryItems.length) {
         //data.AccessoryItems.sort((a, b) => a.Number - b.Number);
 
-        while (i < data.AccessoryItems.length) {
-          if (data.AccessoryItems[i].ImgURL && data.AccessoryItems[i].Included === false) {
+        while (k < data.AccessoryItems.length) {
+          if (data.AccessoryItems[k].ImgURL && data.AccessoryItems[k].Included === false) {
             muImageCardTemplate += `
 			<div class="accessory-items-card">
 				<div class="mu-feature-card">
 					<img style="width: 100%;"
-					src="${data.AccessoryItems[i].ImgURL}">
+					src="${data.AccessoryItems[k].ImgURL}">
 					<div style="padding: 10px;">
-					<h4 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[i].Description}</h4>
-					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[i].ImageDescription}</p>
-					<h4 class="bold" style="margin: 0 5px;">$${data.AccessoryItems[i].Amount}</h4>
+					<h4 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[k].Description}</h4>
+					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[k].ImageDescription}</p>
+					<h4 class="bold" style="margin: 0 5px;">$${data.AccessoryItems[k].Amount}</h4>
 					</div>
 				</div>
 			</div>
 			`;
-          } else if (data.AccessoryItems[i].ImgURL && data.AccessoryItems[i].Included === true && data.AccessoryItems[i].Amount > 0) {
+          } else if (data.AccessoryItems[k].ImgURL && data.AccessoryItems[k].Included === true && data.AccessoryItems[k].Amount > 0) {
             muImageCardTemplate += `
 			<div class="accessory-items-cards">
 				<div class="mu-feature-card">
 					<img style="width: 100%;"
-					src="${data.AccessoryItems[i].ImgURL}">
+					src="${data.AccessoryItems[k].ImgURL}">
 					<div style="padding: 10px;">
-					<h4 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[i].Description}</h4>
-					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[i].ImageDescription}</p>
-					<h4 class="bold" style="margin: 0 5px;"><small>Value:</small> $${data.AccessoryItems[i].Amount} <small>Item included in price</small></h4>
+					<h4 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[k].Description}</h4>
+					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[k].ImageDescription}</p>
+					<h4 class="bold" style="margin: 0 5px;"><small>Value:</small> $${data.AccessoryItems[k].Amount} <small>Item included in price</small></h4>
 					</div>
 				</div>
 			</div>
 			`;
-          } else if (data.AccessoryItems[i].ImgURL && data.AccessoryItems[i].Included === true && data.AccessoryItems[i].Amount === 0) {
+          } else if (data.AccessoryItems[k].ImgURL && data.AccessoryItems[k].Included === true && data.AccessoryItems[k].Amount === 0) {
             muImageCardTemplate += `
 			<div class="accessory-items-list">
 				<div class="mu-feature-card">
 					<img style="width: 100%;"
-					src="${data.AccessoryItems[i].ImgURL}">
+					src="${data.AccessoryItems[k].ImgURL}">
 					<div style="padding: 10px;">
-					<h5 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[i].Description}</h5>
-					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[i].ImageDescription}</p>
+					<h5 class="bold" style="margin: 0 5px; padding: 5px 0">${data.AccessoryItems[k].Description}</h5>
+					<p style="margin: 0 6px; height: 35px;">${data.AccessoryItems[k].ImageDescription}</p>
 					<h4 class="bold" style="margin: 0 5px;"><small>Item included in price</small></h4>
 					</div>
 				</div>
 			</div>
 			`;
           }
-          i++;
+          k++;
         }
       }
 
@@ -773,69 +807,19 @@ document.addEventListener("DOMContentLoaded", function () {
       </div>
     `;
 
-      // Boat Terms for Payment Calculator
-      var loanTerms = ``;
-      if (data.B50ModelType === "Pontoons") {
-        loanTerms += `
-		<label class="btn btn-danger term-button">
-		<input type="radio" name="months" id="option1" value="24" onChange="showpay()"> 24
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option2" value="36" onChange="showpay()"> 36
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option3" value="48" onChange="showpay()"> 48
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option4" value="60" onChange="showpay()"> 60
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option5" value="72" onChange="showpay()"> 72
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option6" value="84" onChange="showpay()"> 84
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option7" value="96" onChange="showpay()"> 96
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option8" value="108" onChange="showpay()"> 108
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option9" value="120" onChange="showpay()"> 120
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option10" value="144" onChange="showpay()"> 144
-		</label>
-		<label class="btn btn-danger term-button active">
-			<input type="radio" name="months" id="option11" value="180" checked onChange="showpay()"> 180
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option12" value="210" onChange="showpay()"> 210
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option13" value="240" onChange="showpay()"> 240
-		</label>
-		`;
-      } else {
-        loanTerms += `
-		<label class="btn btn-danger term-button">
-		<input type="radio" name="months" id="option1" value="24" onChange="showpay()"> 24
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option2" value="36" onChange="showpay()"> 36
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option3" value="48" onChange="showpay()"> 48
-		</label>
-		<label class="btn btn-danger term-button active">
-			<input type="radio" name="months" id="option4" value="60" checked onChange="showpay()"> 60
-		</label>
-		<label class="btn btn-danger term-button">
-			<input type="radio" name="months" id="option5" value="72" onChange="showpay()"> 72
-		</label>
-		`;
-      }
+      // Build loan term buttons dynamically from Supabase-loaded defaults
+      const boatTermValues = [24, 36, 48, 60, 72, 84, 96, 108, 120, 144, 180, 210, 240];
+      const vehicleTermValues = [24, 36, 48, 60, 72];
+      const termValues = data.B50ModelType === "Pontoons" ? boatTermValues : vehicleTermValues;
+      const defaultTerm = QUOTE_FINANCE.termMonths;
+      const hasDefault = termValues.includes(defaultTerm);
+
+      var loanTerms = termValues.map((val, i) => {
+        const isDefault = hasDefault ? val === defaultTerm : (i === termValues.length - 1);
+        return `<label class="btn btn-danger term-button${isDefault ? ' active' : ''}">
+          <input type="radio" name="months" id="option${i + 1}" value="${val}"${isDefault ? ' checked' : ''} onChange="showpay()"> ${val}
+        </label>`;
+      }).join('\n');
       
 
       // Payment Calculator
@@ -881,7 +865,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 							<div class="slider-row">
                 <span class="credit-slider-label">0%</span>
-                  <input name="downpayment" type="range" min="0.00" max="30.00" value="10" step="5" class="range-slider downpayment-bg" id="downpaymentRange" onChange="showpay()">
+                  <input name="downpayment" type="range" min="0.00" max="30.00" value="${QUOTE_FINANCE.downPaymentPercent}" step="5" class="range-slider downpayment-bg" id="downpaymentRange" onChange="showpay()">
                 <span class="credit-slider-label">30%</span>
               </div>
             </div>
@@ -893,7 +877,7 @@ document.addEventListener("DOMContentLoaded", function () {
 							
 							<div class="slider-row">
                 <span class="credit-slider-label">LOW</span>
-                <input name="rate" type="range" min="3.99" max="19.99" value="6.99" step="1" class="range-slider credit-bg" id="percentRange" onChange="showpay()">
+                <input name="rate" type="range" min="3.99" max="19.99" value="${QUOTE_FINANCE.apr}" step="1" class="range-slider credit-bg" id="percentRange" onChange="showpay()">
                 <span class="credit-slider-label">HIGH</span>
               </div>
             </div>
@@ -1758,71 +1742,68 @@ function initializeSidebarState() {
  * Functions to add, remove, and manage user-added accessories
  */
 
-/**
- * Initialize the custom accessories input form in the sidebar
- * Creates multiple blank input rows for adding accessories
- */
+/** Renders a single accessory input row */
+function buildAccessoryRowHtml(index, acc) {
+  return `
+    <div class="form-group d-flex flex-row align-items-center accessory-row" data-index="${index}">
+      <input type="text" class="form-control form-control-sm flex-grow-1 me-1"
+        id="accessoryName${index}" placeholder="Accessory" value="${acc.name || ""}"
+        oninput="updateCustomAccessory(${index})">
+      <input type="number" class="form-control form-control-sm text-end ms-1"
+        id="accessoryPrice${index}" placeholder="$0" value="${acc.price || ""}"
+        style="width:90px" oninput="updateCustomAccessory(${index})">
+      <button type="button" class="btn btn-outline-secondary btn-sm border-0 ms-1 p-0 px-1"
+        onclick="removeAccessoryRow(${index})" title="Remove"><i class="bi bi-x"></i></button>
+    </div>`;
+}
+
+/** Renders all accessory input rows in the sidebar */
 function initializeCustomAccessoriesForm() {
   const container = document.getElementById("customAccessoriesInputs");
   if (!container) return;
-
+  const rowCount = Math.max(customAccessories.length, CONFIG.MIN_ACCESSORY_ROWS);
   let html = "";
-  for (let i = 0; i < CONFIG.CUSTOM_ACCESSORY_ROWS; i++) {
-    const acc = customAccessories[i] || { name: "", price: "" };
-    html += `
-      <div class="form-group d-flex flex-row align-items-center accessory-row" data-index="${i}">
-        <input
-          type="text"
-          class="form-control form-control-sm flex-grow-1 me-1 mb-2 mt-2"
-          id="accessoryName${i}"
-          placeholder="Accessory Name"
-          value="${acc.name || ""}"
-          oninput="updateCustomAccessory(${i})"
-        />
-        <input
-          type="number"
-          class="form-control form-control-sm text-end ms-1 mb-2 mt-2"
-          id="accessoryPrice${i}"
-          placeholder="$0.00"
-          value="${acc.price || ""}"
-          style="width: 100px;"
-          oninput="updateCustomAccessory(${i})"
-        />
-      </div>
-    `;
+  for (let i = 0; i < rowCount; i++) {
+    html += buildAccessoryRowHtml(i, customAccessories[i] || { name: "", price: "" });
   }
   container.innerHTML = html;
 }
 
-/**
- * Update a custom accessory from form input
- * @param {number} index - Index of the accessory row
- */
+/** Appends a new blank accessory row */
+function addAccessoryRow() {
+  const container = document.getElementById("customAccessoriesInputs");
+  if (!container) return;
+  const index = container.querySelectorAll(".accessory-row").length;
+  container.insertAdjacentHTML("beforeend", buildAccessoryRowHtml(index, { name: "", price: "" }));
+}
+window.addAccessoryRow = addAccessoryRow;
+
+/** Removes a row by index and re-renders to keep indices contiguous */
+function removeAccessoryRow(index) {
+  customAccessories.splice(index, 1);
+  saveCustomAccessories();
+  initializeCustomAccessoriesForm();
+  renderCustomAccessoriesOnQuote();
+  recalculatePrices();
+}
+window.removeAccessoryRow = removeAccessoryRow;
+
+/** Updates a single accessory from its form inputs */
 window.updateCustomAccessory = function updateCustomAccessory(index) {
   const nameInput = document.getElementById(`accessoryName${index}`);
   const priceInput = document.getElementById(`accessoryPrice${index}`);
-
   if (!nameInput || !priceInput) return;
 
   const name = nameInput.value.trim();
   const price = parseFloat(priceInput.value) || 0;
+  customAccessories[index] = (name || price > 0) ? { name, price } : null;
 
-  // Update or create the accessory entry
-  if (name || price > 0) {
-    customAccessories[index] = { name, price };
-  } else {
-    customAccessories[index] = null;
-  }
-
-  // Save and re-render
   saveCustomAccessories();
   renderCustomAccessoriesOnQuote();
   recalculatePrices();
 }
 
-/**
- * Clear all custom accessories
- */
+/** Clears all custom accessories and resets the form */
 function clearAllCustomAccessories() {
   customAccessories = [];
   saveCustomAccessories();
@@ -1830,7 +1811,6 @@ function clearAllCustomAccessories() {
   renderCustomAccessoriesOnQuote();
   recalculatePrices();
 }
-// Export for inline onclick handler
 window.clearAllCustomAccessories = clearAllCustomAccessories;
 
 /**
